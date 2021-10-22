@@ -84,7 +84,7 @@ def main():
             else:
                 sarscov2_coords[feature.qualifiers["gene"][0]] = {"product" : feature.qualifiers["product"][0]}
 
-    go_fasta_samples = variants_parser("variants.csv")
+    go_fasta_samples = variants_parser(args.input_csv)
     samples = get_variant_info(copy.deepcopy(go_fasta_samples),copy.deepcopy(sarscov2_coords)) #passing a deepcopy of the nested dictionary structure to prevent function modifying the mutable input dictionary. Not sure when this would be a problem but better to keep them separate
     with open(args.output_file, 'w') as outfile:
         json.dump(samples, outfile)
