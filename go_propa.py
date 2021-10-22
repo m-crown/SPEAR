@@ -18,14 +18,15 @@ def variants_parser(variants_list):
         csvreader = csv.reader(file)
         header = next(csvreader)
         for sample in csvreader:
-            samples[sample[0]] = {}
-            for var in sample[1].split("|"): #split out pipe delimited variants
-                gene, pos = var.split(":") #split variant call into gene and position
-                if gene in samples[sample[0]].keys(): #check if the gene already exists in nested dictionary keys
-                    if pos not in samples[sample[0]][gene].keys(): #deduplicate the output from gofasta sam variants - particularly needed for orf1ab variants which are in orf1a and orf1ab
-                        samples[sample[0]][gene][pos] = {} #append position to exiting list for this gene
-                else:
-                    samples[sample[0]][gene] = {pos: {}} #if gene doesnt already exist in nested dictionary create the key and set values to be a list including the position
+            if sample[1] != '':
+                samples[sample[0]] = {}
+                for var in sample[1].split("|"): #split out pipe delimited variants
+                    gene, pos = var.split(":") #split variant call into gene and position
+                    if gene in samples[sample[0]].keys(): #check if the gene already exists in nested dictionary keys
+                        if pos not in samples[sample[0]][gene].keys(): #deduplicate the output from gofasta sam variants - particularly needed for orf1ab variants which are in orf1a and orf1ab
+                            samples[sample[0]][gene][pos] = {} #append position to exiting list for this gene
+                    else:
+                        samples[sample[0]][gene] = {pos: {}} #if gene doesnt already exist in nested dictionary create the key and set values to be a list including the position
     return samples
 
 def get_variant_info(samples, coords):
