@@ -6,6 +6,8 @@
 from Bio import SeqIO
 import csv
 import copy
+import argparse
+import json
 
 def variants_parser(variants_list):
     '''
@@ -43,9 +45,31 @@ def get_variant_info(samples, coords):
                                 break
     return samples
 
+#NEED TO WRITE A FUNCTION TO PARSE THE OUTPUT AND RETRIEVE VARIANTS IN CSV FORMAT? OR JUST HAVE IT OUTPUT A CSV VERSION TOO 
+
 def main():
-    orf1ab_gb = SeqIO.read(open("data/ORF1ab.gp","r"), "genbank")
-    sarscov2_gb = SeqIO.read(open("data/NC_045512.2.gb", "r"), "genbank")
+    parser = argparse.ArgumentParser(description='Encrypts user defined fields in JSON file with supplied encryption key')
+    parser.add_argument('-i', '--input_csv', metavar='', type=str,
+                    help='Input variant csv file')
+    parser.add_argument('-o', '--output_file', metavar='', type=str,
+                    help='Destination file for updated variant list')
+    parser.add_argument('-d', '--data', metavar='', type=str,
+                    help='location of genbank/genpept files')
+
+    args = parser.parse_args()
+
+    print("Running with the following parameters:\nInput file: ", args.input_csv, "\nOutput file: ", args.output_file, "\n", "Data Loc: ", args.data, "\n")
+
+    # #check what the input file type is (csv or json) - this is probably not necessary for dehashing a report but keeping in just in case its needed
+    # if args.input_file.endswith('.json'):
+    #     input_file_type = "JSON"
+    #     with open(args.input_file) as json_file:
+    #         data = json.load(json_file)
+
+
+
+    orf1ab_gb = SeqIO.read(open(f'{args.data}/ORF1ab.gp',"r"), "genbank")
+    sarscov2_gb = SeqIO.read(open(f'{args.data}/NC_045512.2.gb', "r"), "genbank")
     sarscov2_coords = {}
     for feature in sarscov2_gb.features:
         if feature.type == "CDS":
@@ -62,9 +86,8 @@ def main():
 
     go_fasta_samples = variants_parser("variants.csv")
     samples = get_variant_info(copy.deepcopy(go_fasta_samples),copy.deepcopy(sarscov2_coords)) #passing a deepcopy of the nested dictionary structure to prevent function modifying the mutable input dictionary. Not sure when this would be a problem but better to keep them separate
-    print(samples)
-    print(go_fasta_samples)
-    print(sarscov2_coords)
+    with open(args.output_file, 'w') as outfile:
+        json.dump(samples, outfile)
 
 if __name__ == "__main__":
     main()
