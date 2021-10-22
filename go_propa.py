@@ -44,8 +44,8 @@ def get_variant_info(samples, coords):
     return samples
 
 def main():
-    orf1ab_gb = SeqIO.read(open("sequence.gp","r"), "genbank")
-    sarscov2_gb = SeqIO.read(open("sequence.gb", "r"), "genbank")
+    orf1ab_gb = SeqIO.read(open("data/ORF1ab.gp","r"), "genbank")
+    sarscov2_gb = SeqIO.read(open("data/NC_045512.2.gb", "r"), "genbank")
     sarscov2_coords = {}
     for feature in sarscov2_gb.features:
         if feature.type == "CDS":
