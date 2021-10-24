@@ -77,21 +77,18 @@ def get_variant_info(samples, coords):
 
 def flatten_variants(samples):
     flattened_vars = []
-    flattened_vars.append(["sample", "position", "gene", "product"])
+    flattened_vars.append(["sample","gene", "position","product", "mat-position"])
     for sample , genes in samples.items():
-        sample_variants = []
         for gene, desc in genes.items():
-            if "multi-product" in desc:
-                for var, description in desc.items():
-                    variant_description = [sample, description["sub-position"], gene, description["multi-product"]]
+            for var, description in desc.items():
+                if "multi-product" in description:
+                    variant_description = [sample, gene, var, description["sub-position"], description["multi-product"]]
                     flattened_vars.append(variant_description)
-            elif gene == "synSNP" or gene == "del" or gene == "ins": #the three possible outputs from gofasta which are genomic coords rather than peptide
-                for var in desc.keys():
-                    variant_description = [sample, var, gene, ""]
+                elif gene == "synSNP" or gene == "del" or gene == "ins": #the three possible outputs from gofasta which are genomic coords rather than peptide
+                    variant_description = [sample,gene,var,"",""]
                     flattened_vars.append(variant_description)
-            else:
-                for var, description in desc.items():
-                    variant_description = [sample, var, gene, description["product"]]
+                else:
+                    variant_description = [sample,gene,var,description["product"],var]
                     flattened_vars.append(variant_description)
     return flattened_vars
 
