@@ -77,7 +77,7 @@ def get_variant_info(samples, coords):
 
 def flatten_variants(samples):
     flattened_vars = []
-    flattened_vars.append(["sample","gene", "position","product", "mat-position"])
+    flattened_vars.append(["sample","gene", "position", "mat-position", "product"])
     for sample , genes in samples.items():
         for gene, desc in genes.items():
             for var, description in desc.items():
@@ -88,7 +88,7 @@ def flatten_variants(samples):
                     variant_description = [sample,gene,var,"",""]
                     flattened_vars.append(variant_description)
                 else:
-                    variant_description = [sample,gene,var,description["product"],var]
+                    variant_description = [sample,gene,var,var,description["product"]]
                     flattened_vars.append(variant_description)
     return flattened_vars
 
