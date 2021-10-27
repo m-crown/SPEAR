@@ -66,7 +66,8 @@ def get_variant_info(samples, coords):
                         #If there are more than one item in the placeholder names list join together names and positions with /, else set name/pos to the only matching gene/product.
                         if len(placeholder_names) > 1:
                             name = "/".join(placeholder_names)
-                            pos = "/".join(placeholder_pos)
+                            if len(set(placeholder_pos)) == 1:
+                                pos = placeholder_pos[0]
                         else:
                             name = placeholder_names[0]
                             pos = placeholder_pos[0]
