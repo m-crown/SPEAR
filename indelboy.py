@@ -60,6 +60,7 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     alignments=glob.glob(f'{args.input_dir}/*.muscle.aln')
     for alignment in alignments:
+        print("working on: ", alignment)
         for record in SeqIO.parse(alignment, "fasta"):
             if record.id == args.ref:
                 reference = record
