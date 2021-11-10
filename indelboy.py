@@ -6,6 +6,7 @@ from re import finditer, split
 from effingpropa import parse_vcf, write_vcf
 import pandas as pd
 import glob
+from collections import defaultdict
 
 def get_indels(reference, sample):
     vcf = [f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample.id}'] #set indels vcf header.
@@ -66,22 +67,47 @@ def main():
                 sample = record
 
         indels = get_indels(reference, sample)
-        print(indels)
         if args.write_indels:
             indels.to_csv(Path.joinpath(outdir,f'{sample.id}.indels.tsv'), mode='w', index = False, sep = "\t")
-
         if args.vcf_dir:
             snps_header, snps = parse_vcf(Path.joinpath(Path(args.vcf_dir),f'{sample.id}.vcf'), split_info_cols=False)
+            snps["POS"] = snps["POS"].astype(int)
+            mnps_index = []
+            mnps_pos = []
+            for i in range(1, len(snps)):
+                x = 0
+                mnp_index = []
+                mnp_pos = []
+                if any((i + x) in sl for sl in mnps_index):
+                    continue
+                else:
+                    while snps.loc[i + x, "POS"] - snps.loc[i + x -1, "POS"] == 1:
+                        if x == 0:
+                            mnp_index.append(i + x -1)
+                            mnp_pos.append(snps.loc[i + x -1, "POS"])
+                            mnp_index.append(i + x)
+                            mnp_pos.append(snps.loc[i + x, "POS"])
+                        else:
+                            mnp_index.append(i + x)
+                            mnp_pos.append(snps.loc[i + x, "POS"])
+                        x += 1
+                if len(mnp_index) > 0:
+                    mnps_index.append(mnp_index)
+                    mnps_pos.append(mnp_pos)
+            for index, pos in zip(mnps_index, mnps_pos):
+                snps.loc[index[0],["ID"]] = "."
+                snps.loc[index[0],["REF"]] = str(reference.seq[pos[0] - 1: pos[-1]])
+                snps.loc[index[0],["ALT"]] = str(sample.seq[pos[0] - 1: pos[-1]])
+                snps = snps.drop(index[1:])
+                            
             fatovcf = pd.concat([indels,snps])
             fatovcf["POS"] = fatovcf["POS"].astype(int)
             fatovcf = fatovcf.sort_values(by = ["POS"], ascending = True)
-            cols = fatovcf.columns.to_list()
             csv_vcf = fatovcf
             csv_vcf["#CHROM"] = sample.id
             csv_vcf.to_csv(Path.joinpath(outdir,f'{sample.id}.tsv'), mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
             write_vcf(snps_header, fatovcf,sample.id,outdir) #output the vcf header and body to file 
         else:
-            cols = indels.columns.to_list()
             indels["POS"] = indels["POS"].astype(int)
             indels = indels.sort_values(by = ["POS"], ascending = True)
             csv_vcf = indels

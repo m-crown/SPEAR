@@ -152,7 +152,7 @@ def main():
             Genpept file(s): {args.genpept}
     '''
     print(start_msg)
-
+    
     coords = get_gb_coords(args.genbank, args.genpept)
     samples = variants_parser(args.input_csv)
     #passing a deepcopy of the nested dictionary structure to prevent function modifying the mutable input dictionary. Not sure when this would be a problem but better to keep them separate
