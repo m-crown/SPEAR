@@ -82,7 +82,8 @@ def main():
                 if any((i + x) in sl for sl in mnps_index):
                     continue
                 else:
-                    while snps.loc[i + x, "POS"] - snps.loc[i + x -1, "POS"] == 1 and (i + x) < len(snps):
+                    print(i+x)
+                    while ((i + x) < len(snps)) and (snps.loc[i + x, "POS"] - snps.loc[i + x -1, "POS"] == 1):
                         if x == 0:
                             mnp_index.append(i + x -1)
                             mnp_pos.append(snps.loc[i + x -1, "POS"])
