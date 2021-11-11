@@ -33,11 +33,11 @@ def get_indels(reference, sample):
     indels = sorted(indels, key=lambda d: d['pos'])
     for indel in indels:
         if indel["type"] == "insertion":
-            variant = f'{reference.id}\t{indel["pos"] +1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+            variant = f'{ref}\t{indel["pos"] +1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
             vcf.append(variant)
             offset += indel["length"]
         else:
-            variant = f'{reference.id}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+            variant = f'{ref}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
             vcf.append(variant)
     vcf = pd.DataFrame.from_records([sub.split("\t") for sub in vcf[1:]], columns = vcf[0].split(sep="\t"))
     return vcf
@@ -59,10 +59,16 @@ def main():
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     alignments=glob.glob(f'{args.input_dir}/*.muscle.aln')
+    ref_aliases = ["NC_045512.2", "MN908947.3"]
+    if args.ref in ref_aliases:
+        ref = "NC_045512.2"
+    else:
+        ref = args.ref
+
     for alignment in alignments:
         print("working on: ", alignment)
         for record in SeqIO.parse(alignment, "fasta"):
-            if record.id == args.ref:
+            if record.id == ref:
                 reference = record
             else:
                 sample = record
