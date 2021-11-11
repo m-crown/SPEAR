@@ -33,11 +33,11 @@ def get_indels(reference, sample):
     indels = sorted(indels, key=lambda d: d['pos'])
     for indel in indels:
         if indel["type"] == "insertion":
-            variant = f'{ref}\t{indel["pos"] +1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+            variant = f'{reference.id}\t{indel["pos"] +1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
             vcf.append(variant)
             offset += indel["length"]
         else:
-            variant = f'{ref}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+            variant = f'{reference.id}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
             vcf.append(variant)
     vcf = pd.DataFrame.from_records([sub.split("\t") for sub in vcf[1:]], columns = vcf[0].split(sep="\t"))
     return vcf
@@ -66,9 +66,8 @@ def main():
         ref = args.ref
 
     for alignment in alignments:
-        print("working on: ", alignment)
         for record in SeqIO.parse(alignment, "fasta"):
-            if record.id == ref:
+            if record.id == args.ref:
                 reference = record
             else:
                 sample = record
@@ -110,6 +109,7 @@ def main():
             fatovcf = pd.concat([indels,snps])
             fatovcf["POS"] = fatovcf["POS"].astype(int)
             fatovcf = fatovcf.sort_values(by = ["POS"], ascending = True)
+            fatovcf["#CHROM"] = ref
             csv_vcf = fatovcf
             csv_vcf["#CHROM"] = sample.id
             csv_vcf.to_csv(Path.joinpath(outdir,f'{sample.id}.tsv'), mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
