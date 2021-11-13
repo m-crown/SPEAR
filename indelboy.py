@@ -71,7 +71,6 @@ def main():
                 reference = record
             else:
                 sample = record
-
         indels = get_indels(reference, sample)
         if args.write_indels:
             indels.to_csv(Path.joinpath(outdir,f'{sample.id}.indels.tsv'), mode='w', index = False, sep = "\t")
@@ -110,7 +109,7 @@ def main():
             fatovcf["POS"] = fatovcf["POS"].astype(int)
             fatovcf = fatovcf.sort_values(by = ["POS"], ascending = True)
             fatovcf["#CHROM"] = ref
-            csv_vcf = fatovcf
+            csv_vcf = fatovcf.copy()
             csv_vcf["#CHROM"] = sample.id
             csv_vcf.to_csv(Path.joinpath(outdir,f'{sample.id}.tsv'), mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
             write_vcf(snps_header, fatovcf,sample.id,outdir) #output the vcf header and body to file 
