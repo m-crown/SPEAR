@@ -100,31 +100,34 @@ def main():
   for vcf in vcfs:
     basename = Path(vcf).stem.split('.')[0]
     header, df, infocols = parse_vcf(vcf)
-    header.append(f'"##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Position | Product | Peptide Position\'">')
-    #find a way to get these header names automatically from the header list
-    df[["Allele", "Annotation", "Annotation_Impact", "Gene_Name", "Gene_ID", "Feature_Type", "Feature_ID", "Transcript_BioType", "Rank", "HGVS.c", "HGVS.p", "cDNA.pos / cDNA.length", "CDS.pos / CDS.length", "AA.pos / AA.length", "Distance", "ERRORS / WARNINGS / INFO"]] = df['ANN'].str.split('|', expand=True)
-    df["ref_aa"] = df["HGVS.p"].str[2:6].apply(seq1)
-    df["pos"] = df["HGVS.p"].str.extract('(\d+)')
-    df["alt_aa"] = df["HGVS.p"].str[-3:].apply(seq1)
-    df["oneletter"] = df["ref_aa"] + df["pos"] + df["alt_aa"]
+    if df.empty:
+      continue
+    else:
+      header.append(f'"##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Position | Product | Peptide Position\'">')
+      #find a way to get these header names automatically from the header list
+      df[["Allele", "Annotation", "Annotation_Impact", "Gene_Name", "Gene_ID", "Feature_Type", "Feature_ID", "Transcript_BioType", "Rank", "HGVS.c", "HGVS.p", "cDNA.pos / cDNA.length", "CDS.pos / CDS.length", "AA.pos / AA.length", "Distance", "ERRORS / WARNINGS / INFO"]] = df['ANN'].str.split('|', expand=True)
+      df["ref_aa"] = df["HGVS.p"].str[2:6].apply(seq1)
+      df["pos"] = df["HGVS.p"].str.extract('(\d+)')
+      df["alt_aa"] = df["HGVS.p"].str[-3:].apply(seq1)
+      df["oneletter"] = df["ref_aa"] + df["pos"] + df["alt_aa"]
 
-    df[["product", "peptide-position"]] = df.apply(lambda row: convert_mp_position(row,coords), axis=1, result_type='expand')
-    df.loc[df["product"] != "intergenic", "SPEAR"] = df["oneletter"] + "|" + df["product"] + "|" + df["peptide-position"]
-    df.loc[df["product"] == "intergenic", "SPEAR"] = df["HGVS.c"] + "|" + df["product"] + "|" + df["peptide-position"]
-    infocols.append("SPEAR")
-    for col in infocols:
-      df[col] = col + "=" + df[col]
-    
-    df['INFO'] = df[infocols].agg(';'.join, axis=1)
-    #find a way to get these header names automatically from the header list
-    df = df.drop(["Allele", "Annotation", "Annotation_Impact", "Gene_Name", "Gene_ID", "Feature_Type", "Feature_ID", "Transcript_BioType", "Rank", "HGVS.c", "HGVS.p", "cDNA.pos / cDNA.length", "CDS.pos / CDS.length", "AA.pos / AA.length", "Distance", "ERRORS / WARNINGS / INFO", "ref_aa", "pos", "alt_aa", "oneletter", "product", "peptide-position", "SPEAR", "AC", "AN", "ANN"], axis = 1)
-    cols = df.columns.to_list()
-    cols.pop(cols.index("INFO"))
-    cols.insert(cols.index("FILTER") + 1, "INFO")
+      df[["product", "peptide-position"]] = df.apply(lambda row: convert_mp_position(row,coords), axis=1, result_type='expand')
+      df.loc[df["product"] != "intergenic", "SPEAR"] = df["oneletter"] + "|" + df["product"] + "|" + df["peptide-position"]
+      df.loc[df["product"] == "intergenic", "SPEAR"] = df["HGVS.c"] + "|" + df["product"] + "|" + df["peptide-position"]
+      infocols.append("SPEAR")
+      for col in infocols:
+        df[col] = col + "=" + df[col]
+      
+      df['INFO'] = df[infocols].agg(';'.join, axis=1)
+      #find a way to get these header names automatically from the header list
+      df = df.drop(["Allele", "Annotation", "Annotation_Impact", "Gene_Name", "Gene_ID", "Feature_Type", "Feature_ID", "Transcript_BioType", "Rank", "HGVS.c", "HGVS.p", "cDNA.pos / cDNA.length", "CDS.pos / CDS.length", "AA.pos / AA.length", "Distance", "ERRORS / WARNINGS / INFO", "ref_aa", "pos", "alt_aa", "oneletter", "product", "peptide-position", "SPEAR", "AC", "AN", "ANN"], axis = 1)
+      cols = df.columns.to_list()
+      cols.pop(cols.index("INFO"))
+      cols.insert(cols.index("FILTER") + 1, "INFO")
 
-    df = df[cols]
+      df = df[cols]
 
-    write_vcf(header,df,basename,outdir)
+      write_vcf(header,df,basename,outdir)
     
 if __name__ == "__main__":
     main()
