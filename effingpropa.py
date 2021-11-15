@@ -14,6 +14,7 @@ from itertools import takewhile
 import argparse
 from pathlib import Path
 from go_propa import get_gb_coords
+import glob
 
 def convert_mp_position(row, coords):
   '''
@@ -82,20 +83,23 @@ def main():
   parser = argparse.ArgumentParser(description='')
   parser.add_argument('output_dir', metavar='spear_vcfs/', type=str,
       help='Destination dir for SPEAR annotated VCFs')
-  parser.add_argument('vcfs', metavar='*.vcf', nargs='+',
-      help='Input variant csv file(s)')
+  parser.add_argument('vcfs', metavar='path/to/vcfs', type = str,
+      help='Input VCF file directory')
+  parser.add_argument('data_dir', metavar='path/to/genbank+genpepts', type = str, 
+      help ='Data files for peptide subpositions')
 
   args = parser.parse_args()
 
+  vcfs =glob.glob(f'{args.vcfs}/*.vcf')
   outdir = Path(args.output_dir)
   #check if output directory exits, if not make it.
   outdir.mkdir(parents=True, exist_ok=True)
 
-  coords = get_gb_coords("data/NC_045512.2.gb", ["data/ORF1a.gp", "data/ORF1ab.gp"])
+  coords = get_gb_coords(f'{args.data_dir}/NC_045512.2.gb', [f'{args.data_dir}/ORF1a.gp', f'{args.data_dir}/ORF1ab.gp'])
 
-  for file in args.vcfs:
-    basename = Path(file).stem.split('.')[0]
-    header, df, infocols = parse_vcf(file)
+  for vcf in vcfs:
+    basename = Path(vcf).stem.split('.')[0]
+    header, df, infocols = parse_vcf(vcf)
     header.append(f'"##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Position | Product | Peptide Position\'">')
     #find a way to get these header names automatically from the header list
     df[["Allele", "Annotation", "Annotation_Impact", "Gene_Name", "Gene_ID", "Feature_Type", "Feature_ID", "Transcript_BioType", "Rank", "HGVS.c", "HGVS.p", "cDNA.pos / cDNA.length", "CDS.pos / CDS.length", "AA.pos / AA.length", "Distance", "ERRORS / WARNINGS / INFO"]] = df['ANN'].str.split('|', expand=True)
