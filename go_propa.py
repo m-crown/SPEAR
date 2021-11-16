@@ -95,6 +95,7 @@ def flatten_variants(samples):
 
 def get_gb_coords(gb_file, gp_list):
     '''
+    DEPRECATED
     Function to take a main genbank 'coordinates' file and a list of any genpept 
     files to replace main gene coordinates with. E.g. in Sars-CoV-2 ORF1ab gene 
     produces multiple mature peptides and may want variants to be annotated in 
