@@ -114,6 +114,7 @@ def main():
   outdir = Path(args.output_dir)
   #check if output directory exits, if not make it.
   outdir.mkdir(parents=True, exist_ok=True)
+  print("Annotating VCFs")
   for vcf in vcfs:
     basename = Path(vcf).stem.split('.')[0]
     header, df, infocols = parse_vcf(vcf)
@@ -125,7 +126,6 @@ def main():
       genbank_mapping = {}
       for feature in genbank.features:
         if feature.type == "CDS" or feature.type == "mat_peptide":
-          #print(feature)
           if feature.qualifiers["gene"][0] == "ORF1ab":
             genbank_mapping[feature.qualifiers["protein_id"][0]] = feature.qualifiers["product"][0]
           else:
