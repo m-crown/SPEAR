@@ -112,14 +112,14 @@ def main():
             csv_vcf = fatovcf.copy()
             csv_vcf["#CHROM"] = sample.id
             csv_vcf.to_csv(Path.joinpath(outdir,f'{sample.id}.tsv'), mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
-            write_vcf(snps_header, fatovcf,sample.id,outdir) #output the vcf header and body to file 
+            write_vcf(snps_header, fatovcf,sample.id,"indels",outdir) #output the vcf header and body to file 
         else:
             indels["POS"] = indels["POS"].astype(int)
             indels = indels.sort_values(by = ["POS"], ascending = True)
             csv_vcf = indels
             csv_vcf["#CHROM"] = sample.id
             csv_vcf.to_csv(Path.joinpath(outdir,f'{sample.id}.tsv'), mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
-            write_vcf([], indels,sample.id,outdir) #output the vcf header and body to file 
+            write_vcf([], indels,sample.id,"indels",outdir) #output the vcf header and body to file 
 
 if __name__ == "__main__":
     main()
