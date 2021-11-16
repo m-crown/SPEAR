@@ -141,6 +141,9 @@ def main():
       cols.pop(cols.index("INFO"))
       cols.insert(cols.index("FILTER") + 1, "INFO")
       df = df[cols]
+      csv_vcf = df.copy()
+      csv_vcf["#CHROM"] = basename
+      csv_vcf.to_csv(Path.joinpath(outdir,f'{basename}.spear.tsv'), mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
       write_vcf(header,df,basename,"spear",outdir)
 
 if __name__ == "__main__":
