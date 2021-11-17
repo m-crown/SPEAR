@@ -55,8 +55,8 @@ def convert_snpeff_annotation(df_row, gb_mapping):
   snpeff_annotation.loc[snpeff_annotation["Feature_ID"] == "GU280_gp01","Feature_ID"]="YP_009724389.1"
   snpeff_annotation.loc[snpeff_annotation["Feature_ID"] == "GU280_gp01.2","Feature_ID"]="YP_009725295.1"
   snpeff_annotation = snpeff_annotation.drop(snpeff_annotation[(snpeff_annotation["Feature_ID"] == "YP_009724389.1") | (snpeff_annotation["Feature_ID"] == "YP_009725295.1")].index)
-  snpeff_annotation.loc[snpeff_annotation["Annotation"].isin(["missense_variant", "synonymous_variant", "conservative_inframe_deletion", "disruptive_inframe_deletion"]),"variant"] = snpeff_annotation["HGVS.p"]
-  snpeff_annotation.loc[snpeff_annotation["Annotation"].isin(["intergenic_region"]), "variant"] = snpeff_annotation["HGVS.c"]
+  snpeff_annotation.loc[snpeff_annotation["Annotation"] != "intergenic_region","variant"] = snpeff_annotation["HGVS.p"]
+  snpeff_annotation.loc[snpeff_annotation["Annotation"] == "intergenic_region", "variant"] = snpeff_annotation["HGVS.c"]
   snpeff_annotation["product"] = snpeff_annotation["Feature_ID"].apply(lambda x: gb_mapping.get(x))
   snpeff_annotation.loc[snpeff_annotation["product"].isnull(), "product"] = snpeff_annotation.loc[snpeff_annotation["product"].isnull(), "Feature_ID"]
   cols = ["Annotation", "variant", "product"]
