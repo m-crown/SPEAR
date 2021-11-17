@@ -8,7 +8,7 @@ import pandas as pd
 import glob
 from collections import defaultdict
 
-def get_indels(reference, sample):
+def get_indels(reference, sample, window):
     vcf = [f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample.id}'] #set indels vcf header.
     offset = 0 #offset used when insertions detected, subsequent indels should be shifted by this offset
     indels = []
@@ -33,12 +33,21 @@ def get_indels(reference, sample):
     indels = sorted(indels, key=lambda d: d['pos'])
     for indel in indels:
         if indel["type"] == "insertion":
-            variant = f'{reference.id}\t{indel["pos"] +1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+            variant = f'{reference.id}\t{indel["pos"] + 1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
             vcf.append(variant)
             offset += indel["length"]
         else:
-            variant = f'{reference.id}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
-            vcf.append(variant)
+            #this deletion window could be incoporated elsewhere e.g. by filtering the vcf file after snps and indels combined to filter all calls with n window? 
+            if window != 0:
+                if (sample.seq[indel["pos"] +1 - window: indel["pos"] + 1 ] == "N" * window) and (sample.seq[indel["pos"] +1 + length: indel["pos"] +1 + length + window] == "N" * window):
+                    continue
+                else:
+                    variant = f'{reference.id}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+                    vcf.append(variant)
+            else:
+                variant = f'{reference.id}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+                vcf.append(variant)
+
     vcf = pd.DataFrame.from_records([sub.split("\t") for sub in vcf[1:]], columns = vcf[0].split(sep="\t"))
     return vcf
 
@@ -52,6 +61,8 @@ def main():
     help="outputdirectory")
     parser.add_argument('--vcf_dir', metavar="", type = str,
     help="input vcf directory for merging snps and indels, only if vcf_dir specified")
+    parser.add_argument('--deletion_window', metavar="", type = int, default = 2,
+    help="flanking N filter for deletions, set to 0 for off")
     parser.add_argument('--write_indels', dest='write_indels', action='store_true')
     parser.set_defaults(write_indels=False)
     args = parser.parse_args()
@@ -71,7 +82,7 @@ def main():
                 reference = record
             else:
                 sample = record
-        indels = get_indels(reference, sample)
+        indels = get_indels(reference, sample, args.deletion_window)
         if args.write_indels:
             indels.to_csv(Path.joinpath(outdir,f'{sample.id}.indels.tsv'), mode='w', index = False, sep = "\t")
         if args.vcf_dir:

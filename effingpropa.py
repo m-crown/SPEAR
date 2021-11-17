@@ -94,7 +94,6 @@ def write_vcf(header,body, basename,desc,outdir):
   Function writes a vcf file. Two-step process writes header first, then appends a
   vcf file body parsed with parse_vcf using df.to_csv.
   '''
-  print("Writing VCF file to: ", Path.joinpath(outdir,f'{basename}.{desc}.vcf'))
   with open(Path.joinpath(outdir,f'{basename}.{desc}.vcf'), 'w') as f:
       for item in header:
           f.write("%s\n" % item)
