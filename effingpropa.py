@@ -16,36 +16,6 @@ from pathlib import Path
 from go_propa import get_gb_coords
 import glob
 
-def convert_mp_position(row, coords):
-  '''
-  DEPRECATED
-  Function converts a cds position to the position within a matured peptide (and returns the mat pepts name) for 
-  variants within multi-product polypeptides.
-  '''
-  #converting the gene names to be lowercase when comparing to snpeff which uses lower - this means the gb_coords function remains same as go_propa.
-  coords = {k.lower(): v for k, v in coords.items()}
-
-  if row["Gene_Name"].lower() in coords:
-    if "multi-product" in coords[row["Gene_Name"].lower()]:
-      placeholder_names = []
-      placeholder_pos = []
-      for k,v in coords[row["Gene_Name"].lower()]["multi-product"].items():
-        if v["sub-position"][0] <= int(row["pos"]) <= v["sub-position"][1]:
-          placeholder_names.append(k)
-          placeholder_pos.append(f'{row["ref_aa"]}{int(row["pos"]) - v["sub-position"][0]}{row["alt_aa"]}')
-      if len(placeholder_names) > 1:
-        name = "/".join(placeholder_names)
-        if len(set(placeholder_pos)) == 1:
-          pos = placeholder_pos[0]
-      else:
-        name = placeholder_names[0]
-        pos = placeholder_pos[0]
-      return name,pos
-    else:
-      return coords[row["Gene_Name"].lower()]["product"], row["oneletter"]
-  else:
-    return "intergenic", row["HGVS.c"]
-
 def convert_snpeff_annotation(df_row, gb_mapping):
   snpeff_annotation = pd.DataFrame({"ANN" : [df_row["ANN"].split(',')]})
   snpeff_annotation = snpeff_annotation["ANN"].explode().copy().to_frame()
