@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #running fatovcf
 #for I in /home/covid19/Run_NXT59/results/ncovIllumina_Genotyping_alignSeqs/msa/*.muscle.aln; do J=$( basename $I .muscle.aln ); /home/covid19/faToVcf/faToVcf ${I} ${J}.vcf; done
 
@@ -13,28 +15,30 @@ import pandas as pd
 from itertools import takewhile
 import argparse
 from pathlib import Path
-from go_propa import get_gb_coords
 import glob
 
-def convert_snpeff_annotation(df_row, gb_mapping):
-  snpeff_annotation = pd.DataFrame({"ANN" : [df_row["ANN"].split(',')]})
-  snpeff_annotation = snpeff_annotation["ANN"].explode().copy().to_frame()
-  snpeff_annotation.reset_index(inplace = True , drop=True)
-  snpeff_annotation = snpeff_annotation["ANN"].str.split('|', expand = True)
-  snpeff_annotation.columns = ["Allele", "Annotation", "Annotation_Impact", "Gene_Name", "Gene_ID", "Feature_Type", "Feature_ID", "Transcript_BioType", "Rank", "HGVS.c", "HGVS.p", "cDNA.pos / cDNA.length", "CDS.pos / CDS.length", "AA.pos / AA.length", "Distance", "ERRORS / WARNINGS / INFO"]
-  snpeff_annotation.loc[snpeff_annotation["Feature_ID"] == "GU280_gp01","Feature_ID"]="YP_009724389.1"
-  snpeff_annotation.loc[snpeff_annotation["Feature_ID"] == "GU280_gp01.2","Feature_ID"]="YP_009725295.1"
-  snpeff_annotation = snpeff_annotation.drop(snpeff_annotation[(snpeff_annotation["Feature_ID"] == "YP_009724389.1") | (snpeff_annotation["Feature_ID"] == "YP_009725295.1")].index)
-  snpeff_annotation.loc[snpeff_annotation["Annotation"] != "intergenic_region","variant"] = snpeff_annotation["HGVS.p"]
-  snpeff_annotation.loc[snpeff_annotation["Annotation"] == "intergenic_region", "variant"] = snpeff_annotation["HGVS.c"]
-  snpeff_annotation["product"] = snpeff_annotation["Feature_ID"].apply(lambda x: gb_mapping.get(x))
-  snpeff_annotation.loc[snpeff_annotation["product"].isnull(), "product"] = snpeff_annotation.loc[snpeff_annotation["product"].isnull(), "Feature_ID"]
+def convert_snpeff_annotation(vcf, gb_mapping):
+  #takes a input a dataframe row, splits the ann field into a new
+  vcf["ANN2"] = vcf["ANN"].str.split(',') #put the split ANN field into a new column to preserve original snpeff value
+  vcf = vcf.explode("ANN2")
+  snpeff_anno_cols = ["Allele", "Annotation", "Annotation_Impact", "Gene_Name", "Gene_ID", "Feature_Type", "Feature_ID", "Transcript_BioType", "Rank", "HGVS.c", "HGVS.p", "cDNA.pos / cDNA.length", "CDS.pos / CDS.length", "AA.pos / AA.length", "Distance", "ERRORS / WARNINGS / INFO"]
+  vcf[snpeff_anno_cols] = vcf["ANN2"].str.split('|', expand = True)
+  vcf.loc[vcf["Feature_ID"] == "GU280_gp01","Feature_ID"]="YP_009724389.1"
+  vcf.loc[vcf["Feature_ID"] == "GU280_gp01.2","Feature_ID"]="YP_009725295.1"
+  vcf.reset_index(inplace = True)
+  vcf = vcf.drop(vcf[(vcf["Feature_ID"] == "YP_009724389.1") | (vcf["Feature_ID"] == "YP_009725295.1")].index)
+  vcf.loc[vcf["Annotation"] != "intergenic_region","variant"] = vcf["HGVS.p"]
+  vcf.loc[vcf["Annotation"] == "intergenic_region", "variant"] = vcf["HGVS.c"]
+  vcf["product"] = vcf["Feature_ID"].apply(lambda x: gb_mapping.get(x))
+  vcf.loc[vcf["product"].isnull(), "product"] = vcf.loc[vcf["product"].isnull(), "Feature_ID"]
   cols = ["Annotation", "variant", "product"]
-  snpeff_annotation["summary"] = snpeff_annotation[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
-  summary = snpeff_annotation["summary"].to_list()
-  summary = set(summary)
-  summary = ','.join(summary)
-  return (summary)
+  vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
+  vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
+  cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
+  vcf = vcf.groupby(cols, as_index = False).agg(set)
+  vcf.drop(["index", "ANN2"], axis = 1, inplace = True)
+  vcf["SPEAR"] = [','.join(map(str, l)) for l in vcf['SPEAR']]
+  return vcf
 
 def parse_vcf(vcf_file, split_info_cols = True):
   with open(vcf_file, 'r') as fobj:
@@ -99,8 +103,7 @@ def main():
             genbank_mapping[feature.qualifiers["protein_id"][0]] = feature.qualifiers["product"][0]
           else:
             genbank_mapping[feature.qualifiers["locus_tag"][0]] = feature.qualifiers["product"][0]
-      
-      df["SPEAR"] = df.apply(lambda x : convert_snpeff_annotation(x, genbank_mapping), axis = 1)
+      df = convert_snpeff_annotation(df.copy(), genbank_mapping)
       infocols.append("SPEAR")
       for col in infocols:
         df[col] = col + "=" + df[col]
