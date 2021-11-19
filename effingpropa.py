@@ -90,7 +90,9 @@ def main():
   print("Annotating VCFs")
   for vcf in vcfs:
     basename = Path(vcf).stem.split('.')[0]
-    header, df, infocols = parse_vcf(vcf)
+    header, vcf, infocols = parse_vcf(vcf)
+    df = vcf.iloc[:,:10] # split vcf file columns up to ANN 
+    samples = vcf.iloc[:,10:] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
     if df.empty:
       continue
     else:
@@ -113,10 +115,11 @@ def main():
       cols.pop(cols.index("INFO"))
       cols.insert(cols.index("FILTER") + 1, "INFO")
       df = df[cols]
+      vcf = pd.concat([df, samples],axis=1)
       csv_vcf = df.copy()
       csv_vcf["#CHROM"] = basename
       csv_vcf.to_csv(Path.joinpath(outdir,f'{basename}.spear.tsv'), mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
-      write_vcf(header,df,basename,"spear",outdir)
+      write_vcf(header,vcf,basename,"spear",outdir)
 
 if __name__ == "__main__":
     main()
