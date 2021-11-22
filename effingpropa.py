@@ -96,7 +96,7 @@ def main():
     if df.empty:
       continue
     else:
-      header.append(f'"##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'SnpEff Annotation | Position | Product\'">')
+      header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'SnpEff Annotation | Position | Product\'>')
       genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
       genbank_mapping = {}
       for feature in genbank.features:
