@@ -1,0 +1,156 @@
+#!/usr/bin/env python
+
+import argparse
+import snakemake
+import json 
+import os
+import sys 
+import subprocess
+from Bio import SeqIO
+
+def main():
+    parser = argparse.ArgumentParser(description='TESTING')
+    parser.add_argument('--input', metavar='input_directory', type=str,
+        help='Input directory of muscle alignments or consensus fasta sequences.')
+    parser.add_argument('--output_dir', metavar='output_directory', type=str,
+        help='Destination dir for SPEAR annotated VCFs')
+    parser.add_argument('--data_dir', metavar='data_directory', type = str, 
+        help ='Data files for peptide subpositions')
+    parser.add_argument('--exclude_ambiguous', default=False, action='store_true',
+        help = "Toggle whether to mask ambiguous bases in SNPs")
+    parser.add_argument('--align', default=False, action='store_true',
+        help = "Specify whether input fasta files should be aligned to NC_045512.2 reference genome using muscle.")
+    parser.add_argument('--cutoff', metavar = '', type = int , default=50,
+        help = "Percentage N cutoff for input sequences. Default 50%")
+    parser.add_argument('--split_vcfs', default=False, action='store_true',
+        help = "Toggle per sample VCF file output")
+    parser.add_argument('--mask_problem_sites', nargs='+', 
+        help = "Filter problematic sides with these codes")
+    parser.add_argument('--threads' , metavar='', type = int, default = 1,
+        help = "Max number of threads for snakemake job execution.")
+    args = parser.parse_args()
+
+    snakefile = "spear.smk"
+    #setting the sample list for input to snakemake. Filtering based on N percentage and ensuring inputs have correct number of sequences.
+    if args.align:
+        input_samples = [(f.split('.'))[0] for f in os.listdir(args.input) if f.endswith(".consensus.fa")]
+        passing_samples = []
+        samples_fail_perc_n = 0
+        samples_fail_count = 0
+        for sample in input_samples:
+            count = 0
+            print(sample)
+            for record in SeqIO.parse(f'{args.input}/{sample}.consensus.fa', "fasta"):
+                count +=1
+                if record.id == "NC_045512.2":
+                    continue
+                elif len(record.seq) == 0:
+                    perc_n = 100
+                else:
+                    perc_n = (record.seq.count("N")/len(record.seq)) * 100 #factor indels in this count ? 
+            if count > 1:
+                samples_fail_count += 1
+            elif perc_n >= args.cutoff:
+                samples_fail_perc_n += 1   
+            else:
+                passing_samples.append(sample)                
+    else:
+        input_samples = [(f.split('.'))[0] for f in os.listdir(args.input) if f.endswith(".muscle.aln")]
+        passing_samples = []
+        samples_fail_perc_n = 0
+        samples_fail_count = 0
+        for sample in input_samples:
+            count = 0
+            for record in SeqIO.parse(f'{args.input}/{sample}.muscle.aln', "fasta"):
+                count +=1
+                if record.id == "NC_045512.2":
+                    continue
+                elif len(record.seq) == 0:
+                    perc_n = 100
+                else:
+                    perc_n = (record.seq.count("N")/len(record.seq)) * 100
+            if count != 2:
+                samples_fail_count += 1
+            elif perc_n >= args.cutoff:
+                samples_fail_perc_n += 1
+            else:
+                passing_samples.append(sample)
+    print(f'''
+    Input samples : {len(input_samples)}
+    Samples passing : {len(passing_samples)}
+    %N > {args.cutoff} : {samples_fail_perc_n}
+    Incorrect num reads : {samples_fail_count}
+    ''')
+    if args.exclude_ambiguous:
+        exclude = "-ambiguousToN"
+    else:
+        exclude = ""
+    problem_sites = args.mask_problem_sites
+
+    problem_exc = {
+        "SE" : "seq_end", 
+        "AB" : "ambiguous", 
+        "AM" : "amended",
+        "HA": "highly_ambiguous", 
+        "HH" : "highly_homoplasic", 
+        "HO" : "homoplasic", 
+        "IC" : "interspecific_contamination", 
+        "NA" : "nanopore_adapter", 
+        "NS": "narrow_src", 
+        "NL": "neighbour_linked" , 
+        "SS": "single_src", 
+        "AD": "amplicon_drop_or_primer_artefact", 
+        "BR": "back_to_ref"}
+
+    exclusion_statements = []
+    if problem_sites == None:
+        filter_snps = False
+        filter_statement = ""
+    else:
+        filter_snps = True
+        if problem_sites == ["all"]:
+            filter_statement = f"problem_filter = 'mask'"
+        else:
+            for site in problem_sites:
+                try:
+                    problem_exc[site]
+                    statement = f" problem_exc =~ '{problem_exc[site]}' "
+                    exclusion_statements.append(statement)
+
+                except KeyError:
+                    print("Masking parameter not recognised")
+                    parser.print_help()
+                    sys.exit(1)
+            exclusions = "|".join(exclusion_statements)
+            filter_statement = f"problem_filter = 'mask' & ({exclusions})"
+
+    config = {
+        "input_dir" : args.input,
+        "samples" : passing_samples, 
+        "output_dir" : args.output_dir,
+        "data" : args.data_dir,
+        "align" : args.align,
+        "fatovcf": "/Users/matthewcrown/Desktop/fatovcf", #needs to be in path
+        "exclude_ambiguous" : exclude,
+        "get_indels": "/Users/matthewcrown/GitHub/SPEAR/get_indels.py", #needs to be in path
+        "reference_sequence" : f'{args.data_dir}/SARS-CoV-2.reference.fasta', #could be in path
+        "filter" : filter_snps,
+        "filter_params" : filter_statement,
+        "split_vcfs": args.split_vcfs}
+
+    status = snakemake.snakemake(
+                snakefile, 
+                printshellcmds=False,
+                config=config, 
+                quiet=False, 
+                forceall = False, 
+                printdag = False, 
+                cores = args.threads)
+
+    if status:
+       return 0
+    return 1
+
+
+if __name__ == "__main__":
+    main()
