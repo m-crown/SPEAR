@@ -4,3 +4,4 @@ __pycache__
 *.lprof
 .snakemake/*
 complete.txt
+vcfanno_osx
