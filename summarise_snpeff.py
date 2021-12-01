@@ -8,7 +8,6 @@
 #snpeff command we went with
 #for I in *.vcf; do J=$( basename $I .vcf ); snpEff -no-downstream -no-intron -no-upstream -no-utr  MN908947.3 ${I} > ${J}.ann.vcf; done
 
-
 from Bio.SeqUtils import seq1
 from Bio import SeqIO
 import pandas as pd
@@ -16,6 +15,7 @@ from itertools import takewhile
 import argparse
 from pathlib import Path
 import glob
+import numpy as np
 
 def convert_snpeff_annotation(vcf, gb_mapping):
   #takes a input a dataframe row, splits the ann field into a new
@@ -31,7 +31,7 @@ def convert_snpeff_annotation(vcf, gb_mapping):
   vcf.loc[vcf["Annotation"] == "intergenic_region", "variant"] = vcf["HGVS.c"]
   vcf["product"] = vcf["Feature_ID"].apply(lambda x: gb_mapping.get(x))
   vcf.loc[vcf["product"].isnull(), "product"] = vcf.loc[vcf["product"].isnull(), "Feature_ID"]
-  cols = ["Annotation", "variant", "product"]
+  cols = ["Gene_Name", "Annotation", "variant", "product"]
   vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
   vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
   cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
@@ -63,63 +63,53 @@ def parse_vcf(vcf_file, split_info_cols = True):
   else:
     return header, df
 
-def write_vcf(header,body, basename,desc,outdir):
+def write_vcf(header,body, output_filename):
   '''
   Function writes a vcf file. Two-step process writes header first, then appends a
   vcf file body parsed with parse_vcf using df.to_csv.
   '''
-  with open(Path.joinpath(outdir,f'{basename}.{desc}.vcf'), 'w') as f:
+  with open(output_filename, 'w') as f:
       for item in header:
           f.write("%s\n" % item)
-  body.to_csv(Path.joinpath(outdir,f'{basename}.{desc}.vcf'), mode='a', index = False, sep = "\t")
+  body.to_csv(output_filename, mode='a', index = False, sep = "\t")
 
 def main():
   parser = argparse.ArgumentParser(description='')
-  parser.add_argument('output_dir', metavar='spear_vcfs/', type=str,
-      help='Destination dir for SPEAR annotated VCFs')
-  parser.add_argument('vcfs', metavar='path/to/vcfs', type = str,
-      help='Input VCF file directory')
+  parser.add_argument('output_filename', metavar='spear_vcfs/merged.spear.vcf', type=str,
+      help='Filename for SPEAR annotated VCF') #ADD A DEFAULT FOR THIS 
+  parser.add_argument('vcf', metavar='path/to/vcfs', type = str,
+      help='Input VCF file')
   parser.add_argument('data_dir', metavar='path/to/genbank+genpepts', type = str, 
       help ='Data files for peptide subpositions')
   args = parser.parse_args()
 
-  vcfs =glob.glob(f'{args.vcfs}/*.vcf')
-  outdir = Path(args.output_dir)
-  #check if output directory exits, if not make it.
-  outdir.mkdir(parents=True, exist_ok=True)
-  print("Annotating VCFs")
-  for vcf in vcfs:
-    basename = Path(vcf).stem.split('.')[0]
-    header, vcf, infocols = parse_vcf(vcf)
-    df = vcf.iloc[:,:10] # split vcf file columns up to ANN 
-    samples = vcf.iloc[:,10:] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
-    if df.empty:
-      continue
-    else:
-      header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'SnpEff Annotation | Position | Product\'"">')
-      genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
-      genbank_mapping = {}
-      for feature in genbank.features:
-        if feature.type == "CDS" or feature.type == "mat_peptide":
-          if feature.qualifiers["gene"][0] == "ORF1ab":
-            genbank_mapping[feature.qualifiers["protein_id"][0]] = feature.qualifiers["product"][0]
-          else:
-            genbank_mapping[feature.qualifiers["locus_tag"][0]] = feature.qualifiers["product"][0]
-      df = convert_snpeff_annotation(df.copy(), genbank_mapping)
-      infocols.append("SPEAR")
-      for col in infocols:
-        df[col] = col + "=" + df[col]
-      df['INFO'] = df[infocols].agg(';'.join, axis=1)
-      df.drop(infocols, axis = 1, inplace = True)
-      cols = df.columns.to_list()
-      cols.pop(cols.index("INFO"))
-      cols.insert(cols.index("FILTER") + 1, "INFO")
-      df = df[cols]
-      vcf = pd.concat([df, samples],axis=1)
-      csv_vcf = df.copy()
-      csv_vcf["#CHROM"] = basename
-      csv_vcf.to_csv(Path.joinpath(outdir,f'{basename}.spear.tsv'), mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
-      write_vcf(header,vcf,basename,"spear",outdir)
+  header, vcf, infocols = parse_vcf(args.vcf)
+  df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] # split vcf file columns up to ANN , could change this to LOC and up to format column to make more flexible ? 
+  df = df.replace(np.nan, '', regex=True)
+  samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
+  header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'SnpEff Annotation | Position | Product\'">')
+  genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
+  genbank_mapping = {}
+  for feature in genbank.features:
+    if feature.type == "CDS" or feature.type == "mat_peptide":
+      if feature.qualifiers["gene"][0] == "ORF1ab":
+        genbank_mapping[feature.qualifiers["protein_id"][0]] = feature.qualifiers["product"][0]
+      else:
+        genbank_mapping[feature.qualifiers["locus_tag"][0]] = feature.qualifiers["product"][0]
+  df = convert_snpeff_annotation(df.copy(), genbank_mapping)
+  infocols.append("SPEAR")
+  for col in infocols:
+    df[col] = col + "=" + df[col]
+  df['INFO'] = df[infocols].agg(';'.join, axis=1)
+  df.drop(infocols, axis = 1, inplace = True)
+  df['INFO'] = df['INFO'].str.replace('problem_exc=;','')
+  df['INFO'] = df['INFO'].str.replace('problem_filter=;','')
+  cols = df.columns.to_list()
+  cols.pop(cols.index("INFO"))
+  cols.insert(cols.index("FILTER") + 1, "INFO")
+  df = df[cols]
+  vcf = pd.concat([df, samples],axis=1)
+  write_vcf(header,vcf,args.output_filename)
 
 if __name__ == "__main__":
     main()
