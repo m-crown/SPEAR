@@ -12,19 +12,25 @@ import re
 
 def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping):
 
-def convert_snpeff_annotation(vcf, gb_mapping):
+  def filter_spear_summary(summaries):
+    regexp = re.compile(r'ORF1(a|ab) polyprotein')
+    if len(list(filter(None, list(regexp.search(summary) for summary in summaries)))) == len(summaries):
+      summaries = [list(summaries)[0]]
+    else:
+      summaries = [summary for summary in summaries if not regexp.search(summary)]
+    return summaries
+
   #takes a input a dataframe row, splits the ann field into a new
   vcf["ANN2"] = vcf["ANN"].str.split(',') #put the split ANN field into a new column to preserve original snpeff value
   vcf = vcf.explode("ANN2")
   snpeff_anno_cols = ["Allele", "Annotation", "Annotation_Impact", "Gene_Name", "Gene_ID", "Feature_Type", "Feature_ID", "Transcript_BioType", "Rank", "HGVS.c", "HGVS.p", "cDNA.pos / cDNA.length", "CDS.pos / CDS.length", "AA.pos / AA.length", "Distance", "ERRORS / WARNINGS / INFO"]
   vcf[snpeff_anno_cols] = vcf["ANN2"].str.split('|', expand = True)
   vcf.loc[vcf["Feature_ID"] == "GU280_gp01","Feature_ID"]="YP_009724389.1"
-  vcf.loc[vcf["Feature_ID"] == "GU280_gp01.2","Feature_ID"]="YP_009725295.1"
+  vcf.loc[vcf["Feature_ID"] == "GU280_gp01.2","Feature_ID"]="YP_009724389.1" #setting this id to be the same as orf1ab polyprotein for spear annotation purposes. 
   vcf.reset_index(inplace = True)
-  vcf = vcf.drop(vcf[(vcf["Feature_ID"] == "YP_009724389.1") | (vcf["Feature_ID"] == "YP_009725295.1")].index)
   vcf.loc[vcf["Annotation"] != "intergenic_region","variant"] = vcf["HGVS.p"]
   vcf.loc[vcf["Annotation"] == "intergenic_region", "variant"] = vcf["HGVS.c"]
-  vcf["product"] = vcf["Feature_ID"].apply(lambda x: gb_mapping.get(x))
+  vcf["product"] = vcf["Feature_ID"].map(lambda x: gb_mapping.get(x))
   vcf.loc[vcf["product"].isnull(), "product"] = vcf.loc[vcf["product"].isnull(), "Feature_ID"]
   vcf["protein_id"] = vcf["product"].map(lambda x: locus_tag_mapping.get(x))
   vcf.loc[vcf["protein_id"].isnull(), "protein_id"] = vcf.loc[vcf["protein_id"].isnull(), "Feature_ID"]
@@ -34,6 +40,8 @@ def convert_snpeff_annotation(vcf, gb_mapping):
   cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
   vcf = vcf.groupby(cols, as_index = False).agg(set)
   vcf.drop(["index", "ANN2"], axis = 1, inplace = True)
+  #code block removes orf1ab from spear summaries where mat peptide products are described, otherwise retains the first annotation of position within polypeptide e.g. just orf1ab not orf1 
+  vcf["SPEAR"] = vcf["SPEAR"].map(lambda a: filter_spear_summary(a))
   vcf["SPEAR"] = [','.join(map(str, l)) for l in vcf['SPEAR']]
   return vcf
 
@@ -109,6 +117,7 @@ def main():
   cols.pop(cols.index("INFO"))
   cols.insert(cols.index("FILTER") + 1, "INFO")
   df = df[cols]
+  #sanity check before concat shape
   vcf = pd.concat([df, samples],axis=1)
   write_vcf(header,vcf,args.output_filename)
 
