@@ -1,13 +1,5 @@
 #!/usr/bin/env python
 
-#running fatovcf
-#for I in /home/covid19/Run_NXT59/results/ncovIllumina_Genotyping_alignSeqs/msa/*.muscle.aln; do J=$( basename $I .muscle.aln ); /home/covid19/faToVcf/faToVcf ${I} ${J}.vcf; done
-
-#command to fix contig warning awk '/^#CHROM/ {printf("##contig=<ID=MN908947.3,length=29903,md5=d11d06b5d1eb1d85c69e341c3c026e08,URL=https://github.com/artic-network/artic-ncov2019/blob/master/primer_schemes/nCoV-2019/V3/nCoV-2019.reference.fasta>\n");} {print;}' test.vcf > test2.vcf
-
-#snpeff command we went with
-#for I in *.vcf; do J=$( basename $I .vcf ); snpEff -no-downstream -no-intron -no-upstream -no-utr  MN908947.3 ${I} > ${J}.ann.vcf; done
-
 from Bio.SeqUtils import seq1
 from Bio import SeqIO
 import pandas as pd
@@ -16,6 +8,9 @@ import argparse
 from pathlib import Path
 import glob
 import numpy as np
+import re
+
+def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping):
 
 def convert_snpeff_annotation(vcf, gb_mapping):
   #takes a input a dataframe row, splits the ann field into a new
@@ -31,7 +26,9 @@ def convert_snpeff_annotation(vcf, gb_mapping):
   vcf.loc[vcf["Annotation"] == "intergenic_region", "variant"] = vcf["HGVS.c"]
   vcf["product"] = vcf["Feature_ID"].apply(lambda x: gb_mapping.get(x))
   vcf.loc[vcf["product"].isnull(), "product"] = vcf.loc[vcf["product"].isnull(), "Feature_ID"]
-  cols = ["Gene_Name", "Annotation", "variant", "product"]
+  vcf["protein_id"] = vcf["product"].map(lambda x: locus_tag_mapping.get(x))
+  vcf.loc[vcf["protein_id"].isnull(), "protein_id"] = vcf.loc[vcf["protein_id"].isnull(), "Feature_ID"]
+  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id"]
   vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
   vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
   cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
@@ -87,16 +84,20 @@ def main():
   df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] # split vcf file columns up to ANN , could change this to LOC and up to format column to make more flexible ? 
   df = df.replace(np.nan, '', regex=True)
   samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
-  header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'SnpEff Annotation | Position | Product\'">')
+  header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | Variant | Product | ID\'">') #MAKE VARIANT HEADER HGVS
   genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
   genbank_mapping = {}
+  locus_tag_mapping = {}
   for feature in genbank.features:
     if feature.type == "CDS" or feature.type == "mat_peptide":
       if feature.qualifiers["gene"][0] == "ORF1ab":
         genbank_mapping[feature.qualifiers["protein_id"][0]] = feature.qualifiers["product"][0]
+        locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
       else:
         genbank_mapping[feature.qualifiers["locus_tag"][0]] = feature.qualifiers["product"][0]
-  df = convert_snpeff_annotation(df.copy(), genbank_mapping)
+        locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
+  df = convert_snpeff_annotation(df.copy(), genbank_mapping, locus_tag_mapping)
+  df["SPEAR"].to_csv("testing_spear_out.csv")
   infocols.append("SPEAR")
   for col in infocols:
     df[col] = col + "=" + df[col]
