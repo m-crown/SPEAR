@@ -34,10 +34,13 @@ def get_indels(reference, sample, window):
         indels.append(indel)
     indels = sorted(indels, key=lambda d: d['pos'])
     for indel in indels:
-        if indel["type"] == "insertion":
-            variant = f'{reference.id}\t{indel["pos"] + 1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
-            vcf.append(variant)
-            offset += indel["length"]
+        if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
+            if indel["alt_base"][1:] == len(indel["alt_base"][1:]) * indel["alt_base"][1:][0]:
+                offset += indel["length"] #still have to iterate the offset but dont mark the variant 
+            else:
+                variant = f'{reference.id}\t{indel["pos"] + 1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+                vcf.append(variant)
+                offset += indel["length"]
         else:
             #this deletion window could be incoporated elsewhere e.g. by filtering the vcf file after snps and indels combined to filter all calls with n window? 
             if window != 0:
