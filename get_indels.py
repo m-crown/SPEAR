@@ -9,7 +9,6 @@ import glob
 from collections import defaultdict
 
 #need to have a flag to exclude ambiguous indels in get_indels to go alongside excluding ambiguous snps from fatovcf
-
 def get_indels(reference, sample, window):
     vcf = [f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample.id}'] #set indels vcf header.
     offset = 0 #offset used when insertions detected, subsequent indels should be shifted by this offset
@@ -95,16 +94,16 @@ def main():
             x = 0
             mnp_index = []
             mnp_pos = []
-            if any((i + x) in sl for sl in mnps_index):
+            if any((i + x) in sl for sl in mnps_index): #check if 
                 continue
             else:
-                while ((i + x) < len(snps)) and (snps.loc[i + x, "POS"] - snps.loc[i + x -1, "POS"] == 1):
-                    if x == 0:
+                while ((i + x) < len(snps)) and (snps.loc[i + x, "POS"] - snps.loc[i + x -1, "POS"] == 1): #while not at end of snps and snps are consecutive positions
+                    if x == 0: #if this is the first snp in an mnp
                         mnp_index.append(i + x -1)
                         mnp_pos.append(snps.loc[i + x -1, "POS"])
                         mnp_index.append(i + x)
                         mnp_pos.append(snps.loc[i + x, "POS"])
-                    else:
+                    else: #if not the first snp in the mnp
                         mnp_index.append(i + x)
                         mnp_pos.append(snps.loc[i + x, "POS"])
                     x += 1
@@ -112,9 +111,11 @@ def main():
                 mnps_index.append(mnp_index)
                 mnps_pos.append(mnp_pos)
         for index, pos in zip(mnps_index, mnps_pos):
+            #set the first snp to be the MNP and then drop all the others
             snps.loc[index[0],["ID"]] = "."
-            snps.loc[index[0],["REF"]] = str(reference.seq[pos[0] - 1: pos[-1]])
-            snps.loc[index[0],["ALT"]] = str(sample.seq[pos[0] - 1: pos[-1]])
+            #join together the ref and alt alleles from multiple rows in VCF using list comprehension after converting the pandas subset to list of lists. Then turn into string. 
+            snps.loc[index[0],["REF"]] = ''.join([item for sublist in snps.loc[[ind for ind in index],["REF"]].values.tolist() for item in sublist])
+            snps.loc[index[0],["ALT"]] = ''.join([item for sublist in snps.loc[[ind for ind in index],["ALT"]].values.tolist() for item in sublist])
             snps = snps.drop(index[1:])
                         
         fatovcf = pd.concat([indels,snps])
