@@ -3,12 +3,19 @@ import argparse
 from Bio import SeqIO
 from pathlib import Path
 from re import finditer, split
+import re
 from summarise_snpeff import parse_vcf, write_vcf
 import pandas as pd
 import glob
 from collections import defaultdict
 
 #need to have a flag to exclude ambiguous indels in get_indels to go alongside excluding ambiguous snps from fatovcf
+def mask_trimmed_sequence(sample):
+    def repl(m):
+        return 'N' * len(m.group())
+    sample.seq = re.sub(r'^-+|-+$', repl, str(sample.seq))
+    return sample
+    
 def get_indels(reference, sample, window):
     vcf = [f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample.id}'] #set indels vcf header.
     offset = 0 #offset used when insertions detected, subsequent indels should be shifted by this offset
@@ -82,6 +89,7 @@ def main():
             reference = record
         else:
             sample = record
+    sample = mask_trimmed_sequence(sample)
     indels = get_indels(reference, sample, args.deletion_window)
     if args.write_indels:
         indels.to_csv(args.write_indels, mode='w', index = False, sep = "\t")
