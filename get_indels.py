@@ -15,7 +15,7 @@ def mask_trimmed_sequence(sample):
         return 'N' * len(m.group())
     sample.seq = re.sub(r'^-+|-+$', repl, str(sample.seq))
     return sample
-    
+
 def get_indels(reference, sample, window):
     vcf = [f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample.id}'] #set indels vcf header.
     offset = 0 #offset used when insertions detected, subsequent indels should be shifted by this offset
@@ -40,23 +40,25 @@ def get_indels(reference, sample, window):
         indels.append(indel)
     indels = sorted(indels, key=lambda d: d['pos'])
     for indel in indels:
+        current_offset = offset
         if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
-            if indel["alt_base"][1:] == len(indel["alt_base"][1:]) * indel["alt_base"][1:][0]:
-                offset += indel["length"] #still have to iterate the offset but dont mark the variant 
-            else:
-                variant = f'{reference.id}\t{indel["pos"] + 1 - offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
-                vcf.append(variant)
-                offset += indel["length"]
+            offset += indel["length"] #still have to iterate the offset but dont mark the variant
+            if indel["alt_base"][1:] == len(indel["alt_base"][1:]) * "N":
+                continue
+        if (window != 0 and ((sample.seq[indel["pos"] +1 - window: indel["pos"] + 1 ] == "N" * window) or (sample.seq[indel["pos"] +1 + indel["length"]: indel["pos"] +1 + indel["length"] + window] == "N" * window))):
+            continue
         else:
-            #this deletion window could be incoporated elsewhere e.g. by filtering the vcf file after snps and indels combined to filter all calls with n window? 
-            if window != 0:
-                if (sample.seq[indel["pos"] +1 - window: indel["pos"] + 1 ] == "N" * window) and (sample.seq[indel["pos"] +1 + length: indel["pos"] +1 + length + window] == "N" * window):
-                    continue
-                else:
-                    variant = f'{reference.id}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
-                    vcf.append(variant)
-            else:
-                variant = f'{reference.id}\t{indel["pos"] +1 -offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
+            count = 0
+            p = 1
+            while count <= window and sample.seq[min((max(0, indel["pos"]) + indel["length"] + p), len(sample.seq)-1)] == "N":
+                count += 1
+                p+=1
+            p = 0
+            while count <= window and sample.seq[max(0, indel["pos"]) - p] == "N":
+                count +=1
+                p+=1
+            if (count < window) or (window == 0):
+                variant = f'{reference.id}\t{indel["pos"] + 1 - current_offset}\t.\t{indel["ref_base"]}\t{indel["alt_base"]}\t.\t.\tAC=1;AN=1\tGT\t1'
                 vcf.append(variant)
 
     vcf = pd.DataFrame.from_records([sub.split("\t") for sub in vcf[1:]], columns = vcf[0].split(sep="\t"))
