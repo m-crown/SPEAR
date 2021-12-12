@@ -64,17 +64,17 @@ def get_indels(reference, sample, window):
 
 def main():
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('muscle_file', metavar='sample.muscle.aln', type=str,
-    help='input muscle alignment')
+    parser.add_argument('alignment', metavar='sample.muscle.aln', type=str,
+    help='input alignment in fasta format')
     parser.add_argument('ref', metavar='MN908947.3', type=str,
-    help='ref seq')
+    help='reference sequence')
     parser.add_argument('outfile', metavar="", type = str,
     help="output filename") #HAVE AN INITIAL CHECK AFTER READING IN SAMPLE, default is sample name as read from muscle alignment
-    parser.add_argument('--vcf_file', metavar="", type = str,
-    help="input vcf file for merging snps and indels, only if vcf_file specified")
-    parser.add_argument('--deletion_window', metavar="", type = int, default = 2,
-    help="flanking N filter for deletions, set to 0 for off")
-    parser.add_argument('--write_indels', metavar="sample.indels.tsv", type = str,
+    parser.add_argument('--vcf', metavar="", type = str,
+    help="input vcf file for merging snps and indels")
+    parser.add_argument('--window', metavar="", type = int, default = 2,
+    help="flanking N filter for indels, set to 0 for off")
+    parser.add_argument('--tsv', metavar="sample.indels.tsv", type = str,
     help="output file path for indels in tsv format")
     args = parser.parse_args()
 
@@ -84,17 +84,18 @@ def main():
     else:
         ref = args.ref
 
-    for record in SeqIO.parse(args.muscle_file, "fasta"):
+    for record in SeqIO.parse(args.alignment, "fasta"):
         if record.id == args.ref:
             reference = record
         else:
             sample = record
+
     sample = mask_trimmed_sequence(sample)
-    indels = get_indels(reference, sample, args.deletion_window)
-    if args.write_indels:
-        indels.to_csv(args.write_indels, mode='w', index = False, sep = "\t")
-    if args.vcf_file:
-        snps_header, snps = parse_vcf(args.vcf_file, split_info_cols=False)
+    indels = get_indels(reference, sample, args.window)
+    if args.tsv:
+        indels.to_csv(args.tsv, mode='w', index = False, sep = "\t")
+    if args.vcf:
+        snps_header, snps = parse_vcf(args.vcf, split_info_cols=False)
         snps["POS"] = snps["POS"].astype(int)
         mnps_index = []
         mnps_pos = []
