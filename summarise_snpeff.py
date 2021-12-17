@@ -1,16 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from Bio.SeqUtils import seq1
 from Bio import SeqIO
 import pandas as pd
 from itertools import takewhile
 import argparse
-from pathlib import Path
-import glob
 import numpy as np
 import re
 
-def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping):
+def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
 
   def filter_spear_summary(summaries):
     regexp = re.compile(r'ORF1(a|ab) polyprotein')
@@ -34,7 +31,50 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping):
   vcf.loc[vcf["product"].isnull(), "product"] = vcf.loc[vcf["product"].isnull(), "Feature_ID"]
   vcf["protein_id"] = vcf["product"].map(lambda x: locus_tag_mapping.get(x))
   vcf.loc[vcf["protein_id"].isnull(), "protein_id"] = vcf.loc[vcf["protein_id"].isnull(), "Feature_ID"]
-  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id"]
+
+  #convert HGVS annotation to per residue for residue annotation. 
+  #handle deletions and insertions residues first
+  vcf[["start_res", "start_pos", "end_res", "end_pos", "change", "ins"]] = vcf["variant"].str.extract('([A-Z])([0-9]+)_*([A-Z])?([0-9]+)?([a-z]+)([A-Z]+)?')
+  vcf["end_pos"] = vcf["end_pos"].fillna(vcf["start_pos"])
+  vcf[["start_pos", "end_pos"]] = vcf[["start_pos", "end_pos"]].fillna(0).astype("int")
+  vcf["ins_length"] = vcf['ins'].str.len().fillna(0).astype('int')
+  print(vcf)
+  range_df = pd.DataFrame(list(range(i, j+1)) for i, j in vcf[["start_pos", "end_pos"]].values).add_prefix("position_")
+  vcf["length"] = range_df.count(axis = 1)
+  range_df = "del" + range_df.fillna(0).astype('int').astype('str')
+  range_df = range_df.replace("del0", "")
+  cols = range_df.columns
+  vcf = pd.concat([vcf,range_df], axis = 1)
+  vcf["inserted_residues"] = vcf["start_res"] + vcf["start_pos"].astype('str') + vcf["ins"].fillna('').astype('str')
+  vcf["range"] = vcf.apply(lambda x : list(range(x['ins_length'],x['length'])),1)
+  vcf.loc[(vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]) == False) & (vcf["change"] == "delins"), "residues"] = vcf.loc[vcf["change"] == "delins","inserted_residues"] + "~" + vcf.apply(lambda x: '~'.join(x[b] for b in cols[x.range]),axis=1)
+  vcf.loc[(vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]) == False) & (vcf["change"] == "del"), "residues"] = vcf.loc[vcf["change"] == "del"].apply(lambda x: '~'.join(x[b] for b in cols[x.range]),axis=1)
+  vcf.loc[(vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]) == False) & (vcf["change"] == "ins"), "residues"] = vcf.loc[vcf["change"] == "ins", "start_res"] + vcf["start_pos"].astype("str") + "-" + vcf.loc[vcf["change"] == "ins","ins"] + "-" + vcf.loc[vcf["change"] == "ins","end_res"] + vcf.loc[vcf["change"] == "ins","end_pos"].astype('str')
+  #frameshift variants
+  vcf.loc[vcf["Annotation"].astype("str") == "frameshift_variant", "residues"] = vcf.loc[vcf["Annotation"].astype("str") == "frameshift_variant", "variant"].str.replace("^p\.", '')
+  #now handle missense variants and synonymous variants
+  vcf[["start_res2", "start_pos2", "end_res2"]] = vcf["variant"].str.extract('([A-Z]+)([0-9]+)([A-Z]+)')
+  vcf["end_pos2"] = vcf["end_pos"].fillna(0).astype("int")
+  vcf["start_res2"] = vcf["start_res2"].fillna("").astype("str")
+  vcf["end_res2"] = vcf["end_res2"].fillna("").astype("str")
+  vcf["start_pos2"] = vcf["start_pos2"].fillna(0).astype("int")
+  vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "end_pos2"] = vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_pos2"].fillna(0).astype("int") + vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_res2"].str.len() -1 
+  vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_pos2"] = np.array([list(range(i, j+1)) for i, j in vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]),["start_pos2", "end_pos2"]].values],dtype = object)
+  vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_res2"] = np.array([list(x) for x in vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_res2"]], dtype = object)
+  vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "end_res2"] = np.array([list(x) for x in vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "end_res2"]], dtype = object)
+  split_residues = vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]),["start_res2", "start_pos2", "end_res2"]].values.tolist()
+  residues = []
+  for item in split_residues:
+    #allows iteration over lists to zip together, single sample 
+    item[0] = item[0] if type(item[0]) is list else [item[0]]
+    item[1] = item[1] if type(item[1]) is list else [item[1]]
+    item[2] = item[2] if type(item[2]) is list else [item[2]]
+    residue = '~'.join(list(map(''.join,list(x for x in zip(item[0], [str(i) for i in item[1]], item[2])))))
+    residues.append(residue)
+  vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "residues"] = residues
+  vcf["residues"] = vcf["residues"].fillna("")
+  cols = list(cols) + ["start_res", "start_pos", "end_res", "end_pos", "change", "ins", "ins_length", "length","inserted_residues","range", "start_res2", "start_pos2", "end_res2", "end_pos2"]
+  vcf.drop(cols, axis = 1, inplace = True)
   vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
   vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
   cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
@@ -82,9 +122,9 @@ def main():
   parser = argparse.ArgumentParser(description='')
   parser.add_argument('output_filename', metavar='spear_vcfs/merged.spear.vcf', type=str,
       help='Filename for SPEAR annotated VCF') #ADD A DEFAULT FOR THIS 
-  parser.add_argument('vcf', metavar='path/to/vcfs', type = str,
+  parser.add_argument('vcf', metavar='path/to/vcf', type = str,
       help='Input VCF file')
-  parser.add_argument('data_dir', metavar='path/to/genbank+genpepts', type = str, 
+  parser.add_argument('data_dir', metavar='path/to/data/', type = str, 
       help ='Data files for peptide subpositions')
   args = parser.parse_args()
 
@@ -92,7 +132,7 @@ def main():
   df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] # split vcf file columns up to ANN , could change this to LOC and up to format column to make more flexible ? 
   df = df.replace(np.nan, '', regex=True)
   samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
-  header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | Variant | Product | ID\'">') #MAKE VARIANT HEADER HGVS
+  header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | HGVS | Product | RefSeq_acc | Residues | Bloom | BIS \'">') #MAKE VARIANT HEADER HGVS
   genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
   genbank_mapping = {}
   locus_tag_mapping = {}
@@ -104,8 +144,8 @@ def main():
       else:
         genbank_mapping[feature.qualifiers["locus_tag"][0]] = feature.qualifiers["product"][0]
         locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
-  df = convert_snpeff_annotation(df.copy(), genbank_mapping, locus_tag_mapping)
-  df["SPEAR"].to_csv("testing_spear_out.csv")
+  df = convert_snpeff_annotation(df.copy(), genbank_mapping, locus_tag_mapping, args.data_dir)
+  #df["SPEAR"].to_csv("testing_spear_out.csv")
   infocols.append("SPEAR")
   for col in infocols:
     df[col] = col + "=" + df[col]
