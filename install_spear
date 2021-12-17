@@ -1,0 +1,77 @@
+#|/usr/bin/env bash -eu
+# Matt Bashton 2021
+# Install required dependencies for SPEAR 
+tput bold
+echo "SPEAR install script"
+tput sgr0
+
+# Detect if we have working conda
+if ! command -v conda &> /dev/null
+then
+    echo "Conda could not be found, please install via https://docs.conda.io/en/latest/miniconda.html"
+    exit 1
+fi
+
+# Install env
+echo " - Setting up conda env"
+source ~/miniconda3/etc/profile.d/conda.sh
+conda config --set channel_priority strict
+conda env create -q --force -f environment.yml
+conda activate spear
+
+# Download SnpEff and SnpSift
+echo " - Downloading SnpEff and SnpSift"
+wget -q https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip -O snpEff_latest_core.zip
+unzip -q -o snpEff_latest_core.zip
+cp snpEff/*.jar ${CONDA_PREFIX}/bin
+cp snpEff/snpEff.config ${CONDA_PREFIX}/bin
+
+# Detect OS
+if [[ ${OSTYPE} == "darwin"* ]]; then
+    OS="macOS"
+elif [[ ${OSTYPE} == "linux"* ]]; then
+    OS="linux"
+else
+    echo "Unsupported OS: ${OSTYPE}"
+    exit 1
+fi
+
+# OS Dependent download
+if [[ ${OS} = "linux" ]]; then
+    echo " - Downloading UCSC faToVcf"
+    wget -q http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/faToVcf -O faToVcf
+    chmod +x faToVcf
+    cp faToVcf ${CONDA_PREFIX}/bin
+    echo " - Downloading brentp/vcfanno"
+    wget -q https://github.com/brentp/vcfanno/releases/download/v0.3.3/vcfanno_linux64 -O vcfanno
+    chmod +x vcfanno 
+    cp vcfanno ${CONDA_PREFIX}/bin
+elif [[ ${OS} = "macOS" ]]; then
+    echo " - Downloading UCSC faToVcf"
+    wget -q http://hgdownload.cse.ucsc.edu/admin/exe/macOSX.x86_64/faToVcf -O faToVcf
+    chmod +x faToVcf
+    cp faToVcf ${CONDA_PREFIX}/bin
+    echo " - Downloading brentp/vcfanno"
+    wget -q https://github.com/brentp/vcfanno/releases/download/v0.3.3/vcfanno_osx -O vcfanno
+    chmod +x vcfanno
+    cp vcfanno ${CONDA_PREFIX}/bin
+fi
+
+# Download data from GitHub
+echo " - Downloading W-L/ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf"
+mkdir -p ${CONDA_PREFIX}/data
+mkdir -p ProblematicSites_SARS-CoV2
+wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/raw/master/problematic_sites_sarsCov2.vcf -O ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf
+cp ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf ${CONDA_PREFIX}/data
+echo " - Downloading jbloomlab/SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv"
+mkdir -p SARS-CoV-2-RBD_DMS/results/single_mut_effects/
+wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/master/LICENSE.md -O SARS-CoV-2-RBD_DMS/LICENSE.md
+wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/raw/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
+cp SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv ${CONDA_PREFIX}/data
+
+# Install SPEAR files
+echo " - Installing SPEAR"
+cp data/* ${CONDA_PREFIX}/data
+cp scripts/* ${CONDA_PREFIX}/bin
+chmod +x spear
+cp spear ${CONDA_PREFIX}/bin
