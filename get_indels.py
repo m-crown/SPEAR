@@ -1,13 +1,12 @@
+#!/usr/bin/env python
 
 import argparse
 from Bio import SeqIO
 from pathlib import Path
-from re import finditer, split
+from re import finditer
 import re
 from summarise_snpeff import parse_vcf, write_vcf
 import pandas as pd
-import glob
-from collections import defaultdict
 
 #need to have a flag to exclude ambiguous indels in get_indels to go alongside excluding ambiguous snps from fatovcf
 def mask_trimmed_sequence(sample):
@@ -16,7 +15,7 @@ def mask_trimmed_sequence(sample):
     sample.seq = re.sub(r'^-+|-+$', repl, str(sample.seq))
     return sample
 
-def get_indels(reference, sample, window):
+def get_indels(reference, sample, window, allow_ambiguous):
     vcf = [f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample.id}'] #set indels vcf header.
     offset = 0 #offset used when insertions detected, subsequent indels should be shifted by this offset
     indels = []
@@ -41,10 +40,18 @@ def get_indels(reference, sample, window):
     indels = sorted(indels, key=lambda d: d['pos'])
     for indel in indels:
         current_offset = offset
-        if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
-            offset += indel["length"] #still have to iterate the offset but dont mark the variant
-            if indel["alt_base"][1:] == len(indel["alt_base"][1:]) * "N":
-                continue
+        if allow_ambiguous:
+            if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
+                offset += indel["length"] #still have to iterate the offset but dont mark the variant
+                iupac_chars = ["N"]
+                if any(char in indel["alt_base"][1:] for char in iupac_chars): 
+                    continue
+        else:   
+            if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
+                offset += indel["length"] #still have to iterate the offset but dont mark the variant
+                iupac_chars = ["R", "Y", "S", "W", "K", "M", "B", "D", "H", "V", "N"]
+                if any(char in indel["alt_base"][1:] for char in iupac_chars): 
+                    continue
         if (window != 0 and ((sample.seq[indel["pos"] +1 - window: indel["pos"] + 1 ] == "N" * window) or (sample.seq[indel["pos"] +1 + indel["length"]: indel["pos"] +1 + indel["length"] + window] == "N" * window))):
             continue
         else:
@@ -67,17 +74,19 @@ def get_indels(reference, sample, window):
 def main():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('alignment', metavar='sample.muscle.aln', type=str,
-    help='input alignment in fasta format')
+        help='input alignment in fasta format')
     parser.add_argument('ref', metavar='MN908947.3', type=str,
-    help='reference sequence')
+        help='reference sequence')
     parser.add_argument('outfile', metavar="", type = str,
-    help="output filename") #HAVE AN INITIAL CHECK AFTER READING IN SAMPLE, default is sample name as read from muscle alignment
+        help="output filename") #HAVE AN INITIAL CHECK AFTER READING IN SAMPLE, default is sample name as read from muscle alignment
     parser.add_argument('--vcf', metavar="", type = str,
-    help="input vcf file for merging snps and indels")
+        help="input vcf file for merging snps and indels")
     parser.add_argument('--window', metavar="", type = int, default = 2,
-    help="flanking N filter for indels, set to 0 for off")
+        help="flanking N filter for indels, set to 0 for off")
     parser.add_argument('--tsv', metavar="sample.indels.tsv", type = str,
-    help="output file path for indels in tsv format")
+        help="output file path for indels in tsv format")
+    parser.add_argument('--allowAmbiguous', default=False, action='store_true',
+        help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
     args = parser.parse_args()
 
     ref_aliases = ["NC_045512.2", "MN908947.3"]
@@ -93,7 +102,7 @@ def main():
             sample = record
 
     sample = mask_trimmed_sequence(sample)
-    indels = get_indels(reference, sample, args.window)
+    indels = get_indels(reference, sample, args.window, args.allowAmbiguous)
     if args.tsv:
         indels.to_csv(args.tsv, mode='w', index = False, sep = "\t")
     if args.vcf:
