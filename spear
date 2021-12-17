@@ -11,8 +11,10 @@ import re
 
 def main():
     parser = argparse.ArgumentParser(description='TESTING')
-    parser.add_argument('--data', metavar='data-directory', type = str, 
-        help ='Data files for peptide subpositions')
+    parser.add_argument('--debug', default=False, action='store_true',
+        help = "Verbose snakemake execution")
+    parser.add_argument('--dag', default=False, action='store_true',
+        help = "Display DAG and exit")
     parser.add_argument('--allowAmbiguous', default=False, action='store_true',
         help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
     parser.add_argument('--extension', metavar = '', type = str,
@@ -278,15 +280,15 @@ def main():
     indir = f'{args.output}/input_files'
 
     if single_sample: 
-        snakefile = "spear_single.smk"
+        snakefile = f'{SPEAR_PATH}/bin/spear_single.smk'
     else:
-        snakefile = "spear_multi.smk"
+        snakefile = f'{SPEAR_PATH}/bin/spear_multi.smk'
 
     config = {
         "input_dir" : indir,
         "samples" : passing_samples, 
         "output_dir" : args.output,
-        "genbank" : f'{SPEAR_PATH}/data/NC_045512.2.gb',
+        "data_dir" : f'{SPEAR_PATH}/data',
         "align" : args.align,
         "exclude_ambiguous" : exclude,
         "reference_sequence" : f'{SPEAR_PATH}/data/SARS-CoV-2.reference.fasta',
@@ -303,9 +305,9 @@ def main():
                 snakefile, 
                 printshellcmds=False,
                 config=config, 
-                quiet=False, 
+                quiet=args.debug,
                 forceall = False, 
-                printdag = False, 
+                printdag = args.dag, 
                 cores = args.threads,
                 printreason = False)
 

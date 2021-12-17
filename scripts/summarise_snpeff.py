@@ -38,7 +38,6 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf["end_pos"] = vcf["end_pos"].fillna(vcf["start_pos"])
   vcf[["start_pos", "end_pos"]] = vcf[["start_pos", "end_pos"]].fillna(0).astype("int")
   vcf["ins_length"] = vcf['ins'].str.len().fillna(0).astype('int')
-  print(vcf)
   range_df = pd.DataFrame(list(range(i, j+1)) for i, j in vcf[["start_pos", "end_pos"]].values).add_prefix("position_")
   vcf["length"] = range_df.count(axis = 1)
   range_df = "del" + range_df.fillna(0).astype('int').astype('str')
@@ -84,21 +83,16 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
     residues = [item for sublist in residues for item in sublist.split(",")]
     new_anno = []
     for residue in residues:
-      print(residue)
       pattern = re.compile(r"[a-zA-Z]+([0-9]+)")
       respos = int(pattern.match(residue).group(1)) if pattern.match(residue) else -1 #it is an acknowledged limitation at this stage that this does not working for insertions
-      print(respos)
       if respos != -1:
         anno = spear_anno_file.loc[spear_anno_file["AA_coordinate"] == respos, ["region", "domain", "contact_type", "NAb", "barns_class"]].values.tolist()
-        print("ANNO" , anno)
         anno = [item if len(item) == len(item) else [] for item in anno]
         anno = [item for sublist in anno for item in sublist]
-        print(anno)
         bloom_anno = bloom_anno_file.loc[bloom_anno_file["mutation"] == residue, "bind_avg"].values.tolist()
         bloom_anno = ["" if len(bloom_anno) == 0 else bloom_anno[0]]
         anno += bloom_anno
         new_anno.append(anno)
-        print(new_anno)
       else:
         new_anno.append(["","","","","",""])
           
@@ -178,7 +172,6 @@ def main():
         genbank_mapping[feature.qualifiers["locus_tag"][0]] = feature.qualifiers["product"][0]
         locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
   df = convert_snpeff_annotation(df.copy(), genbank_mapping, locus_tag_mapping, args.data_dir)
-  #df["SPEAR"].to_csv("testing_spear_out.csv")
   infocols.append("SPEAR")
   for col in infocols:
     df[col] = col + "=" + df[col]
