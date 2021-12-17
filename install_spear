@@ -62,11 +62,15 @@ echo " - Downloading W-L/ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.v
 mkdir -p ${CONDA_PREFIX}/data
 mkdir -p ProblematicSites_SARS-CoV2
 wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/raw/master/problematic_sites_sarsCov2.vcf -O ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf
-cp ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf ${CONDA_PREFIX}/data
+bgzip ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf > ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz
+tabix -p vcf ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz
+cp ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz ${CONDA_PREFIX}/data
+cp ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz.tbi ${CONDA_PREFIX}/data
+ 
 echo " - Downloading jbloomlab/SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv"
 mkdir -p SARS-CoV-2-RBD_DMS/results/single_mut_effects/
 wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/master/LICENSE.md -O SARS-CoV-2-RBD_DMS/LICENSE.md
-wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/raw/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
+wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
 cp SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv ${CONDA_PREFIX}/data
 
 # Install SPEAR files
