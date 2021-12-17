@@ -77,7 +77,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf.drop(cols, axis = 1, inplace = True)
   #annotate residue specific information for each variant. 
   s_residues = vcf.loc[vcf["product"] == "surface glycoprotein" , "residues"].str.split('~').to_list()
-  spear_anno_file = pd.read_csv(f'{data_dir}/spear_annotation_file.csv').fillna("")
+  spear_anno_file = pd.read_pickle(f'{data_dir}/spear.pkl')
   bloom_anno_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv').fillna("")
   annotation = []
   for residues in s_residues:
