@@ -291,7 +291,7 @@ def main():
         "data_dir" : f'{SPEAR_PATH}/data',
         "align" : args.align,
         "exclude_ambiguous" : exclude,
-        "reference_sequence" : f'{SPEAR_PATH}/data/SARS-CoV-2.reference.fasta',
+        "reference_sequence" : f'{SPEAR_PATH}/data/reference.fasta',
         "filter" : filter_snps,
         "filter_params" : filter_statement,
         "split_vcfs": args.split,
