@@ -17,6 +17,35 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
       summaries = [summary for summary in summaries if not regexp.search(summary)]
     return summaries
 
+  def annotate_s_residues(vcf, data_dir):
+    s_residues = vcf.loc[vcf["product"] == "surface glycoprotein" , "residues"].str.split('~').to_list()
+    spear_anno_file = pd.read_pickle(f'{data_dir}/spear.pkl')
+    bloom_anno_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv').fillna("")
+    annotation = []
+    for residues in s_residues:
+      residues = [item for sublist in residues for item in sublist.split(",")]
+      new_anno = []
+      for residue in residues:
+        pattern = re.compile(r"[a-zA-Z]+([0-9]+)")
+        respos = int(pattern.match(residue).group(1)) if pattern.match(residue) else -1 #it is an acknowledged limitation at this stage that this does not working for insertions
+        if respos != -1:
+          anno = spear_anno_file.loc[spear_anno_file["AA_coordinate"] == respos, ["region", "domain", "contact_type", "NAb", "barns_class"]].values.tolist()
+          anno = [item if len(item) == len(item) else [] for item in anno]
+          anno = [item for sublist in anno for item in sublist]
+          bloom_anno = bloom_anno_file.loc[bloom_anno_file["mutation"] == residue, "bind_avg"].values.tolist()
+          bloom_anno = ["" if len(bloom_anno) == 0 else bloom_anno[0]]
+          anno += bloom_anno
+          new_anno.append(anno)
+        else:
+          new_anno.append(["","","","","",""])
+            
+      new_anno = list(map(list, zip(*new_anno)))
+      new_anno = ['~'.join([str(c) if c == c else "" for c in lst]) for lst in new_anno]
+      annotation.append(new_anno)
+    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = annotation
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].fillna("")
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("[^0-9a-zA-Z]+[~]+", "", regex = True)
+
   #takes a input a dataframe row, splits the ann field into a new
   vcf["ANN2"] = vcf["ANN"].str.split(',') #put the split ANN field into a new column to preserve original snpeff value
   vcf = vcf.explode("ANN2")
@@ -75,33 +104,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   cols = list(cols) + ["start_res", "start_pos", "end_res", "end_pos", "change", "ins", "ins_length", "length","inserted_residues","range", "start_res2", "start_pos2", "end_res2", "end_pos2"]
   vcf.drop(cols, axis = 1, inplace = True)
   #annotate residue specific information for each variant. 
-  s_residues = vcf.loc[vcf["product"] == "surface glycoprotein" , "residues"].str.split('~').to_list()
-  spear_anno_file = pd.read_pickle(f'{data_dir}/spear.pkl')
-  bloom_anno_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv').fillna("")
-  annotation = []
-  for residues in s_residues:
-    residues = [item for sublist in residues for item in sublist.split(",")]
-    new_anno = []
-    for residue in residues:
-      pattern = re.compile(r"[a-zA-Z]+([0-9]+)")
-      respos = int(pattern.match(residue).group(1)) if pattern.match(residue) else -1 #it is an acknowledged limitation at this stage that this does not working for insertions
-      if respos != -1:
-        anno = spear_anno_file.loc[spear_anno_file["AA_coordinate"] == respos, ["region", "domain", "contact_type", "NAb", "barns_class"]].values.tolist()
-        anno = [item if len(item) == len(item) else [] for item in anno]
-        anno = [item for sublist in anno for item in sublist]
-        bloom_anno = bloom_anno_file.loc[bloom_anno_file["mutation"] == residue, "bind_avg"].values.tolist()
-        bloom_anno = ["" if len(bloom_anno) == 0 else bloom_anno[0]]
-        anno += bloom_anno
-        new_anno.append(anno)
-      else:
-        new_anno.append(["","","","","",""])
-          
-    new_anno = list(map(list, zip(*new_anno)))
-    new_anno = ['~'.join([str(c) if c == c else "" for c in lst]) for lst in new_anno]
-    annotation.append(new_anno)
-  vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("[^0-9a-zA-Z]+[~]+", "", regex = True)
-  vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = annotation
-  vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].fillna("")
+  vcf = annotate_s_residues(vcf.copy(), data_dir)
   cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]
   vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
   vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
