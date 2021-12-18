@@ -99,6 +99,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
     new_anno = list(map(list, zip(*new_anno)))
     new_anno = ['~'.join([str(c) if c == c else "" for c in lst]) for lst in new_anno]
     annotation.append(new_anno)
+  vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("[^0-9a-zA-Z]+[~]+", "", regex = True)
   vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = annotation
   vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].fillna("")
   cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]

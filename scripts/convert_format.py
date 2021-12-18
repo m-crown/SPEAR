@@ -23,16 +23,19 @@ def main():
     for vcf in args.vcfs:
         sample_name = Path(vcf).stem
         header, vcf , infocols = parse_vcf(vcf, split_info_cols = True)
-        if len(vcf) != 0: #do not add summary if the vcf file is empty. 
+        if len(vcf) != 0: #do not add summary if the vcf file is empty.
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
             vcf = vcf.explode("SPEAR")
             vcf[["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf["SPEAR"].str.split("|", expand = True)
             vcf.loc[vcf["Gene_Name"].str.contains('-'), "Gene_Name"] = "Intergenic_" + vcf.loc[vcf["Gene_Name"].str.contains('-'), "Gene_Name"]
             vcf.loc[vcf["Annotation"] == "synonymous_variant", "variant"] = vcf.loc[vcf["Annotation"] == "synonymous_variant", "HGVS.c"]
             per_sample_output = vcf.copy()
-            per_sample_output["Sample"] = sample_name
-            cols = ["Sample", "Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]
+            per_sample_output["sample_id"] = sample_name
+            cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]
+            per_sample_output[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = per_sample_output[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("[^0-9a-zA-Z]+[~]+", "", regex = True)
+            per_sample_output[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = per_sample_output[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("~",",", regex = True)
             per_sample_output = per_sample_output[cols]
+            per_sample_output.columns = ["sample_id", "POS", "REF", "ALT", "gene_name", "HGVS.genomic", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]   
             per_sample_output.to_csv(f'{args.output_dir}/{sample_name}.summary.csv', sep = '\t', header = True, index = False)
             vcf["variant"] = vcf["Annotation"] + "_" + vcf["variant"]
             new_df = vcf[["Gene_Name", "variant"]].copy()
@@ -45,7 +48,7 @@ def main():
             sample_summary = [sample_name, sample_variants]
             sample_summaries.append(sample_summary)
         else:
-            #touch file if empty, so snakemake doesnt fail. Implement a new version of this. Maybe check the vcf has one entry prior to entering pipeline.  
+            #touch file if empty  
             Path(f'{args.output_dir}/{sample_name}.summary.csv').touch()
     sample_summaries.sort()
     with open(f'{args.output_dir}/summary.csv', "a") as fp:
