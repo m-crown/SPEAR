@@ -11,7 +11,7 @@ import re
 
 def main():
     parser = argparse.ArgumentParser(description='TESTING')
-    parser.add_argument('--debug', default=False, action='store_true',
+    parser.add_argument('--debug', default=True, action='store_false',
         help = "Verbose snakemake execution")
     parser.add_argument('--dag', default=False, action='store_true',
         help = "Display DAG and exit")
@@ -305,7 +305,7 @@ def main():
                 snakefile, 
                 printshellcmds=False,
                 config=config, 
-                quiet=args.debug,
+                quiet= args.debug,
                 forceall = False, 
                 printdag = args.dag, 
                 cores = args.threads,
