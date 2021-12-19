@@ -46,12 +46,16 @@ def get_indels(reference, sample, window, allow_ambiguous):
                 iupac_chars = ["N"]
                 if any(char in indel["alt_base"][1:] for char in iupac_chars): 
                     continue
+                if indel["alt_base"][0] in iupac_chars: #if the reference base is N in the sample convert to ref in the alt description (ignore N snp)
+                    indel["alt_base"][0] = indel["ref_base"]
         else:   
             if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
                 offset += indel["length"] #still have to iterate the offset but dont mark the variant
                 iupac_chars = ["R", "Y", "S", "W", "K", "M", "B", "D", "H", "V", "N"]
                 if any(char in indel["alt_base"][1:] for char in iupac_chars): 
                     continue
+                if indel["alt_base"][0] in iupac_chars: #if the reference base is IUPAC ambiguous in the sample convert to ref in the alt description (ignore N snp)
+                    indel["alt_base"][0] = indel["ref_base"]
         if (window != 0 and ((sample.seq[indel["pos"] +1 - window: indel["pos"] + 1 ] == "N" * window) or (sample.seq[indel["pos"] +1 + indel["length"]: indel["pos"] +1 + indel["length"] + window] == "N" * window))):
             continue
         else:
