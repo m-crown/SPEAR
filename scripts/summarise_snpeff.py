@@ -45,7 +45,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
     vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = annotation
     vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].fillna("")
     vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("[^0-9a-zA-Z]+[~]+", "", regex = True)
-
+    return vcf
   #takes a input a dataframe row, splits the ann field into a new
   vcf["ANN2"] = vcf["ANN"].str.split(',') #put the split ANN field into a new column to preserve original snpeff value
   vcf = vcf.explode("ANN2")
