@@ -1,5 +1,5 @@
 [[annotation]]
-file="problemsites.vcf.gz"
+file="$CONDA_PREFIX/data/problemsites.vcf.gz"
 # ID and FILTER are special fields that pull the ID and FILTER columns from the VCF
 fields = ["EXC", "FILTER"]
 ops=["self", "self"]
