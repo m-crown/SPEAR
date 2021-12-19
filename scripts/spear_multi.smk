@@ -97,7 +97,7 @@ rule mark_problem_sites:
    output:
       config["output_dir"] + "/masked/{id}.problem.vcf"
    shell:
-      "vcfanno $CONDA_PREFIX/scripts/conf.toml {input} > {output}"
+      "vcfanno $CONDA_PREFIX/bin/conf.toml {input} > {output}"
 
 rule get_snps:
    input:
