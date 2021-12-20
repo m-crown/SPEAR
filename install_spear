@@ -23,8 +23,7 @@ conda activate spear
 echo " - Downloading SnpEff and SnpSift"
 wget -q https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip -O snpEff_latest_core.zip
 unzip -q -o snpEff_latest_core.zip
-cp snpEff/*.jar ${CONDA_PREFIX}/bin
-cp snpEff/snpEff.config ${CONDA_PREFIX}/bin
+cp -r snpEff/ ${CONDA_PREFIX}/
 
 # Detect OS
 if [[ ${OSTYPE} == "darwin"* ]]; then
@@ -79,3 +78,5 @@ cp data/* ${CONDA_PREFIX}/data
 cp scripts/* ${CONDA_PREFIX}/bin
 chmod +x spear
 cp spear ${CONDA_PREFIX}/bin
+
+java -Xmx8g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 $CONDA_PREFIX/data/merged.vcf > /dev/null

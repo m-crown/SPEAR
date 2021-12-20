@@ -26,7 +26,7 @@ if config["vcf"] == True:
          config["output_dir"] + "/snpeff/{id}.ann.vcf" if config["filter"] else config["output_dir"] + "/snpeff/{id}.ann.vcf"
       shell:
          """
-         java -Xmx8g -jar $CONDA_PREFIX/bin/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 {input} > {output}
+         java -Xmx8g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 {input} > {output}
          """
 
 if config["vcf"] != True:
@@ -37,7 +37,7 @@ if config["vcf"] != True:
          config["output_dir"] + "/snpeff/{id}.ann.vcf"
       shell:
          """
-         java -Xmx8g -jar $CONDA_PREFIX/bin/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 {input} > {output}
+         java -Xmx8g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 {input} > {output}
          """
 
 rule get_indels:
@@ -56,7 +56,7 @@ rule filter_problem_sites:
    output: 
       config["output_dir"] + "/masked/{id}.masked.vcf"
    shell:
-      "java -jar $CONDA_PREFIX/bin/SnpSift.jar filter \"!( {config[filter_params]} )\" {input} > {output}"
+      "java -jar $CONDA_PREFIX/snpEff/SnpSift.jar filter \"!( {config[filter_params]} )\" {input} > {output}"
 
 rule mark_problem_sites:
    input:

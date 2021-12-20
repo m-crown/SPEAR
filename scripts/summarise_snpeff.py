@@ -88,8 +88,6 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf["end_res2"] = vcf["end_res2"].fillna("").astype("str")
   vcf["start_pos2"] = vcf["start_pos2"].fillna(0).astype("int")
   vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "end_pos2"] = vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_pos2"].fillna(0).astype("int") + vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_res2"].str.len() -1 
-  print(vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), ["start_pos2", "end_pos2"]])
-  print(np.array([list(range(i, j+1)) for i, j in vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]),["start_pos2", "end_pos2"]].values],dtype = object))
   vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_pos2"] = np.array([list(range(i, j+1)) for i, j in vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]),["start_pos2", "end_pos2"]].values],dtype = object)
   vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_res2"] = np.array([list(x) for x in vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "start_res2"]], dtype = object)
   vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "end_res2"] = np.array([list(x) for x in vcf.loc[vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]), "end_res2"]], dtype = object)

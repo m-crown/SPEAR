@@ -40,7 +40,6 @@ def main():
     args = parser.parse_args()
 
     SPEAR_PATH = os.environ.get('CONDA_PREFIX')
-    print(SPEAR_PATH)
     #check if input is a directory or a file and then operate differently depending
     if args.extension == None:
         if args.align:
@@ -65,7 +64,6 @@ def main():
             samples_fail_perc_n = 0
             samples_fail_count = 0
             for sample in input_samples:
-                print(sample)
                 count = 0
                 sample_file = list(SeqIO.parse(f'{args.input}/{sample}{extension}', "fasta"))
                 for record in sample_file:
@@ -161,7 +159,7 @@ def main():
     elif os.path.isfile(args.input):
         single_sample = True
         input_sample = (Path(args.input).stem).split(".", 1)[0]
-        if args.align: #HERE 
+        if args.align: 
             passing_samples = []
             samples_fail_perc_n = 0
             samples_fail_count = 0
