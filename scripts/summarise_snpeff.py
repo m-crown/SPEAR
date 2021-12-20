@@ -6,6 +6,7 @@ from itertools import takewhile
 import argparse
 import numpy as np
 import re
+from shutil import copy
 
 def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
 
@@ -160,36 +161,40 @@ def main():
   args = parser.parse_args()
 
   header, vcf, infocols = parse_vcf(args.vcf)
-  df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] # split vcf file columns up to ANN , could change this to LOC and up to format column to make more flexible ? 
-  df = df.replace(np.nan, '', regex=True)
-  samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
-  header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | HGVS | Product | RefSeq_acc | Residues | Bloom | BIS \'">') #MAKE VARIANT HEADER HGVS
-  genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
-  genbank_mapping = {}
-  locus_tag_mapping = {}
-  for feature in genbank.features:
-    if feature.type == "CDS" or feature.type == "mat_peptide":
-      if feature.qualifiers["gene"][0] == "ORF1ab":
-        genbank_mapping[feature.qualifiers["protein_id"][0]] = feature.qualifiers["product"][0]
-        locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
-      else:
-        genbank_mapping[feature.qualifiers["locus_tag"][0]] = feature.qualifiers["product"][0]
-        locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
-  df = convert_snpeff_annotation(df.copy(), genbank_mapping, locus_tag_mapping, args.data_dir)
-  infocols.append("SPEAR")
-  for col in infocols:
-    df[col] = col + "=" + df[col]
-  df['INFO'] = df[infocols].agg(';'.join, axis=1)
-  df.drop(infocols, axis = 1, inplace = True)
-  df['INFO'] = df['INFO'].str.replace('problem_exc=;','')
-  df['INFO'] = df['INFO'].str.replace('problem_filter=;','')
-  cols = df.columns.to_list()
-  cols.pop(cols.index("INFO"))
-  cols.insert(cols.index("FILTER") + 1, "INFO")
-  df = df[cols]
-  #sanity check before concat shape
-  vcf = pd.concat([df, samples],axis=1)
-  write_vcf(header,vcf,args.output_filename)
+  if len(vcf) != 0: #do not add summary if the vcf file is empty.
+    df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] # split vcf file columns up to ANN , could change this to LOC and up to format column to make more flexible ? 
+    df = df.replace(np.nan, '', regex=True)
+    samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
+    header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | HGVS | Product | RefSeq_acc | Residues | Bloom | BIS \'">') #MAKE VARIANT HEADER HGVS
+    genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
+    genbank_mapping = {}
+    locus_tag_mapping = {}
+    for feature in genbank.features:
+      if feature.type == "CDS" or feature.type == "mat_peptide":
+        if feature.qualifiers["gene"][0] == "ORF1ab":
+          genbank_mapping[feature.qualifiers["protein_id"][0]] = feature.qualifiers["product"][0]
+          locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
+        else:
+          genbank_mapping[feature.qualifiers["locus_tag"][0]] = feature.qualifiers["product"][0]
+          locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
+    df = convert_snpeff_annotation(df.copy(), genbank_mapping, locus_tag_mapping, args.data_dir)
+    infocols.append("SPEAR")
+    for col in infocols:
+      df[col] = col + "=" + df[col]
+    df['INFO'] = df[infocols].agg(';'.join, axis=1)
+    df.drop(infocols, axis = 1, inplace = True)
+    df['INFO'] = df['INFO'].str.replace('problem_exc=;','')
+    df['INFO'] = df['INFO'].str.replace('problem_filter=;','')
+    cols = df.columns.to_list()
+    cols.pop(cols.index("INFO"))
+    cols.insert(cols.index("FILTER") + 1, "INFO")
+    df = df[cols]
+    #sanity check before concat shape
+    vcf = pd.concat([df, samples],axis=1)
+    write_vcf(header,vcf,args.output_filename)
+  else:
+    copy(args.vcf, args.output_filename) #copy the empty vcf file so that snakemake sees command completion. 
+  
 
 if __name__ == "__main__":
     main()
