@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 from Bio import SeqIO
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 from itertools import takewhile
 import argparse
