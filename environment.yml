@@ -66,4 +66,12 @@ dependencies:
 
 
 
+  - conda-forge::sed
+
+
+
+  - conda-forge::grep
+
+
+
   - wget
