@@ -53,8 +53,8 @@ def main():
         extension = args.extension
 
     #setting the sample list for input to snakemake. Filtering based on N percentage and ensuring inputs have correct number of sequences. 
-    single_sample = False
     if os.path.isdir(args.input):
+        single_sample = False
         input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
         if args.align: #HERE 
             if len(input_samples) == 0:
@@ -92,7 +92,12 @@ def main():
                 Passing samples : {len(passing_samples)}
                 %N > {args.cutoff} : {samples_fail_perc_n}
                 Incorrect format : {samples_fail_count}
-                ''') 
+                ''')
+            if len(passing_samples) == 1:
+                single_sample = True
+            elif len(passing_samples) == 0:
+                print("No samples to process, exiting.")
+                sys.exit(1) 
         elif args.vcf:
             passing_samples = []
             for sample in input_samples:
@@ -107,7 +112,13 @@ def main():
                 passing_samples.append(sample_name)
             print(f'''
                 Input samples : {len(passing_samples)}
-                ''')             
+                ''')
+            #adding this in pre-emptively for when VCF pre-filtering implemented
+            if len(passing_samples) == 1:
+                single_sample = True
+            elif len(passing_samples) == 0:
+                print("No samples to process, exiting.")
+                sys.exit(1)          
         else:
             passing_samples = []
             samples_fail_perc_n = 0
@@ -141,7 +152,12 @@ def main():
                 Passing samples : {len(passing_samples)}
                 %N > {args.cutoff} : {samples_fail_perc_n}
                 Incorrect format : {samples_fail_count}
-                ''') 
+                ''')
+            if len(passing_samples) == 1:
+                single_sample = True
+            elif len(passing_samples) == 0:
+                print("No samples to process, exiting.")
+                sys.exit(1)
     elif os.path.isfile(args.input):
         single_sample = True
         input_sample = (Path(args.input).stem).split(".", 1)[0]
@@ -175,7 +191,7 @@ def main():
                 %N > {args.cutoff} : {samples_fail_perc_n}
                 Incorrect format : {samples_fail_count}
                 ''')
-            if len(passing_samples) != 1:
+            if len(passing_samples) == 0:
                 print("No samples to process, exiting.")
                 sys.exit(1)
         elif args.vcf:
@@ -190,7 +206,11 @@ def main():
             passing_samples = [sample_name]
             print(f'''
                 Input samples : {len(passing_samples)}
-                ''')             
+                ''')
+            #Adding this in pre-emptively before VCF pre-filtering is implemented for consistency with other inputs
+            if len(passing_samples) == 0:
+                print("No samples to process, exiting.")
+                sys.exit(1)              
         else:
             passing_samples = []
             samples_fail_perc_n = 0
@@ -223,7 +243,7 @@ def main():
                 %N > {args.cutoff} : {samples_fail_perc_n}
                 Incorrect format : {samples_fail_count}
                 ''')
-            if len(passing_samples) != 1:
+            if len(passing_samples) == 0:
                 print("No samples to process, exiting.")
                 sys.exit(1)
     else:  
