@@ -61,7 +61,7 @@ fi
 echo " - Downloading W-L/ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf"
 mkdir -p ${CONDA_PREFIX}/data
 mkdir -p ProblematicSites_SARS-CoV2
-wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/raw/master/problematic_sites_sarsCov2.vcf -O ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf
+wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf
 bgzip ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf > ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz
 tabix -p vcf ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz
 cp ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz ${CONDA_PREFIX}/data
