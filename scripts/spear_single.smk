@@ -56,7 +56,7 @@ rule filter_problem_sites:
    output: 
       config["output_dir"] + "/masked/{id}.masked.vcf"
    shell:
-      "java -jar $CONDA_PREFIX/SnpSift.jar filter \"!( {config[filter_params]} )\" {input} > {output}"
+      "java -jar $CONDA_PREFIX/bin/SnpSift.jar filter \"!( {config[filter_params]} )\" {input} > {output}"
 
 rule mark_problem_sites:
    input:
@@ -64,7 +64,7 @@ rule mark_problem_sites:
    output:
       config["output_dir"] + "/masked/{id}.problem.vcf"
    shell:
-      "vcfanno $CONDA_PREFIX/bin/conf.toml {input} > {output}"
+      "vcfanno --base-path $CONDA_PREFIX $CONDA_PREFIX/bin/conf.toml {input} > {output}"
 
 rule get_snps:
    input:
