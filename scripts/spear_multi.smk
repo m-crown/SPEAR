@@ -105,7 +105,7 @@ rule get_snps:
    output:
       snps = config["output_dir"] + "/fatovcf/{id}.vcf"
    shell:
-      "faToVcf {config[exclude_ambiguous]} {input} {output.snps} ; update_vcf_header.sh {output.snps}; sed -i '' 's/MN908947.3/NC_045512.2/g' {output.snps}"
+      "faToVcf {config[exclude_ambiguous]} {input} {output.snps} ; update_vcf_header.sh {output.snps}"
 
 if config["align"]:
    rule muscle_alignment:
