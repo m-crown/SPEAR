@@ -1,12 +1,12 @@
 rule all:
    input: 
-      expand(config["output_dir"] + "/summary/{id}.summary.csv", id = config["samples"])
+      expand(config["output_dir"] + "/summary/{id}.summary.tsv", id = config["samples"])
 
 rule summarise_vcfs:
    input:
       expand(config["output_dir"] + "/final_vcfs/{id}.vcf" , id=config["samples"])
    output:
-      expand(config["output_dir"] + "/summary/{id}.summary.csv", id = config["samples"])
+      expand(config["output_dir"] + "/summary/{id}.summary.tsv", id = config["samples"])
    shell:
       """convert_format.py {config[output_dir]}/summary/ --vcf {input}"""
 

@@ -1,25 +1,24 @@
 rule all:
    input: 
-      expand(config["output_dir"] + "/summary/{id}.summary.csv", id = config["samples"]) if config["split_vcfs"] else config["output_dir"] + "/merged.spear.vcf"
+      expand(config["output_dir"] + "/summary/{id}.summary.tsv", id = config["samples"])
 
-if config["split_vcfs"] == True:
-   rule summarise_vcfs:
-      input:
-         expand(config["output_dir"] + "/final_vcfs/{id}.vcf" , id=config["samples"])
-      output:
-         expand(config["output_dir"] + "/summary/{id}.summary.csv", id = config["samples"])
-      shell:
-         """convert_format.py {config[output_dir]}/summary/ --vcf {input}"""
-   
-   rule split_vcfs:
-      input:
-         config["output_dir"] + "/merged.spear.vcf"
-      output:
-         expand(config["output_dir"] + "/final_vcfs/{id}.vcf", id = config["samples"])
-      shell:
-         """
-         for sample in `bcftools query -l {input}`; do bcftools view -Ov -c 1 -s $sample -o {config[output_dir]}/final_vcfs/$sample.vcf {input}; done
-         """
+rule summarise_vcfs:
+   input:
+      expand(config["output_dir"] + "/final_vcfs/{id}.vcf" , id=config["samples"])
+   output:
+      expand(config["output_dir"] + "/summary/{id}.summary.tsv", id = config["samples"])
+   shell:
+      """convert_format.py {config[output_dir]}/summary/ --vcf {input}"""
+
+rule split_vcfs:
+   input:
+      config["output_dir"] + "/merged.spear.vcf"
+   output:
+      expand(config["output_dir"] + "/final_vcfs/{id}.vcf", id = config["samples"])
+   shell:
+      """
+      for sample in `bcftools query -l {input}`; do bcftools view -Ov -c 1 -s $sample -o {config[output_dir]}/final_vcfs/$sample.vcf {input}; done
+      """
 
 rule spear:
    input:

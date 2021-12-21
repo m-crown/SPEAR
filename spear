@@ -25,8 +25,6 @@ def main():
         help = "Enter pipeline with VCF files in directory")
     parser.add_argument('--cutoff', metavar = '', type = int , default=50,
         help = "Percentage N cutoff for input sequences. Default 50")
-    parser.add_argument('--split', default=False, action='store_true',
-        help = "Toggle per sample VCF file output")
     parser.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.")
     parser.add_argument('--window' , metavar='', type = int, default = 2,
@@ -312,7 +310,6 @@ def main():
         "reference_sequence" : f'{SPEAR_PATH}/data/reference.fasta',
         "filter" : filter_snps,
         "filter_params" : filter_statement,
-        "split_vcfs": args.split,
         "del_window" : args.window,
         "extension" : extension,
         "vcf" : args.vcf,
