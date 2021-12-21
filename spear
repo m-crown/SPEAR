@@ -41,11 +41,11 @@ def main():
     #check if input is a directory or a file and then operate differently depending
     if args.extension == None:
         if args.align:
-            extension = ".consensus.fa"
+            extension = ".fa"
         elif args.vcf:
             extension = ".vcf"
         else:
-            extension = ".muscle.aln"
+            extension = ".aln"
     else:
         extension = args.extension
 
@@ -74,7 +74,7 @@ def main():
                 if count > 1:
                     samples_fail_count += 1
                 elif perc_n >= args.cutoff:
-                    samples_fail_perc_n += 1   
+                    samples_fail_perc_n += 1
                 else:
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                     sample_file[0].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].id)
