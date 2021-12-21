@@ -31,13 +31,15 @@ def main():
         help = "Maximum number of flanking N's around deletion, default 2")
     parser.add_argument('--mask-problem-sites', metavar = 'SE AB AM HA HH HO IC NA NS NL SS AD BR all', nargs='+', 
         help = "Filter problematic sides with these codes")
-    parser.add_argument('input', metavar='input-directory', type=str,
+    parser.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
-    parser.add_argument('output', metavar='output-directory', type=str,
+    parser.add_argument('output', metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
     args = parser.parse_args()
 
     SPEAR_PATH = os.environ.get('CONDA_PREFIX')
+    args.input = args.input.rstrip("/")
+    args.output = args.input.rstrip("/")
     #check if input is a directory or a file and then operate differently depending
     if args.extension == None:
         if args.align:
@@ -53,7 +55,7 @@ def main():
     if os.path.isdir(args.input):
         single_sample = False
         input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
-        if args.align: #HERE 
+        if args.align:
             if len(input_samples) == 0:
                 print("No samples found")
                 parser.print_help()
