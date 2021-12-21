@@ -26,30 +26,30 @@ def main():
         if len(vcf) != 0: #do not add summary if the vcf file is empty.
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
             vcf = vcf.explode("SPEAR")
-            vcf[["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf["SPEAR"].str.split("|", expand = True)
-            vcf.loc[vcf["Gene_Name"].str.contains('-'), "Gene_Name"] = "Intergenic_" + vcf.loc[vcf["Gene_Name"].str.contains('-'), "Gene_Name"]
+            vcf[["gene_name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"]] = vcf["SPEAR"].str.split("|", expand = True)
+            vcf.loc[vcf["gene_name"].str.contains('-'), "gene_name"] = "Intergenic_" + vcf.loc[vcf["gene_name"].str.contains('-'), "gene_name"]
             vcf.loc[vcf["Annotation"] == "synonymous_variant", "variant"] = vcf.loc[vcf["Annotation"] == "synonymous_variant", "HGVS.c"]
             per_sample_output = vcf.copy()
             per_sample_output["sample_id"] = sample_name
-            cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]
-            per_sample_output[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = per_sample_output[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("[^0-9a-zA-Z]+[~]+", "", regex = True)
-            per_sample_output[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = per_sample_output[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("~",",", regex = True)
+            cols = ["sample_id", "POS", "REF", "ALT", "gene_name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"]
+            per_sample_output[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"]] = per_sample_output[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"]].replace("[^-0-9a-zA-Z]+[~]+", "", regex = True)
+            per_sample_output[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"]] = per_sample_output[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"]].replace("~",",", regex = True)
             per_sample_output = per_sample_output[cols]
-            per_sample_output.columns = ["sample_id", "POS", "REF", "ALT", "gene_name", "HGVS.genomic", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]   
-            per_sample_output.to_csv(f'{args.output_dir}/{sample_name}.summary.csv', sep = '\t', header = True, index = False)
+            per_sample_output.columns = ["sample_id", "POS", "REF", "ALT", "gene_name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"] 
+            per_sample_output.to_csv(f'{args.output_dir}/{sample_name}.summary.tsv', sep = '\t', header = True, index = False)
             vcf["variant"] = vcf["Annotation"] + "_" + vcf["variant"]
-            new_df = vcf[["Gene_Name", "variant"]].copy()
-            new_df = new_df.groupby("Gene_Name")["variant"].apply(list).to_frame()
+            new_df = vcf[["gene_name", "variant"]].copy()
+            new_df = new_df.groupby("gene_name")["variant"].apply(list).to_frame()
             new_df["variant"] = new_df["variant"].str.join("|")
-            new_df = new_df.reset_index().rename(columns={new_df.index.name:'Gene_Name'})
-            new_df["cat"] =  new_df["Gene_Name"] + ":" + new_df["variant"]
+            new_df = new_df.reset_index().rename(columns={new_df.index.name:'gene_name'})
+            new_df["cat"] =  new_df["gene_name"] + ":" + new_df["variant"]
             sample_variants = new_df["cat"].to_list()
             sample_variants = ";".join(sample_variants)
             sample_summary = [sample_name, sample_variants]
             sample_summaries.append(sample_summary)
         else:
             #touch file if empty  
-            Path(f'{args.output_dir}/{sample_name}.summary.csv').touch()
+            Path(f'{args.output_dir}/{sample_name}.summary.tsv').touch()
     sample_summaries.sort()
     with open(f'{args.output_dir}/summary.csv', "a") as fp:
         wr = csv.writer(fp, delimiter=',')

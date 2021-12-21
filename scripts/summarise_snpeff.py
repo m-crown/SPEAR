@@ -22,32 +22,81 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
 
   def annotate_s_residues(vcf, data_dir):
     s_residues = vcf.loc[vcf["product"] == "surface glycoprotein" , "residues"].str.split('~').to_list()
+    
     spear_anno_file = pd.read_pickle(f'{data_dir}/spear.pkl')
-    bloom_anno_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv').fillna("")
+    spear_anno_file["mod_barns_class_mask_sum_gt0.75"] = spear_anno_file["mod_barns_class_mask_sum_gt0.75"].astype("str")
+    bloom_ace2_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv').fillna("")
+    bloom_escape_all = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_all_class.csv', index_col = 0)
+    bloom_escape_class1 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_1.csv', index_col = 0)
+    bloom_escape_class2 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_2.csv', index_col = 0)
+    bloom_escape_class3 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_3.csv', index_col = 0)
+    bloom_escape_class4 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_4.csv', index_col = 0)
+    greaney_serum_escape = pd.read_csv(f'{data_dir}/Greaney_serum_escape.csv', index_col = 0)
+    vds = pd.read_csv(f'{data_dir}/NRG_vds.csv')
+    
     annotation = []
     for residues in s_residues:
       residues = [item for sublist in residues for item in sublist.split(",")]
-      new_anno = []
+      residue_anno = []
       for residue in residues:
         pattern = re.compile(r"[a-zA-Z]+([0-9]+)")
         respos = int(pattern.match(residue).group(1)) if pattern.match(residue) else -1 #it is an acknowledged limitation at this stage that this does not working for insertions
         if respos != -1:
-          anno = spear_anno_file.loc[spear_anno_file["AA_coordinate"] == respos, ["region", "domain", "contact_type", "NAb", "barns_class"]].values.tolist()
-          anno = [item if len(item) == len(item) else [] for item in anno]
+          anno = spear_anno_file.loc[spear_anno_file["AA_coordinate"] == respos, ["region", "domain", "contact_type", "NAb", "barns_class", "mod_barns_class_mask_sum_gt0.75"]].values.tolist()
+          anno = [item if len(item) == len(item) else [] for item in anno] #fill na's with empty lists
           anno = [item for sublist in anno for item in sublist]
-          bloom_anno = bloom_anno_file.loc[bloom_anno_file["mutation"] == residue, "bind_avg"].values.tolist()
-          bloom_anno = ["" if len(bloom_anno) == 0 else bloom_anno[0]]
-          anno += bloom_anno
-          new_anno.append(anno)
+          bloom_ace2 = bloom_ace2_file.loc[bloom_ace2_file["mutation"] == residue, "bind_avg"].values.tolist()
+          bloom_ace2 = ["" if len(bloom_ace2) == 0 else str(bloom_ace2[0])]
+          anno += bloom_ace2
         else:
-          new_anno.append(["","","","","",""])
-            
-      new_anno = list(map(list, zip(*new_anno)))
-      new_anno = ['~'.join([str(c) if c == c else "" for c in lst]) for lst in new_anno]
-      annotation.append(new_anno)
-    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = annotation
-    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].fillna("")
-    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]].replace("[^0-9a-zA-Z]+[~]+", "", regex = True)
+          anno = ["","","","","","",""] #residue_anno.append(["","","","","",""])        
+        pattern = re.compile(r"[A-Z]+([0-9]+)([A-Z]+)")
+        mutation_anno = []
+        classes = list(int(x) if x != "" else -1 for x in anno[4].split("+"))
+        mod_barns_class_mask_sum_gt = list(int(float(x)) if x != "" else -1 for x in anno[5].split("+"))
+        classes += mod_barns_class_mask_sum_gt
+        if pattern.match(residue): #cant do this annotation for del456 etc so only if it matches the pattern of a residue substitution
+          respos = int(pattern.match(residue).group(1)) 
+          altres = pattern.match(residue).group(2)
+          if respos >= 14 and respos <= 913:
+            vds_score = vds.loc[(vds["site"] == respos) & (vds["mutation"] == altres), "mut_VDS"].fillna("").to_list()
+            mutation_anno += vds_score
+            if respos >= 331 and respos <= 531: #data for these residues of spike only (RBD)
+              mab_escape = bloom_escape_all.loc[respos, altres]
+              serum_escape = greaney_serum_escape.loc[respos,altres]
+              cm_mab_escape = []
+              for mab_class in classes:
+                if mab_class == 1:
+                  cm_mab_escape.append(bloom_escape_class1.loc[respos,altres])
+                elif mab_class == 2:
+                  cm_mab_escape.append(bloom_escape_class2.loc[respos,altres])
+                elif mab_class == 3:
+                  cm_mab_escape.append(bloom_escape_class3.loc[respos,altres])
+                elif mab_class == 4:
+                  cm_mab_escape.append(bloom_escape_class4.loc[respos,altres])
+                else:
+                  cm_mab_escape.append(0)
+              if len(cm_mab_escape) > 0 and sum(cm_mab_escape) > 0:
+                cm_mab_escape = round((sum(cm_mab_escape)/len(cm_mab_escape)),2)
+              else:
+                cm_mab_escape = ""
+              mutation_anno += [str(round(serum_escape,2)), str(round(mab_escape,2)), str(cm_mab_escape)]
+            else:
+              mutation_anno += ["","",""]
+          else:
+            mutation_anno += ["","","",""]
+        else:
+          mutation_anno += ["","","",""]
+        anno += mutation_anno
+        anno.pop(5) #remove internal antibody class from output 
+        residue_anno.append(anno)  
+      residue_anno = list(map(list, zip(*residue_anno)))
+      residue_anno = ['~'.join([str(c) if c == c else "" for c in lst]) for lst in residue_anno]
+      annotation.append(residue_anno)
+    print(annotation)
+    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]] = annotation
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]].fillna("")
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]].replace("[^-0-9a-zA-Z]+[~]+", "", regex = True)
     return vcf
   #takes a input a dataframe row, splits the ann field into a new
   vcf["ANN2"] = vcf["ANN"].str.split(',') #put the split ANN field into a new column to preserve original snpeff value
@@ -108,7 +157,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf.drop(cols, axis = 1, inplace = True)
   #annotate residue specific information for each variant. 
   vcf = annotate_s_residues(vcf.copy(), data_dir)
-  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2"]
+  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"]
   vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
   vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
   cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
@@ -167,7 +216,7 @@ def main():
     df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] # split vcf file columns up to ANN , could change this to LOC and up to format column to make more flexible ? 
     df = df.replace(np.nan, '', regex=True)
     samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
-    header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | HGVS | Product | RefSeq_acc | Residues | Bloom | BIS \'">') #MAKE VARIANT HEADER HGVS
+    header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | HGVS | Product | RefSeq_acc | residues | region | domain | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape |  mAb_escape | cm_mAb_escape \'">') #MAKE VARIANT HEADER HGVS
     genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
     genbank_mapping = {}
     locus_tag_mapping = {}
