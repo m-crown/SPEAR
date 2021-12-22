@@ -345,19 +345,23 @@ def main():
     else:
         snakefile = f'{SPEAR_PATH}/bin/spear_multi.smk'
 
+    if args.command == "consensus":
+        align = True
+    elif args.command == "vcf":
+        vcf = True
     config = {
         "input_dir" : indir,
         "samples" : passing_samples, 
         "output_dir" : args.output,
         "data_dir" : f'{SPEAR_PATH}/data',
-        "align" : args.align,
+        "align" : align,
         "exclude_ambiguous" : exclude,
         "reference_sequence" : f'{SPEAR_PATH}/data/reference.fasta',
         "filter" : filter_snps,
         "filter_params" : filter_statement,
         "del_window" : args.window,
         "extension" : extension,
-        "vcf" : args.vcf,
+        "vcf" : vcf,
         "single_sample" : single_sample,
         "allow_ambiguous" : allow_ambiguous}
 
