@@ -77,35 +77,47 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
               cm_mab_escape = []
               for mab_class in classes:
                 if mab_class == 1:
+                  mAb_class_1_escape = bloom_escape_class1.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class1.loc[respos,altres])
                 elif mab_class == 2:
+                  mAb_class_2_escape = bloom_escape_class2.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class2.loc[respos,altres])
                 elif mab_class == 3:
+                  mAb_class_3_escape = bloom_escape_class3.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class3.loc[respos,altres])
                 elif mab_class == 4:
+                  mAb_class_4_escape = bloom_escape_class4.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class4.loc[respos,altres])
                 else:
+                  mAb_class_1_escape = ""
+                  mAb_class_2_escape = ""
+                  mAb_class_3_escape = ""
+                  mAb_class_4_escape = ""
                   cm_mab_escape.append(0)
               if len(cm_mab_escape) > 0 and sum(cm_mab_escape) > 0:
                 cm_mab_escape = sum(cm_mab_escape)/len(cm_mab_escape)
               else:
                 cm_mab_escape = ""
-              mutation_anno += [str(serum_escape), str(mab_escape), str(cm_mab_escape), str(res_ret_esc), str(ab_escape_fraction)]
+              mutation_anno += [str(serum_escape), str(mab_escape), str(cm_mab_escape),str(mAb_class_1_escape), str(mAb_class_2_escape), str(mAb_class_3_escape), str(mAb_class_4_escape), str(res_ret_esc), str(ab_escape_fraction)]
             else:
-              mutation_anno += ["","","","",""] #if residue isnt in the RBD append 5 empty strings in replacement
+              mutation_anno += ["","","","","","","","",""] #if residue isnt in the RBD append 5 empty strings in replacement
           else:
-            mutation_anno += ["","","","","",""] #if residue not in RBD and not in range for VDS score append 6 empty strings 
+            mutation_anno += ["","","","","","","","","",""] #if residue not in RBD and not in range for VDS score append 6 empty strings 
         else:
-          mutation_anno += ["","","","","",""] #if residue not compatible with annotation i.e. not an AA substitution  
+          mutation_anno += ["","","","","","","","","",""] #if residue not compatible with annotation i.e. not an AA substitution  
+        print(residue)
+        print(anno)
         anno += mutation_anno
+        print(mutation_anno)
+        print(anno)
         anno.pop(5) #remove internal antibody class from output 
         residue_anno.append(anno)  
       residue_anno = list(map(list, zip(*residue_anno)))
       residue_anno = ['~'.join([str(c) if c == c else "" for c in lst]) for lst in residue_anno]
       annotation.append(residue_anno)
-    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]] = annotation
-    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]].fillna("")
-    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]].replace("^[~]+[~]*", "", regex = True)
+    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4","BEC_EF", "BEC_RES"]] = annotation
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]].fillna("")
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]].replace("^[~]+[~]*", "", regex = True)
     return vcf
   #takes a input a dataframe row, splits the ann field into a new
   vcf["ANN2"] = vcf["ANN"].str.split(',') #put the split ANN field into a new column to preserve original snpeff value
@@ -166,7 +178,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf.drop(cols, axis = 1, inplace = True)
   #annotate residue specific information for each variant. 
   vcf = annotate_s_residues(vcf.copy(), data_dir)
-  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]
+  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]
   vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
   vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
   cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
