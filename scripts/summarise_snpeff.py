@@ -74,10 +74,6 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
               serum_escape = greaney_serum_escape.loc[respos,altres]
               res_ret_esc = esc_per_site.loc[esc_per_site["site"] == respos, "retained_escape"].values[0]
               ab_escape_fraction = 1 - bindingcalc.binding_retained([respos])
-              print(ab_escape_fraction)
-              print(bindingcalc.binding_retained([respos]))
-              print(min(bindingcalc.sites))
-              print(res_ret_esc)
               cm_mab_escape = []
               for mab_class in classes:
                 if mab_class == 1:
