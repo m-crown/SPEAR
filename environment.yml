@@ -18,5 +18,6 @@ dependencies:
   - conda-forge::git>=2.30
   - conda-forge::openjdk>=11.0.9.1
   - conda-forge::sed
+  - conda-forge::unzip
   - bioconda::grep
   - wget

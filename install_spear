@@ -14,7 +14,8 @@ fi
 
 # Install env
 echo " - Setting up conda env"
-source ~/miniconda3/etc/profile.d/conda.sh
+CONDA_PATH=$(conda list -n base | awk 'NR == 1' | grep -oP '/\S+[^:]')
+source ${CONDA_PATH}/etc/profile.d/conda.sh
 conda config --set channel_priority strict
 conda env create -q --force -f environment.yml
 conda activate spear
@@ -89,6 +90,7 @@ cp data_Spike/vibentropy_occupancy_dmsdata.csv ${CONDA_PREFIX}/data
 echo " - Installing SPEAR"
 cp data/* ${CONDA_PREFIX}/data
 cp scripts/* ${CONDA_PREFIX}/bin
+chmod +x ${CONDA_PREFIX}/bin/update_spear.sh
 chmod +x spear
 cp spear ${CONDA_PREFIX}/bin
 
