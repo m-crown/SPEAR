@@ -72,6 +72,25 @@ wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/master/LI
 wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
 cp SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv ${CONDA_PREFIX}/data
 
+echo " - Downloading jbloomlab/SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv"
+mkdir -p SARS-CoV-2-RBD_DMS/results/single_mut_effects/
+wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/master/LICENSE.md -O SARS-CoV-2-RBD_DMS/LICENSE.md
+wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
+cp SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv ${CONDA_PREFIX}/data
+
+echo " - Downloading Escape Calculate (jbloomlab/SARS2_RBD_Ab_escape_maps/{bindingcalculator.py,processed_data/escape_calculator_data.csv}"
+mkdir -p SARS2_RBD_Ab_escape_maps/processed_data/
+wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/LICENSE.txt -O SARS2_RBD_Ab_escape_maps/LICENSE.txt
+wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O SARS2_RBD_Ab_escape_maps/processed_data/escape_calculator_data.csv
+wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/bindingcalculator.py -O SARS2_RBD_Ab_escape_maps/bindingcalculator.py
+cp SARS2_RBD_Ab_escape_maps/bindingcalculator.py $CONDA_PREFIX/bin
+cp SARS2_RBD_Ab_escape_maps/processed_data/escape_calculator_data.csv ${CONDA_PREFIX}/data
+
+echo " - Downloading nataliateruel/data_Spike/vibentropy_occupancy_dmsdata.csv"
+mkdir -p data_Spike/
+wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentropy_occupancy_dmsdata.csv -O data_Spike/vibentropy_occupancy_dmsdata.csv
+cp data_Spike/vibentropy_occupancy_dmsdata.csv ${CONDA_PREFIX}/data
+
 # Install SPEAR files
 echo " - Installing SPEAR"
 cp data/* ${CONDA_PREFIX}/data
@@ -79,4 +98,4 @@ cp scripts/* ${CONDA_PREFIX}/bin
 chmod +x spear
 cp spear ${CONDA_PREFIX}/bin
 
-java -Xmx8g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 $CONDA_PREFIX/data/install_vcf.vcf > /dev/null
+java -Xmx1g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 $CONDA_PREFIX/data/install_vcf.vcf > /dev/null
