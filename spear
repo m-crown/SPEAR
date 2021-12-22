@@ -84,7 +84,7 @@ def main():
 
     SPEAR_PATH = os.environ.get('CONDA_PREFIX')
     args.input = args.input.rstrip("/")
-    args.output = args.input.rstrip("/")
+    args.output = args.output.rstrip("/")
     #check if input is a directory or a file and then operate differently depending
     if args.extension == None:
         if args.command == "consensus":
@@ -349,6 +349,7 @@ def main():
         align = True
     elif args.command == "vcf":
         vcf = True
+    
     config = {
         "input_dir" : indir,
         "samples" : passing_samples, 
