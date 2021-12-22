@@ -76,28 +76,40 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
               ab_escape_fraction = 1 - bindingcalc.binding_retained([respos])
               cm_mab_escape = []
               for mab_class in classes:
+                print(classes)
                 if mab_class == 1:
                   mAb_class_1_escape = bloom_escape_class1.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class1.loc[respos,altres])
-                elif mab_class == 2:
+                else:
+                  mAb_class_1_escape = ""
+                  cm_mab_escape.append(0)
+                if mab_class == 2:
+                  print("MAB CLASS 2 ESC: ", bloom_escape_class2.loc[respos,altres])
                   mAb_class_2_escape = bloom_escape_class2.loc[respos,altres]
+                  print(mAb_class_2_escape)
                   cm_mab_escape.append(bloom_escape_class2.loc[respos,altres])
-                elif mab_class == 3:
+                else:
+                  mAb_class_2_escape = ""
+                  cm_mab_escape.append(0)
+                if mab_class == 3:
                   mAb_class_3_escape = bloom_escape_class3.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class3.loc[respos,altres])
-                elif mab_class == 4:
+                else:
+                  mAb_class_3_escape = ""
+                  cm_mab_escape.append(0)
+                if mab_class == 4:
                   mAb_class_4_escape = bloom_escape_class4.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class4.loc[respos,altres])
                 else:
-                  mAb_class_1_escape = ""
-                  mAb_class_2_escape = ""
-                  mAb_class_3_escape = ""
                   mAb_class_4_escape = ""
                   cm_mab_escape.append(0)
+
               if len(cm_mab_escape) > 0 and sum(cm_mab_escape) > 0:
+                print(residue, cm_mab_escape, "ONE" , mAb_class_1_escape, "TWO", mAb_class_2_escape, "THREE", mAb_class_3_escape, "FOUR", mAb_class_4_escape)
                 cm_mab_escape = sum(cm_mab_escape)/len(cm_mab_escape)
               else:
                 cm_mab_escape = ""
+              print("NOW HERE" , mAb_class_2_escape)
               mutation_anno += [str(serum_escape), str(mab_escape), str(cm_mab_escape),str(mAb_class_1_escape), str(mAb_class_2_escape), str(mAb_class_3_escape), str(mAb_class_4_escape), str(res_ret_esc), str(ab_escape_fraction)]
             else:
               mutation_anno += ["","","","","","","","",""] #if residue isnt in the RBD append 5 empty strings in replacement

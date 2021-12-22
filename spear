@@ -79,7 +79,7 @@ def main():
 
     if args.command not in ["update", "alignment", "consensus", "vcf"]:
         parser.print_help()
-        print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update'")
+        print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update')")
         sys.exit(1)
 
     if args.command == "consensus":

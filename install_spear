@@ -72,12 +72,6 @@ wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/master/LI
 wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
 cp SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv ${CONDA_PREFIX}/data
 
-echo " - Downloading jbloomlab/SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv"
-mkdir -p SARS-CoV-2-RBD_DMS/results/single_mut_effects/
-wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/master/LICENSE.md -O SARS-CoV-2-RBD_DMS/LICENSE.md
-wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
-cp SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv ${CONDA_PREFIX}/data
-
 echo " - Downloading Escape Calculate (jbloomlab/SARS2_RBD_Ab_escape_maps/{bindingcalculator.py,processed_data/escape_calculator_data.csv}"
 mkdir -p SARS2_RBD_Ab_escape_maps/processed_data/
 wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/LICENSE.txt -O SARS2_RBD_Ab_escape_maps/LICENSE.txt
