@@ -40,7 +40,7 @@ def main():
             per_sample_output[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape", "retained_escape", "ab_escape_fraction"]] = per_sample_output[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]].replace("~",",", regex = True)
             per_sample_output = per_sample_output[cols]
             per_sample_output.columns = ["sample_id", "POS", "REF", "ALT", "gene_name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"] 
-            per_sample_output.to_csv(f'{args.output_dir}/{sample_name}.summary.tsv', sep = '\t', header = True, index = False)
+            per_sample_output.to_csv(f'{args.output_dir}/per_sample_annotation/{sample_name}.summary.tsv', sep = '\t', header = True, index = False)
             vcf["variant"] = vcf["Annotation"] + "_" + vcf["variant"]
             new_df = vcf[["gene_name", "variant"]].copy()
             new_df = new_df.groupby("gene_name")["variant"].apply(list).to_frame()
@@ -53,9 +53,9 @@ def main():
             sample_summaries.append(sample_summary)
         else:
             #touch file if empty  
-            Path(f'{args.output_dir}/summary/{sample_name}.summary.tsv').touch()
+            Path(f'{args.output_dir}/per_sample_annotation/{sample_name}.summary.tsv').touch()
     sample_summaries.sort()
-    with open(f'{args.output_dir}/summary.csv', "a") as fp:
+    with open(f'{args.output_dir}/variants_summary.csv', "a") as fp:
         wr = csv.writer(fp, delimiter=',')
         wr.writerows(sample_summaries)
 

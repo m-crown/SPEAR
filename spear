@@ -372,6 +372,7 @@ def main():
                 printreason = False)
 
     if status:
+        #post snakemake cleanup here - remove the output directories that arent needed 
        return 0
     return 1
 
