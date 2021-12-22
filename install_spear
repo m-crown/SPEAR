@@ -23,7 +23,7 @@ conda activate spear
 echo " - Downloading SnpEff and SnpSift"
 wget -q https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip -O snpEff_latest_core.zip
 unzip -q -o snpEff_latest_core.zip
-cp -r snpEff/ ${CONDA_PREFIX}/
+cp -r snpEff ${CONDA_PREFIX}/
 
 # Detect OS
 if [[ ${OSTYPE} == "darwin"* ]]; then
