@@ -72,7 +72,7 @@ wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/master/LI
 wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
 cp SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv ${CONDA_PREFIX}/data
 
-echo " - Downloading Escape Calculate (jbloomlab/SARS2_RBD_Ab_escape_maps/{bindingcalculator.py,processed_data/escape_calculator_data.csv}"
+echo " - Downloading Bloom Escape Calculator (jbloomlab/SARS2_RBD_Ab_escape_maps/{bindingcalculator.py,processed_data/escape_calculator_data.csv}"
 mkdir -p SARS2_RBD_Ab_escape_maps/processed_data/
 wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/LICENSE.txt -O SARS2_RBD_Ab_escape_maps/LICENSE.txt
 wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O SARS2_RBD_Ab_escape_maps/processed_data/escape_calculator_data.csv
@@ -92,4 +92,13 @@ cp scripts/* ${CONDA_PREFIX}/bin
 chmod +x spear
 cp spear ${CONDA_PREFIX}/bin
 
+# Clone SPEAR to conda env
+git clone --quiet https://github.com/m-crown/SPEAR.git ${CONDA_PREFIX}/repo
+
+# Test snpEff is working
 java -Xmx1g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 $CONDA_PREFIX/data/install_vcf.vcf > /dev/null
+
+# Finish up
+echo "To use SPEAR activate the conda enviroment like so:"
+echo "conda activate spear"
+echo "then run: spear - and follow command line help"
