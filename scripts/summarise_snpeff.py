@@ -9,6 +9,7 @@ import argparse
 import numpy as np
 import re
 from shutil import copy
+from bindingcalculator import BindingCalculator
 
 def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
 
@@ -33,7 +34,14 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
     bloom_escape_class4 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_4.csv', index_col = 0)
     greaney_serum_escape = pd.read_csv(f'{data_dir}/Greaney_serum_escape.csv', index_col = 0)
     vds = pd.read_csv(f'{data_dir}/NRG_vds.csv')
+    bindingcalc = BindingCalculator(csv_or_url = f'{data_dir}/escape_calculator_data.csv')
     
+    flat_s_residues = [residue for variant in s_residues for residue in variant]
+    pattern = re.compile(r"[A-Z]+([0-9]+)([A-Z]+)")
+    flat_s_respos = list(int(pattern.match(residue).group(1)) if pattern.match(residue) else -1 for residue in flat_s_residues)
+    s_binding_calc_pos = [pos for pos in flat_s_respos if (pos != -1) and (pos >= min(bindingcalc.sites)) and (pos <= max(bindingcalc.sites))] #s residues that are in the RBD as definded by bloom binding calc
+    
+    esc_per_site = bindingcalc.escape_per_site(s_binding_calc_pos)
     annotation = []
     for residues in s_residues:
       residues = [item for sublist in residues for item in sublist.split(",")]
@@ -49,7 +57,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
           bloom_ace2 = ["" if len(bloom_ace2) == 0 else str(bloom_ace2[0])]
           anno += bloom_ace2
         else:
-          anno = ["","","","","","",""] #residue_anno.append(["","","","","",""])        
+          anno = ["","","","","","",""] #if residue doesnt match regex for annotation i.e. is an insertion       
         pattern = re.compile(r"[A-Z]+([0-9]+)([A-Z]+)")
         mutation_anno = []
         classes = list(int(x) if x != "" else -1 for x in anno[4].split("+"))
@@ -61,9 +69,15 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
           if respos >= 14 and respos <= 913:
             vds_score = vds.loc[(vds["site"] == respos) & (vds["mutation"] == altres), "mut_VDS"].fillna("").to_list()
             mutation_anno += vds_score
-            if respos >= 331 and respos <= 531: #data for these residues of spike only (RBD)
+            if respos >= 331 and respos <= 531: #data for these residues of spike only (RBD) - above this is calculated as max and min of calculator sites
               mab_escape = bloom_escape_all.loc[respos, altres]
               serum_escape = greaney_serum_escape.loc[respos,altres]
+              res_ret_esc = esc_per_site.loc[esc_per_site["site"] == respos, "retained_escape"].values[0]
+              ab_escape_fraction = 1 - bindingcalc.binding_retained([respos])
+              print(ab_escape_fraction)
+              print(bindingcalc.binding_retained([respos]))
+              print(min(bindingcalc.sites))
+              print(res_ret_esc)
               cm_mab_escape = []
               for mab_class in classes:
                 if mab_class == 1:
@@ -77,26 +91,25 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
                 else:
                   cm_mab_escape.append(0)
               if len(cm_mab_escape) > 0 and sum(cm_mab_escape) > 0:
-                cm_mab_escape = round((sum(cm_mab_escape)/len(cm_mab_escape)),2)
+                cm_mab_escape = sum(cm_mab_escape)/len(cm_mab_escape)
               else:
                 cm_mab_escape = ""
-              mutation_anno += [str(round(serum_escape,2)), str(round(mab_escape,2)), str(cm_mab_escape)]
+              mutation_anno += [str(serum_escape), str(mab_escape), str(cm_mab_escape), str(res_ret_esc), str(ab_escape_fraction)]
             else:
-              mutation_anno += ["","",""]
+              mutation_anno += ["","","","",""] #if residue isnt in the RBD append 5 empty strings in replacement
           else:
-            mutation_anno += ["","","",""]
+            mutation_anno += ["","","","","",""] #if residue not in RBD and not in range for VDS score append 6 empty strings 
         else:
-          mutation_anno += ["","","",""]
+          mutation_anno += ["","","","","",""] #if residue not compatible with annotation i.e. not an AA substitution  
         anno += mutation_anno
         anno.pop(5) #remove internal antibody class from output 
         residue_anno.append(anno)  
       residue_anno = list(map(list, zip(*residue_anno)))
       residue_anno = ['~'.join([str(c) if c == c else "" for c in lst]) for lst in residue_anno]
       annotation.append(residue_anno)
-    print(annotation)
-    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]] = annotation
-    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]].fillna("")
-    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape"]].replace("[^-0-9a-zA-Z]+[~]+", "", regex = True)
+    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]] = annotation
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]].fillna("")
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]].replace("^[~]+[~]*", "", regex = True)
     return vcf
   #takes a input a dataframe row, splits the ann field into a new
   vcf["ANN2"] = vcf["ANN"].str.split(',') #put the split ANN field into a new column to preserve original snpeff value
@@ -109,9 +122,9 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf.loc[vcf["Annotation"] != "intergenic_region","variant"] = vcf["HGVS.p"]
   vcf.loc[vcf["Annotation"] == "intergenic_region", "variant"] = vcf["HGVS.c"]
   vcf["product"] = vcf["Feature_ID"].map(lambda x: gb_mapping.get(x))
-  vcf.loc[vcf["product"].isnull(), "product"] = vcf.loc[vcf["product"].isnull(), "Feature_ID"]
+  vcf.loc[vcf["product"].isna(), "product"] = vcf.loc[vcf["product"].isna(), "Feature_ID"]
   vcf["protein_id"] = vcf["product"].map(lambda x: locus_tag_mapping.get(x))
-  vcf.loc[vcf["protein_id"].isnull(), "protein_id"] = vcf.loc[vcf["protein_id"].isnull(), "Feature_ID"]
+  vcf["protein_id"] = vcf["protein_id"].fillna("")
 
   #convert HGVS annotation to per residue for residue annotation. 
   #handle deletions and insertions residues first
@@ -157,7 +170,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf.drop(cols, axis = 1, inplace = True)
   #annotate residue specific information for each variant. 
   vcf = annotate_s_residues(vcf.copy(), data_dir)
-  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape"]
+  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape", "BEC_EF", "BEC_RES"]
   vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
   vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
   cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
@@ -216,7 +229,7 @@ def main():
     df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] # split vcf file columns up to ANN , could change this to LOC and up to format column to make more flexible ? 
     df = df.replace(np.nan, '', regex=True)
     samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
-    header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | HGVS | Product | RefSeq_acc | residues | region | domain | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape |  mAb_escape | cm_mAb_escape \'">') #MAKE VARIANT HEADER HGVS
+    header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'Gene | HGVS.c | Annotation | HGVS | Product | RefSeq_acc | residues | region | domain | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape |  mAb_escape | cm_mAb_escape | BEC_EF | BEC_RES \'">') #MAKE VARIANT HEADER HGVS
     genbank = SeqIO.read(open(f'{args.data_dir}/NC_045512.2.gb',"r"), "genbank")
     genbank_mapping = {}
     locus_tag_mapping = {}
