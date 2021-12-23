@@ -153,7 +153,7 @@ These columns are within both the per sample files and `spear_annotation_summary
 | `domain` | Currently only annotated for Spike, e.g. NTD, RBD, RBM, definitions to be added here shortly |
 | `contact_type` | Takes the format for `molecule:bond_type_residue`, *e*.*g*. `ACE2:h-bond_E35+contact_K31_H34`, implies a ACE2 h-bond made by annotated residue to E35 within ACE2 as well as 4Å cut-off contact made to K31 and H34, `+` delimits additional contact types. `trimer:h-bond_707_709+contact` implies a contact in the trimer interface of Spike h-binding to residues 707 and 709 with an additional generic none residue specific contact. The bond type salt-bridge is also possible here. Currently only annotated for Spike |
 | `NAb` | A list of bound neutralising antibodies, this list is `+` delimited, with `,` reserved to delimit multiple amino acid variant events as described in `residues`. Currently only annotated for Spike |
-| `barns_class` | If the residue is part of a Barns epitope class as defined in Barns _et al_. [1], annotated values are 1, 2, 3, 4 with a + delimiter, some classes are appended with a * where they where not part of formal epitope studies but that residue was found to be sensitive to biding of antibodies of that class via mutagenesis studies |
+| `barns_class` | If the residue is part of a Barns epitope class as defined in Barns _et al_. [1], annotated values are 1, 2, 3, 4 with a + delimiter, some classes are appended with a * where they were not part of formal epitope studies but that residue was found to be sensitive to biding of antibodies of that class via mutagenesis studies |
 
 The next 12 columns of output are scores rather than annotations and are described below.
 
