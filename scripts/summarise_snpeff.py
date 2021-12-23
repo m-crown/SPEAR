@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from typing_extensions import final
 from Bio import SeqIO
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -12,6 +13,10 @@ from shutil import copy
 from bindingcalculator import BindingCalculator
 
 def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
+
+  def natural_key(string_):
+    """See https://blog.codinghorror.com/sorting-for-humans-natural-sort-order/"""
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
   def filter_spear_summary(summaries):
     regexp = re.compile(r'ORF1(a|ab) polyprotein')
@@ -27,13 +32,13 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
     spear_anno_file = pd.read_pickle(f'{data_dir}/spear.pkl')
     spear_anno_file["mod_barns_class_mask_sum_gt0.75"] = spear_anno_file["mod_barns_class_mask_sum_gt0.75"].astype("str")
     bloom_ace2_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv').fillna("")
-    bloom_escape_all = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_all_class.csv', index_col = 0)
+    bloom_escape_all = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_all_class.csv', index_col = 0).fillna("")
     bloom_escape_class1 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_1.csv', index_col = 0)
     bloom_escape_class2 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_2.csv', index_col = 0)
     bloom_escape_class3 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_3.csv', index_col = 0)
     bloom_escape_class4 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_4.csv', index_col = 0)
-    greaney_serum_escape = pd.read_csv(f'{data_dir}/Greaney_serum_escape.csv', index_col = 0)
-    vds = pd.read_csv(f'{data_dir}/NRG_vds.csv')
+    greaney_serum_escape = pd.read_csv(f'{data_dir}/Greaney_serum_escape.csv', index_col = 0).fillna("")
+    vds = pd.read_csv(f'{data_dir}/vibentropy_occupancy_dmsdata.csv')
     bindingcalc = BindingCalculator(csv_or_url = f'{data_dir}/escape_calculator_data.csv')
     
     flat_s_residues = [residue for variant in s_residues for residue in variant]
@@ -62,7 +67,13 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
         mutation_anno = []
         classes = list(int(x) if x != "" else -1 for x in anno[4].split("+"))
         mod_barns_class_mask_sum_gt = list(int(float(x)) if x != "" else -1 for x in anno[5].split("+"))
-        classes += mod_barns_class_mask_sum_gt
+        str_classes = anno[4].split("+")
+        str_mod_barns_class_mask_sum_gt = [str(int(float(s))) + "*" if s != "" else "" for s in anno[5].split("+")]
+        final_class_combo = str_classes + str_mod_barns_class_mask_sum_gt
+        final_class_list = sorted(final_class_combo, key = natural_key)
+        final_class_list = '+'.join(final_class_list)
+        final_class_list = "" if final_class_list == "+" else final_class_list
+        anno[4] = final_class_list
         if pattern.match(residue): #cant do this annotation for del456 etc so only if it matches the pattern of a residue substitution
           respos = int(pattern.match(residue).group(1)) 
           altres = pattern.match(residue).group(2)
@@ -70,66 +81,63 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
             vds_score = vds.loc[(vds["site"] == respos) & (vds["mutation"] == altres), "mut_VDS"].fillna("").to_list()
             mutation_anno += vds_score
             if respos >= 331 and respos <= 531: #data for these residues of spike only (RBD) - above this is calculated as max and min of calculator sites
-              mab_escape = bloom_escape_all.loc[respos, altres]
-              serum_escape = greaney_serum_escape.loc[respos,altres]
+              ab_escape_fraction_sample = 1 - bindingcalc.binding_retained(s_binding_calc_pos)
+              mab_escape = bloom_escape_all.loc[respos, altres] if bloom_escape_all.loc[respos, altres] != np.nan else ""
+              serum_escape = greaney_serum_escape.loc[respos,altres] if greaney_serum_escape.loc[respos,altres] != np.nan else ""
               res_ret_esc = esc_per_site.loc[esc_per_site["site"] == respos, "retained_escape"].values[0]
               ab_escape_fraction = 1 - bindingcalc.binding_retained([respos])
               cm_mab_escape = []
               for mab_class in classes:
-                print(classes)
+                mAb_class_1_escape = ""
+                mAb_class_2_escape = ""
+                mAb_class_3_escape = ""
+                mAb_class_4_escape = ""
                 if mab_class == 1:
                   mAb_class_1_escape = bloom_escape_class1.loc[respos,altres]
-                  cm_mab_escape.append(bloom_escape_class1.loc[respos,altres])
-                else:
-                  mAb_class_1_escape = ""
-                  cm_mab_escape.append(0)
-                if mab_class == 2:
-                  print("MAB CLASS 2 ESC: ", bloom_escape_class2.loc[respos,altres])
+                  cm_mab_escape.append(bloom_escape_class1.loc[respos,altres])  
+                elif mab_class == 2:
                   mAb_class_2_escape = bloom_escape_class2.loc[respos,altres]
-                  print(mAb_class_2_escape)
                   cm_mab_escape.append(bloom_escape_class2.loc[respos,altres])
-                else:
-                  mAb_class_2_escape = ""
-                  cm_mab_escape.append(0)
-                if mab_class == 3:
+                elif mab_class == 3:
                   mAb_class_3_escape = bloom_escape_class3.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class3.loc[respos,altres])
-                else:
-                  mAb_class_3_escape = ""
-                  cm_mab_escape.append(0)
-                if mab_class == 4:
+                elif mab_class == 4:
                   mAb_class_4_escape = bloom_escape_class4.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class4.loc[respos,altres])
                 else:
-                  mAb_class_4_escape = ""
                   cm_mab_escape.append(0)
-
+              for mab_class in mod_barns_class_mask_sum_gt:
+                if mab_class == 1:
+                  cm_mab_escape.append(bloom_escape_class1.loc[respos,altres])  
+                elif mab_class == 2:
+                  cm_mab_escape.append(bloom_escape_class2.loc[respos,altres])
+                elif mab_class == 3:
+                  cm_mab_escape.append(bloom_escape_class3.loc[respos,altres])
+                elif mab_class == 4:
+                  cm_mab_escape.append(bloom_escape_class4.loc[respos,altres])
+                else:
+                  cm_mab_escape.append(0)
               if len(cm_mab_escape) > 0 and sum(cm_mab_escape) > 0:
-                print(residue, cm_mab_escape, "ONE" , mAb_class_1_escape, "TWO", mAb_class_2_escape, "THREE", mAb_class_3_escape, "FOUR", mAb_class_4_escape)
                 cm_mab_escape = sum(cm_mab_escape)/len(cm_mab_escape)
               else:
                 cm_mab_escape = ""
-              print("NOW HERE" , mAb_class_2_escape)
-              mutation_anno += [str(serum_escape), str(mab_escape), str(cm_mab_escape),str(mAb_class_1_escape), str(mAb_class_2_escape), str(mAb_class_3_escape), str(mAb_class_4_escape), str(res_ret_esc), str(ab_escape_fraction)]
+              mutation_anno += [str(serum_escape), str(mab_escape), str(cm_mab_escape),str(mAb_class_1_escape), str(mAb_class_2_escape), str(mAb_class_3_escape), str(mAb_class_4_escape), str(res_ret_esc), str(ab_escape_fraction), str(ab_escape_fraction_sample)]
             else:
-              mutation_anno += ["","","","","","","","",""] #if residue isnt in the RBD append 5 empty strings in replacement
+              mutation_anno += ["","","","","","","","","", ""] #if residue isnt in the RBD append 5 empty strings in replacement
           else:
-            mutation_anno += ["","","","","","","","","",""] #if residue not in RBD and not in range for VDS score append 6 empty strings 
+            mutation_anno += ["","","","","","","","","","", ""] #if residue not in RBD and not in range for VDS score append 6 empty strings 
         else:
-          mutation_anno += ["","","","","","","","","",""] #if residue not compatible with annotation i.e. not an AA substitution  
-        print(residue)
-        print(anno)
+          mutation_anno += ["","","","","","","","","","", ""] #if residue not compatible with annotation i.e. not an AA substitution  
         anno += mutation_anno
-        print(mutation_anno)
-        print(anno)
-        anno.pop(5) #remove internal antibody class from output 
+        anno.pop(5) #remove internal antibody class from output
+        #replace (4) with combined 4 and aterisk 5.  
         residue_anno.append(anno)  
       residue_anno = list(map(list, zip(*residue_anno)))
       residue_anno = ['~'.join([str(c) if c == c else "" for c in lst]) for lst in residue_anno]
       annotation.append(residue_anno)
-    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4","BEC_EF", "BEC_RES"]] = annotation
-    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]].fillna("")
-    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]].replace("^[~]+[~]*", "", regex = True)
+    vcf.loc[vcf["product"] == "surface glycoprotein" , ["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4","BEC_EF", "BEC_RES", "BEC_sample_EF"]] = annotation
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES", "BEC_sample_EF"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES", "BEC_sample_EF"]].fillna("")
+    vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES", "BEC_sample_EF"]] = vcf[["region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS","serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES", "BEC_sample_EF"]].replace("^[~]+[~]*", "", regex = True)
     return vcf
   #takes a input a dataframe row, splits the ann field into a new
   vcf["ANN2"] = vcf["ANN"].str.split(',') #put the split ANN field into a new column to preserve original snpeff value
@@ -142,7 +150,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf.loc[vcf["Annotation"] != "intergenic_region","variant"] = vcf["HGVS.p"]
   vcf.loc[vcf["Annotation"] == "intergenic_region", "variant"] = vcf["HGVS.c"]
   vcf["product"] = vcf["Feature_ID"].map(lambda x: gb_mapping.get(x))
-  vcf.loc[vcf["product"].isna(), "product"] = vcf.loc[vcf["product"].isna(), "Feature_ID"]
+  vcf.loc[vcf["product"].isna(), "product"] = vcf.loc[vcf["product"].isna(), "Gene_Name"]
   vcf["protein_id"] = vcf["product"].map(lambda x: locus_tag_mapping.get(x))
   vcf["protein_id"] = vcf["protein_id"].fillna("")
 
@@ -163,8 +171,9 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf.loc[(vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]) == False) & (vcf["change"] == "delins"), "residues"] = vcf.loc[vcf["change"] == "delins","inserted_residues"] + "~" + vcf.apply(lambda x: '~'.join(x[b] for b in cols[x.range]),axis=1)
   vcf.loc[(vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]) == False) & (vcf["change"] == "del"), "residues"] = vcf.loc[vcf["change"] == "del"].apply(lambda x: '~'.join(x[b] for b in cols[x.range]),axis=1)
   vcf.loc[(vcf["Annotation"].astype("str").isin(["missense_variant","synonymous_variant"]) == False) & (vcf["change"] == "ins"), "residues"] = vcf.loc[vcf["change"] == "ins", "start_res"] + vcf["start_pos"].astype("str") + "-" + vcf.loc[vcf["change"] == "ins","ins"] + "-" + vcf.loc[vcf["change"] == "ins","end_res"] + vcf.loc[vcf["change"] == "ins","end_pos"].astype('str')
-  #frameshift variants
+  #frameshift and stop variants
   vcf.loc[vcf["Annotation"].astype("str") == "frameshift_variant", "residues"] = vcf.loc[vcf["Annotation"].astype("str") == "frameshift_variant", "variant"].str.replace("^p\.", '')
+  vcf.loc[vcf["Annotation"].astype("str") == "stop_gained", "residues"] = vcf.loc[vcf["Annotation"].astype("str") == "stop_gained", "variant"].str.extract("^p\.([A-Z][0-9]+)\*") + "stop"
   #now handle missense variants and synonymous variants
   vcf[["start_res2", "start_pos2", "end_res2"]] = vcf["variant"].str.extract('([A-Z]+)([0-9]+)([A-Z]+)')
   vcf["end_pos2"] = vcf["end_pos"].fillna(0).astype("int")
@@ -190,7 +199,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
   vcf.drop(cols, axis = 1, inplace = True)
   #annotate residue specific information for each variant. 
   vcf = annotate_s_residues(vcf.copy(), data_dir)
-  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES"]
+  cols = ["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mab_escape", "cm_mab_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES","BEC_sample_EF"]
   vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
   vcf.drop(list(set().union(snpeff_anno_cols, cols)), axis = 1, inplace = True)
   cols = [e for e in vcf.columns.to_list() if e not in ("SPEAR", "ANN2")]
@@ -240,11 +249,15 @@ def main():
       help='Filename for SPEAR annotated VCF') #ADD A DEFAULT FOR THIS 
   parser.add_argument('vcf', metavar='path/to/vcf', type = str,
       help='Input VCF file')
-  parser.add_argument('data_dir', metavar='path/to/data/', type = str, 
+  parser.add_argument('--allow_seq_end', default=False, action='store_true',
+      help = "Include variants in positions <= POS 55 and >= 29805") 
+  parser.add_argument('data_dir', metavar='path/to/data/', type = str,
       help ='Data files for peptide subpositions')
   args = parser.parse_args()
 
   header, vcf, infocols = parse_vcf(args.vcf)
+  if not args.allow_seq_end:
+    vcf = vcf[vcf["POS"].between(56, 29804)].reset_index(drop = True)
   if len(vcf) != 0: #do not add summary if the vcf file is empty.
     df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] # split vcf file columns up to ANN , could change this to LOC and up to format column to make more flexible ? 
     df = df.replace(np.nan, '', regex=True)
@@ -282,3 +295,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    #INTERGENIC DESCRIPTION = GENE_NAME
