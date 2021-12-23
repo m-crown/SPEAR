@@ -1,20 +1,20 @@
 rule all:
    input: 
-      expand(config["output_dir"] + "/per_sample_annotation/{id}.summary.tsv", id = config["samples"])
+      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.summary.tsv", id = config["samples"])
 
 rule summarise_vcfs:
    input:
-      expand(config["output_dir"] + "/final_vcfs/{id}.vcf" , id=config["samples"])
+      expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"])
    output:
-      expand(config["output_dir"] + "/per_sample_annotation/{id}.summary.tsv", id = config["samples"])
+      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.summary.tsv", id = config["samples"])
    shell:
       """convert_format.py {config[output_dir]} --vcf {input}"""
 
 rule split_vcfs:
    input:
-      config["output_dir"] + "/merged.spear.vcf"
+      config["output_dir"] + "/all_samples.spear.vcf"
    output:
-      expand(config["output_dir"] + "/final_vcfs/{id}.vcf", id = config["samples"])
+      expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf", id = config["samples"])
    shell:
       """
       for sample in `bcftools query -l {input}`; do bcftools view -Ov -c 1 -s $sample -o {config[output_dir]}/final_vcfs/$sample.vcf {input}; done
@@ -24,7 +24,7 @@ rule spear:
    input:
       config["output_dir"] + "/snpeff/merged.ann.vcf"
    output:
-      config["output_dir"] + "/merged.spear.vcf"
+      config["output_dir"] + "/all_samples.spear.vcf"
    shell:
       "summarise_snpeff.py {output} {input} {config[data_dir]}"
 

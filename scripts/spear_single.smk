@@ -1,12 +1,12 @@
 rule all:
    input: 
-      expand(config["output_dir"] + "/per_sample_annotation/{id}.summary.tsv", id = config["samples"])
+      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.summary.tsv", id = config["samples"])
 
 rule summarise_vcfs:
    input:
-      expand(config["output_dir"] + "/final_vcfs/{id}.vcf" , id=config["samples"])
+      expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"])
    output:
-      expand(config["output_dir"] + "/per_sample_annotation/{id}.summary.tsv", id = config["samples"])
+      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.summary.tsv", id = config["samples"])
    shell:
       """convert_format.py {config[output_dir]} --vcf {input}"""
 
@@ -14,7 +14,7 @@ rule spear:
    input:
       config["output_dir"] + "/snpeff/{id}.ann.vcf"
    output:
-      config["output_dir"] + "/final_vcfs/{id}.vcf" 
+      config["output_dir"] + "/final_vcfs/{id}.spear.vcf" 
    shell:
       "summarise_snpeff.py {output} {input} {config[data_dir]}"
 
