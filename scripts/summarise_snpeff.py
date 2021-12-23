@@ -106,8 +106,6 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
                 elif mab_class == 4:
                   mAb_class_4_escape = bloom_escape_class4.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class4.loc[respos,altres])
-                else:
-                  cm_mab_escape.append(0)
               if len(cm_mab_escape) > 0 and sum(cm_mab_escape) > 0:
                 cm_mab_escape = sum(cm_mab_escape)/len(cm_mab_escape)
               else:
