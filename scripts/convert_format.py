@@ -157,7 +157,7 @@ def main():
             sample_summary = [sample_name, sample_variants]
             sample_summaries.append(sample_summary)
         else:
-            Path(f'{args.output_dir}/per_sample_annotation/{sample_name}.annotation.tsv').touch() #touch file if empty  
+            Path(f'{args.output_dir}/per_sample_annotation/{sample_name}.spear.annotation.summary.tsv').touch() #touch file if empty  
     sample_summaries.sort() #alphabetically ordered samples 
     with open(f'{args.output_dir}/spear_variant_summary.csv', "a") as fp:
         wr = csv.writer(fp, delimiter=',')
