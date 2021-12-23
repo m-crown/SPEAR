@@ -58,7 +58,7 @@ Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update
 Further options are then available depending on the type of input file, for `spear consensus`:
 
 ```
-usage: spear consensus [-h] [--debug] [--dag] [--extension] [--mask-problem-sites SE AB AM [SE AB AM ...]] [--threads] [--allowAmbiguous] [--cutoff] [--window] input output
+usage: spear consensus [-h] [--debug] [--dag] [--extension] [--mask-problem-sites AB AM [AB AM ...]] [--threads] [--allowAmbiguous] [--cutoff] [--window] input output
 
 positional arguments:
   input                 Input directory of alignments, consensus fasta sequences or VCF files.
