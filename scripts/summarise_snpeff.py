@@ -67,8 +67,10 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
         mutation_anno = []
         classes = list(int(x) if x != "" else -1 for x in anno[4].split("+"))
         mod_barns_class_mask_sum_gt = list(int(float(x)) if x != "" else -1 for x in anno[5].split("+"))
+        search_classes = classes + mod_barns_class_mask_sum_gt
         str_classes = anno[4].split("+")
         str_mod_barns_class_mask_sum_gt = [str(int(float(s))) + "*" if s != "" else "" for s in anno[5].split("+")]
+        str_mod_barns_class_mask_sum_gt = [value for value in str_mod_barns_class_mask_sum_gt if value != ""]
         final_class_combo = str_classes + str_mod_barns_class_mask_sum_gt
         final_class_list = sorted(final_class_combo, key = natural_key)
         final_class_list = '+'.join(final_class_list)
@@ -87,11 +89,11 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
               res_ret_esc = esc_per_site.loc[esc_per_site["site"] == respos, "retained_escape"].values[0]
               ab_escape_fraction = 1 - bindingcalc.binding_retained([respos])
               cm_mab_escape = []
-              for mab_class in classes:
-                mAb_class_1_escape = ""
-                mAb_class_2_escape = ""
-                mAb_class_3_escape = ""
-                mAb_class_4_escape = ""
+              mAb_class_1_escape = ""
+              mAb_class_2_escape = ""
+              mAb_class_3_escape = ""
+              mAb_class_4_escape = ""
+              for mab_class in search_classes:
                 if mab_class == 1:
                   mAb_class_1_escape = bloom_escape_class1.loc[respos,altres]
                   cm_mab_escape.append(bloom_escape_class1.loc[respos,altres])  
@@ -103,17 +105,6 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
                   cm_mab_escape.append(bloom_escape_class3.loc[respos,altres])
                 elif mab_class == 4:
                   mAb_class_4_escape = bloom_escape_class4.loc[respos,altres]
-                  cm_mab_escape.append(bloom_escape_class4.loc[respos,altres])
-                else:
-                  cm_mab_escape.append(0)
-              for mab_class in mod_barns_class_mask_sum_gt:
-                if mab_class == 1:
-                  cm_mab_escape.append(bloom_escape_class1.loc[respos,altres])  
-                elif mab_class == 2:
-                  cm_mab_escape.append(bloom_escape_class2.loc[respos,altres])
-                elif mab_class == 3:
-                  cm_mab_escape.append(bloom_escape_class3.loc[respos,altres])
-                elif mab_class == 4:
                   cm_mab_escape.append(bloom_escape_class4.loc[respos,altres])
                 else:
                   cm_mab_escape.append(0)
