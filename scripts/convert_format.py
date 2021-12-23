@@ -93,15 +93,15 @@ def main():
                 barns_string = df_counts_to_string(barns_counts)
             
             if per_sample_output["bloom_ace2"].isin([""]).all():
-                bloom_ace2_sum = per_sample_output["bloom_ace2"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
-            else:
                 bloom_ace2_sum = ""
+            else:
+                bloom_ace2_sum = per_sample_output["bloom_ace2"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
             
             if per_sample_output["VDS"].isin([""]).all():
-                vds_sum = per_sample_output["VDS"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
-            else:
                 vds_sum = ""
-            
+            else:
+                vds_sum = per_sample_output["VDS"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+
             if per_sample_output["serum_escape"].isin([""]).all():
                 serum_escape_sum = ""
             else:
