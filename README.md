@@ -38,7 +38,7 @@ Once installed SPEAR can be updated with the `spear update` command, where:
 
 ## Usage
 
-SPEAR is driven by input modality so your fist argument to it should reflect the type of input files you are providing, `spear consensus` for analysis of `.fa` genome consensus files, `spear alignment` for analysis of pre-aligned consensuses in multiple FASTA format `.aln`.  And `spear vcf` for the analysis of `.vcf` files.  The reference genome used should be on of [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3).
+SPEAR is driven by input modality so your fist argument to it should reflect the type of input files you are providing, `spear consensus` for analysis of `.fa` genome consensus files, `spear alignment` for analysis of pre-aligned consensuses in multiple FASTA format `.aln`.  And `spear vcf` for the analysis of `.vcf` files.  The reference genome used should be either [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3).
 
 ```
 usage: spear [-h] {consensus,alignment,vcf,update} ...
@@ -58,7 +58,7 @@ Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update
 Further options are then available depending on the type of input file, for `spear consensus`:
 
 ```
-usage: spear consensus [-h] [--debug] [--dag] [--extension] [--mask-problem-sites SE AB AM [SE AB AM ...]] [--threads] [--allowAmbiguous] [--cutoff] [--window] input output
+usage: spear consensus [-h] [--debug] [--dag] [--extension] [--mask-problem-sites AB AM [AB AM ...]] [--threads] [--allowAmbiguous] [--cutoff] [--window] input output
 
 positional arguments:
   input                 Input directory of alignments, consensus fasta sequences or VCF files.
@@ -69,7 +69,7 @@ options:
   --debug               Verbose snakemake execution
   --dag                 Display DAG and exit
   --extension           Suffix and extension for input files
-  --mask-problem-sites  AB AM [SE AB AM ...]
+  --mask-problem-sites  AB AM [AB AM ...]
                         Filter problematic sides with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]
   --threads             Max number of threads for snakemake job execution.
   --allowAmbiguous      Toggle whether to exclude ambiguous bases in SNPs and insertions
@@ -148,10 +148,10 @@ These columns are within both the per sample files and `spear_annotation_summary
 | `consequence_type` | The type of variant consequence, e.g. missense_variant, synonymous_variant, multiple consequnces are possible here and will be & seperated | 
 | `description` | Free text description of product, ORF1ab is further broken down here into: leader protein, nsp3, nsp4, 3C-like proteinase, nsp6, nsp7, nsp8, nsp9, nsp10, RNA-dependent RNA polymerase, helicase, 3'-to-5' exonuclease, endoRNAse, and 2'-O-ribose methyltransferase |
 | `RefSeq_acc` | RefSeq accession for protein product, will be final cleaved polypotein product specific |
-| `residues` | Amino acid residue changes in the format of N501Y (REF-AA residue ALT-AA), where the genomic events produces multiple changes these will be expressed like so: G142D,del143,del144,del145 for G142D followed by deletion of 3 residues, or R203K,G204R exposing individual AA changes within a MNP |
+| `residues` | Amino acid residue changes in the format of N501Y (REF-AA residue ALT-AA), where the genomic events produces multiple changes these will be expressed like so: `G142D,del143,del144,del145` for G142D followed by deletion of 3 residues, or `R203K,G204R` exposing individual AA changes within a MNP |
 | `region` | Currently only annotated for Spike: S1 or S2 |
 | `domain` | Currently only annotated for Spike, e.g. NTD, RBD, RBM, definitions to be added here shortly |
-| `contact_type` | Takes the format for molecule:bond\_type\_residue, e.g. ACE2:h-bond\_E35+contact\_K31_H34, implies a ACE2 h-bond made by annotated residue to E35 within ACE2 as well as 4Å cut-off contact made to K31 and H34, `+` delimits additional contact types. trimer:h-bond\_707\_709+contact implies a contact in the trimer interface of Spike h-binding to residues 707 and 709 with an additional generic none residue specific contact. The bond type salt-bridge is also possible here. Currently only annotated for Spike |
+| `contact_type` | Takes the format for `molecule:bond_type_residue`, *e*.*g*. `ACE2:h-bond_E35+contact_K31_H34`, implies a ACE2 h-bond made by annotated residue to E35 within ACE2 as well as 4Å cut-off contact made to K31 and H34, `+` delimits additional contact types. `trimer:h-bond_707_709+contact` implies a contact in the trimer interface of Spike h-binding to residues 707 and 709 with an additional generic none residue specific contact. The bond type salt-bridge is also possible here. Currently only annotated for Spike |
 | `NAb` | A list of bound neutralising antibodies, this list is `+` delimited, with `,` reserved to delimit multiple amino acid variant events as described in `residues`. Currently only annotated for Spike |
 | `barns_class` | If the residue is part of a Barns epitope class as defined in Barns _et al_. [1], annotated values are 1, 2, 3, 4 with a + delimiter, some classes are appended with a * where they where not part of formal epitope studies but that residue was found to be sensitive to biding of antibodies of that class via mutagenesis studies |
 
@@ -195,6 +195,7 @@ Spear makes use of the following:
 * [SnpEff and SnpSift](http://pcingola.github.io/SnpEff/) Cingolani _et al_.[17],Cingolani _et al_.[18]
 * [UCSC faToVCF](https://hgdownload.cse.ucsc.edu/admin/exe/)
 * [vcfanno](https://github.com/brentp/vcfanno) Pedersen _et al_.[19]
+* [Binding Calculator](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) Greaney _et al_.[12]
 
 ## References
 1. [Barnes, C. O. *et al*. Structures of Human Antibodies Bound to SARS-CoV-2 Spike Reveal Common Epitopes and Recurrent Features of Antibodies. *Cell* **182**, 828-842.e16 (2020).](https://doi.org/10.1016/j.cell.2020.06.025)
@@ -215,7 +216,7 @@ Spear makes use of the following:
 16. [Danecek, P. *et al*. Twelve years of SAMtools and BCFtools. *Gigascience* **10**, giab008 (2021)](https://doi.org/10.1093/gigascience/giab008).
 17. [Cingolani, P. *et al*. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff: SNPs in the genome of Drosophila melanogaster strain w1118; iso-2; iso-3. *Fly* **6**, 80–92 (2012)](https://doi.org/10.4161/fly.19695).
 18. [Cingolani, P. *et al*. Using Drosophila melanogaster as a Model for Genotoxic Chemical Mutational Studies with a New Program, SnpSift. *Frontiers Genetics* **3**, 35 (2012)](https://doi.org/10.3389/fgene.2012.00035).
-19. [Pedersen, B. S., Layer, R. M. & Quinlan, A. R. Vcfanno: fast, flexible annotation of genetic variants. Genome Biol 17, 118 (2016)](https://doi.org/10.1186/s13059-016-0973-5).
+19. [Pedersen, B. S., Layer, R. M. & Quinlan, A. R. Vcfanno: fast, flexible annotation of genetic variants. *Genome Biol* **17**, 118 (2016)](https://doi.org/10.1186/s13059-016-0973-5).
 
 
 
