@@ -65,7 +65,7 @@ def main():
             region_counts = per_sample_output["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
             region_string = df_counts_to_string(region_counts)
             domain_counts = per_sample_output["domain"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
-            domain_string = df_counts_to_string(domain_counts) 
+            domain_string = df_counts_to_string(domain_counts)
             contacts_df = per_sample_output["contact_type"].str.split(" ").explode().replace("", np.nan).str.split(":", expand = True).reset_index(drop = True)
             contacts_df.rename(columns={0: "contact", 1: "contact_type"}, inplace = True)
             contacts_df["contact_type"] = contacts_df["contact_type"].str.split("+")
@@ -73,8 +73,8 @@ def main():
             contacts_df["contact_type"] = contacts_df["contact_type"].str.extract(r'^([a-z-A-Z]+)_*', expand = False)
             contacts_df["score"] = contacts_df["contact_type"].replace({"h-bond": 2, "contact": 1, "salt-bridge": 3})
             contacts_scores = contacts_df.groupby(["contact"]).sum()
-            ace2_contacts_score = contacts_scores.loc[contacts_scores.index=="ACE2", "score"].values[0]
-            trimer_contacts_score = contacts_scores.loc[contacts_scores.index=="trimer", "score"].values[0]
+            ace2_contacts_score = contacts_scores.loc[contacts_scores.index=="ACE2", "score"].values[0] if len(contacts_scores.loc[contacts_scores.index=="ACE2", "score"].values) == 1 else ""
+            trimer_contacts_score = contacts_scores.loc[contacts_scores.index=="trimer", "score"].values[0] if len(contacts_scores.loc[contacts_scores.index=="trimer", "score"].values) == 1 else ""
             barns_counts = per_sample_output["barns_class"].explode(",").str.split("+").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
             barns_counts.index = "class_" + barns_counts.index
             barns_string = df_counts_to_string(barns_counts)
