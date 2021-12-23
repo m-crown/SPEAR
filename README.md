@@ -195,6 +195,7 @@ Spear makes use of the following:
 * [SnpEff and SnpSift](http://pcingola.github.io/SnpEff/) Cingolani _et al_.[17],Cingolani _et al_.[18]
 * [UCSC faToVCF](https://hgdownload.cse.ucsc.edu/admin/exe/)
 * [vcfanno](https://github.com/brentp/vcfanno) Pedersen _et al_.[19]
+* [Binding Calculator](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) Greaney _et al_.[12]
 
 ## References
 1. [Barnes, C. O. *et al*. Structures of Human Antibodies Bound to SARS-CoV-2 Spike Reveal Common Epitopes and Recurrent Features of Antibodies. *Cell* **182**, 828-842.e16 (2020).](https://doi.org/10.1016/j.cell.2020.06.025)
