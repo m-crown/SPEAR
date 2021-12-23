@@ -56,7 +56,7 @@ def main():
             per_sample_output = per_sample_output[cols]
             per_sample_output.columns = ["sample_id", "POS", "REF", "ALT", "gene_name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES", "BEC_sample_EF"] 
             per_sample_output.to_csv(f'{args.output_dir}/per_sample_annotation/{sample_name}.summary.tsv', sep = '\t', header = True, index = False)
-            per_sample_output.to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = '\t', mode='a', header=False, index = False)
+            per_sample_output.to_csv(f'{args.output_dir}/spear.annotation.summary.tsv', sep = '\t', mode='a', header=False, index = False)
 
             #now getting summary scores
             sample_variant_number = len(per_sample_output)
