@@ -17,7 +17,7 @@ rule split_vcfs:
       expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf", id = config["samples"])
    shell:
       """
-      for sample in `bcftools query -l {input}`; do bcftools view -Ov -c 1 -s $sample -o {config[output_dir]}/final_vcfs/$sample.vcf {input}; done
+      for sample in `bcftools query -l {input}`; do bcftools view -Ov -c 1 -s $sample -o {config[output_dir]}/final_vcfs/$sample.spear.vcf {input}; done
       """
 
 rule spear:
