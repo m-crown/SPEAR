@@ -69,6 +69,8 @@ def main():
             if per_sample_output["contact_type"].isin([""]).all():
                 ace2_contacts_score = ""
                 trimer_contacts_score = ""
+                ace2_contacts_sum = ""
+                trimer_contacts_sum = ""
             else:
                 contacts_df = per_sample_output["contact_type"].str.split(" ").explode().replace("", np.nan).str.split(":", expand = True).reset_index(drop = True)
                 contacts_df.rename(columns={0: "contact", 1: "contact_type"}, inplace = True)
