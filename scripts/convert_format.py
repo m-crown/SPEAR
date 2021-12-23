@@ -41,6 +41,7 @@ def main():
     
     for vcf in args.vcfs:
         sample_name = Path(Path(vcf).stem)
+        sample_name = sample_name.stem #take off spear from input vcf - not very adaptable for other inputs but works for now 
         header, vcf , infocols = parse_vcf(vcf, split_info_cols = True)
         if len(vcf) != 0: #do not add summary if the vcf file is empty (but the empty file has to be created so need to handle). 
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
