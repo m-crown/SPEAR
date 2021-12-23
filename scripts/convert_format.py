@@ -41,6 +41,7 @@ def main():
     
     for vcf in args.vcfs:
         sample_name = Path(Path(vcf).stem)
+        sample_name = sample_name.stem #take off spear from input vcf - not very adaptable for other inputs but works for now 
         header, vcf , infocols = parse_vcf(vcf, split_info_cols = True)
         if len(vcf) != 0: #do not add summary if the vcf file is empty (but the empty file has to be created so need to handle). 
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
@@ -69,6 +70,8 @@ def main():
             if per_sample_output["contact_type"].isin([""]).all():
                 ace2_contacts_score = ""
                 trimer_contacts_score = ""
+                ace2_contacts_sum = ""
+                trimer_contacts_sum = ""
             else:
                 contacts_df = per_sample_output["contact_type"].str.split(" ").explode().replace("", np.nan).str.split(":", expand = True).reset_index(drop = True)
                 contacts_df.rename(columns={0: "contact", 1: "contact_type"}, inplace = True)
