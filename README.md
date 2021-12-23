@@ -6,7 +6,7 @@
 
 ## Introduction
 
-SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of final protein products, in particular Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape.  SPEAR is a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores on sequencing results, functional annotation and effect scoring is derived from protein structure, theoretical simulation, and omics' experiments.  SPEAR is capable of running on single input or multiple files, and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files.
+SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of final protein products, in particular Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape.  SPEAR is a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores on sequencing results. SPEAR functional annotation and effect scoring is derived from protein structure, theoretical simulation, and omics' experiments.  SPEAR is capable of running on single input or multiple files, and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files.
 
 ## Installation
 
