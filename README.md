@@ -69,7 +69,7 @@ options:
   --debug               Verbose snakemake execution
   --dag                 Display DAG and exit
   --extension           Suffix and extension for input files
-  --mask-problem-sites  AB AM [SE AB AM ...]
+  --mask-problem-sites  AB AM [AB AM ...]
                         Filter problematic sides with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]
   --threads             Max number of threads for snakemake job execution.
   --allowAmbiguous      Toggle whether to exclude ambiguous bases in SNPs and insertions
