@@ -41,36 +41,20 @@ rule snpeff:
 if config["filter"] == True:
    rule merge_vcfs:
       input:
-         expand(config["output_dir"] + "/masked/{id}.masked.vcf.gz", id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/indels/{id}.indels.vcf.gz", id=config["samples"])
+         expand(config["output_dir"] + "/masked/{id}.masked.vcf", id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/indels/{id}.indels.vcf.gz", id=config["samples"])
       output:
          config["output_dir"] + "/merged.vcf"
       shell:
-         "bcftools merge -m none -o {output} {input}"
-
-   rule index_vcfs:
-      input:  
-         config["output_dir"] + "/masked/{id}.masked.vcf" if config["vcf"] else config["output_dir"] + "/indels/{id}.indels.vcf"
-      output:
-         config["output_dir"] + "/masked/{id}.masked.vcf.gz" if config["vcf"] else config["output_dir"] + "/indels/{id}.indels.vcf.gz"
-      shell:
-         "bgzip {input} && tabix -p vcf {output}"
+         "bcftools merge --no-index -m none -o {output} {input}"
 
 if config["filter"] != True:
    rule merge_vcfs:
       input:
-         expand(config["input_dir"] + "/{id}" + config["extension"] + ".gz", id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/indels/{id}.indels.vcf.gz", id=config["samples"])
+         expand(config["input_dir"] + "/{id}" + config["extension"], id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/indels/{id}.indels.vcf.gz", id=config["samples"])
       output:
          config["output_dir"] + "/merged.vcf"
       shell:
-         "bcftools merge -m none -o {output} {input}"
-
-   rule index_vcfs:
-      input:  
-         config["input_dir"] + "/{id}" + config["extension"] if config["vcf"] == True else config["output_dir"] + "/indels/{id}.indels.vcf"
-      output:
-         config["input_dir"] + "/{id}.vcf.gz" if config["vcf"] == True else config["output_dir"] + "/indels/{id}.indels.vcf.gz"
-      shell:
-         "bgzip {input} && tabix -p vcf {output}"
+         "bcftools merge --no-index -m none -o {output} {input}"
 
 rule get_indels:
    input:
