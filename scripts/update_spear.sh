@@ -38,7 +38,7 @@ elif [[ $COMMAND == "all-data" ]]; then
     tabix -p vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
 
     echo " - Downloading jbloomlab/SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv"
-    wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_efFects.csv -O ${CONDA_PREFIX}/data/single_mut_effects.csv
+    wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O ${CONDA_PREFIX}/data/single_mut_effects.csv
 
     echo " - Downloading Bloom Escape Calculator (jbloomlab/SARS2_RBD_Ab_escape_maps/{bindingcalculator.py,processed_data/escape_calculator_data.csv}"
     wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O ${CONDA_PREFIX}/data/escape_calculator_data.csv
