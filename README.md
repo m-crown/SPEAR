@@ -6,7 +6,7 @@
 
 ## Introduction
 
-SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of final protein products, in particular Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape.  SPEAR is a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores on sequencing results. SPEAR functional annotation and effect scoring is derived from protein structure, theoretical simulation, and omics' experiments.  SPEAR is capable of running on single input or multiple files, and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files.
+SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of final protein products, in particular Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape.  SPEAR is a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores on sequencing results. SPEAR functional annotation and effect scoring is derived from protein structure, theoretical simulation, and omics' experiments.  SPEAR is capable of running on single input or multiple files, and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR is capable of annotating and scoring 1,000 pre-aligned input sequences in ~10 min using a single CPU core. 
 
 ## Installation
 
@@ -180,6 +180,8 @@ SPEAR uses a number of different scores to evaluate the likely impact of viral g
 
 These scores are also summarised in the `spear_score_summary.tsv` with totals in a row for each sample. Some columns summarise values for multiple entities here and are internally `,` delimited.
 
+Some of the scores employed here have been used to demonstrate the immune escape and ACE2 binding properties of Omicron and are discussed further in Teruel _et al_. [13].
+
 ## Acknowledgments 
 Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-crown) with supervision by [Matthew Bashton](https://twitter.com/mattbashton) and is developed in collaboration with the [Najmanovich Research Group](http://biophys.umontreal.ca/nrg/) specifically Natália Teruel and Rafael Najmanovich. This work is funded by [COG-UK](https://www.cogconsortium.uk/).
 
@@ -188,13 +190,13 @@ Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-
 Spear makes use of the following:
 
 * [conda](https://docs.conda.io/en/latest/index.html)
-* [bioconda](https://bioconda.github.io/) Team _et al_.[13]
-* [snakemake](https://snakemake.readthedocs.io/en/stable/index.html) Mölder _et al_.[14]
-* [muscle](https://drive5.com/muscle/downloads_v3.htm) Edgar [15]
-* [bcftools](https://samtools.github.io/bcftools/howtos/index.html) Danecek _et al_.[16]
-* [SnpEff and SnpSift](http://pcingola.github.io/SnpEff/) Cingolani _et al_.[17],Cingolani _et al_.[18]
+* [bioconda](https://bioconda.github.io/) Team _et al_.[14]
+* [snakemake](https://snakemake.readthedocs.io/en/stable/index.html) Mölder _et al_.[15]
+* [muscle](https://drive5.com/muscle/downloads_v3.htm) Edgar [16]
+* [bcftools](https://samtools.github.io/bcftools/howtos/index.html) Danecek _et al_.[17]
+* [SnpEff and SnpSift](http://pcingola.github.io/SnpEff/) Cingolani _et al_.[18],Cingolani _et al_.[19]
 * [UCSC faToVCF](https://hgdownload.cse.ucsc.edu/admin/exe/)
-* [vcfanno](https://github.com/brentp/vcfanno) Pedersen _et al_.[19]
+* [vcfanno](https://github.com/brentp/vcfanno) Pedersen _et al_.[20]
 * [Binding Calculator](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) Greaney _et al_.[12]
 
 ## References
@@ -202,7 +204,7 @@ Spear makes use of the following:
 2. [Starr, T. N. *et al*. Deep Mutational Scanning of SARS-CoV-2 Receptor Binding Domain Reveals Constraints on Folding and ACE2 Binding. *Cell* **182**, 1295-1310.e20 (2020).](https://doi.org/10.1016/j.cell.2020.08.012)
 3. [Teruel, N., Mailhot, O. & Najmanovich, R. J. Modelling conformational state dynamics and its role on infection for SARS-CoV-2 Spike protein variants. _Plos Comput Biol_ **17**, e1009286 (2021)](https://doi.org/10.1371/journal.pcbi.1009286).
 4. [Greaney, A. J. *et al*. Comprehensive mapping of mutations in the SARS-CoV-2 receptor-binding domain that affect recognition by polyclonal human plasma antibodies. *Cell Host Microbe* **29**, 463-476.e6 (2021)](https://doi.org/10.1016/j.chom.2021.02.003).
-5. [Dong, J. *et al*. Genetic and structural basis for SARS-CoV-2 variant neutralization by a two-antibody cocktail. Nat Microbiol 6, 1233–1244 (2021)](https://doi.org/10.1038/s41564-021-00972-2).
+5. [Dong, J. *et al*. Genetic and structural basis for SARS-CoV-2 variant neutralization by a two-antibody cocktail. *Nat Microbiol* 6, 1233–1244 (2021)](https://doi.org/10.1038/s41564-021-00972-2).
 6. [https://github.com/jbloomlab/SARS-CoV-2-RBD_MAP_COV2-2955](https://github.com/jbloomlab/SARS-CoV-2-RBD_MAP_COV2-2955)
 7. [Greaney, A. J. *et al*. Mapping mutations to the SARS-CoV-2 RBD that escape binding by different classes of antibodies. *Nat Commun* **12**, 4196 (2021)](https://doi.org/10.1038/s41467-021-24435-8).
 8. [Starr, T. N., Greaney, A. J., Dingens, A. S. & Bloom, J. D. Complete map of SARS-CoV-2 RBD mutations that escape the monoclonal antibody LY-CoV555 and its cocktail with LY-CoV016. *Cell Reports Medicine* **2**, 100255 (2021)](https://doi.org/10.1016/j.xcrm.2021.100255).
@@ -210,13 +212,14 @@ Spear makes use of the following:
 10. [Starr, T. N. *et al*. SARS-CoV-2 RBD antibodies that maximize breadth and resistance to escape. *Nature* **597**, 97–102 (2021)](https://doi.org/10.1038/s41586-021-03807-6).
 11. [Tortorici, M. A. *et al*. Broad sarbecovirus neutralization by a human monoclonal antibody. *Nature* **597**, 103–108 (2021)](https://doi.org/10.1038/s41586-021-03817-4).
 12. [Greaney, A. J., Starr, T. N. & Bloom, J. D. An antibody-escape calculator for mutations to the SARS-CoV-2 receptor-binding domain. *Biorxiv* 2021.12.04.471236 (2021) doi:10.1101/2021.12.04.471236](https://doi.org/10.1101/2021.12.04.471236).
-13. [Team, T. B. et al. Bioconda: sustainable and comprehensive software distribution for the life sciences. *Nat Methods* **15**, 475–476 (2018)](https://doi.org/10.1038/s41592-018-0046-7).
-14. [Mölder, F. *et al*. Sustainable data analysis with Snakemake. *F1000research* **10**, 33 (2021)](https://doi.org/10.12688/f1000research.29032.2).
-15. [Edgar, R. C. MUSCLE: a multiple sequence alignment method with reduced time and space complexity. *Bmc Bioinformatics* **5**, 113 (2004)](https://doi.org/10.1186/1471-2105-5-113).
-16. [Danecek, P. *et al*. Twelve years of SAMtools and BCFtools. *Gigascience* **10**, giab008 (2021)](https://doi.org/10.1093/gigascience/giab008).
-17. [Cingolani, P. *et al*. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff: SNPs in the genome of Drosophila melanogaster strain w1118; iso-2; iso-3. *Fly* **6**, 80–92 (2012)](https://doi.org/10.4161/fly.19695).
-18. [Cingolani, P. *et al*. Using Drosophila melanogaster as a Model for Genotoxic Chemical Mutational Studies with a New Program, SnpSift. *Frontiers Genetics* **3**, 35 (2012)](https://doi.org/10.3389/fgene.2012.00035).
-19. [Pedersen, B. S., Layer, R. M. & Quinlan, A. R. Vcfanno: fast, flexible annotation of genetic variants. *Genome Biol* **17**, 118 (2016)](https://doi.org/10.1186/s13059-016-0973-5).
+13. [Teruel, N., Crown, M., Bashton, M. & Najmanovich, R. Computational analysis of the effect of SARS-CoV-2 variant Omicron Spike protein mutations on dynamics, ACE2 binding and propensity for immune escape. *Biorxiv* 2021.12.14.472622 (2021) doi:10.1101/2021.12.14.472622.](https://doi.org/10.1101/2021.12.14.472622)
+14. [Team, T. B. et al. Bioconda: sustainable and comprehensive software distribution for the life sciences. *Nat Methods* **15**, 475–476 (2018)](https://doi.org/10.1038/s41592-018-0046-7).
+15. [Mölder, F. *et al*. Sustainable data analysis with Snakemake. *F1000research* **10**, 33 (2021)](https://doi.org/10.12688/f1000research.29032.2).
+16. [Edgar, R. C. MUSCLE: a multiple sequence alignment method with reduced time and space complexity. *Bmc Bioinformatics* **5**, 113 (2004)](https://doi.org/10.1186/1471-2105-5-113).
+17. [Danecek, P. *et al*. Twelve years of SAMtools and BCFtools. *Gigascience* **10**, giab008 (2021)](https://doi.org/10.1093/gigascience/giab008).
+18. [Cingolani, P. *et al*. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff: SNPs in the genome of Drosophila melanogaster strain w1118; iso-2; iso-3. *Fly* **6**, 80–92 (2012)](https://doi.org/10.4161/fly.19695).
+19. [Cingolani, P. *et al*. Using Drosophila melanogaster as a Model for Genotoxic Chemical Mutational Studies with a New Program, SnpSift. *Frontiers Genetics* **3**, 35 (2012)](https://doi.org/10.3389/fgene.2012.00035).
+20. [Pedersen, B. S., Layer, R. M. & Quinlan, A. R. Vcfanno: fast, flexible annotation of genetic variants. *Genome Biol* **17**, 118 (2016)](https://doi.org/10.1186/s13059-016-0973-5).
 
 
 
