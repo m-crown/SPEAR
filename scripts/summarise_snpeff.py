@@ -115,11 +115,11 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
                 cm_mab_escape = ""
               mutation_anno += [str(serum_escape), str(mab_escape), str(cm_mab_escape),str(mAb_class_1_escape), str(mAb_class_2_escape), str(mAb_class_3_escape), str(mAb_class_4_escape), str(res_ret_esc), str(ab_escape_fraction)]
             else:
-              mutation_anno += ["","","","","","","","","", ""] #if residue isnt in the RBD append 5 empty strings in replacement
+              mutation_anno += ["","","","","","","","", ""] #if residue isnt in the RBD append 5 empty strings in replacement
           else:
-            mutation_anno += ["","","","","","","","","","", ""] #if residue not in RBD and not in range for VDS score append 6 empty strings 
+            mutation_anno += ["","","","","","","","","", ""] #if residue not in RBD and not in range for VDS score append 6 empty strings 
         else:
-          mutation_anno += ["","","","","","","","","","", ""] #if residue not compatible with annotation i.e. not an AA substitution  
+          mutation_anno += ["","","","","","","","","", ""] #if residue not compatible with annotation i.e. not an AA substitution  
         anno += mutation_anno
         anno.pop(5) #remove internal antibody class from output
         #replace (4) with combined 4 and aterisk 5.  
