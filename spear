@@ -74,58 +74,168 @@ def main():
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     vcf.add_argument('output', metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
+    
+    update.add_argument('option', type = str,
+        help="Update option : spear, all-data or all")
 
     args = parser.parse_args()
 
-    if args.command not in ["update", "alignment", "consensus", "vcf"]:
+    print(f'''
+    SPEAR: Systematic ProtEin AnnotatoR v0.3
+    Matt Crown, Matt Bashton 2021-2022
+    ########################################
+    ''')
+
+    if args.command == "update":
+        subprocess.run(['sh','update_spear.sh',args.option])
+    
+    elif args.command not in ["alignment", "consensus", "vcf"]:
         parser.print_help()
         print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update')")
         sys.exit(1)
 
-    if args.command == "consensus":
-        align_in = True
     else:
-        align_in = False
-    if args.command == "vcf":
-        vcf_in = True
-        args.allowAmbiguous = False
-        args.window = False
-        allow_ambiguous = False
-    else:
-        vcf_in = False
-
-    SPEAR_PATH = os.environ.get('CONDA_PREFIX')
-    args.input = args.input.rstrip("/")
-    args.output = args.output.rstrip("/")
-    #check if input is a directory or a file and then operate differently depending
-    if args.extension == None:
         if args.command == "consensus":
-            extension = ".fa"
-        elif args.command == "vcf":
-            extension = ".vcf"
+            align_in = True
         else:
-            extension = ".aln"
-    else:
-        extension = args.extension
+            align_in = False
+        if args.command == "vcf":
+            vcf_in = True
+            args.allowAmbiguous = False
+            args.window = False
+            allow_ambiguous = False
+        else:
+            vcf_in = False
 
-    #setting the sample list for input to snakemake. Filtering based on N percentage and ensuring inputs have correct number of sequences. 
-    if os.path.isdir(args.input):
-        single_sample = False
-        input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
-        if args.command == "consensus":
-            if len(input_samples) == 0:
-                parser.print_help()
-                print("Error : no samples found")
-                sys.exit(1)
-            passing_samples = []
-            samples_fail_perc_n = 0
-            samples_fail_count = 0
-            for sample in input_samples:
+        SPEAR_PATH = os.environ.get('CONDA_PREFIX')
+        args.input = args.input.rstrip("/")
+        args.output = args.output.rstrip("/")
+        #check if input is a directory or a file and then operate differently depending
+        if args.extension == None:
+            if args.command == "consensus":
+                extension = ".fa"
+            elif args.command == "vcf":
+                extension = ".vcf"
+            else:
+                extension = ".aln"
+        else:
+            extension = args.extension
+
+        #setting the sample list for input to snakemake. Filtering based on N percentage and ensuring inputs have correct number of sequences. 
+        if os.path.isdir(args.input):
+            single_sample = False
+            input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
+            if args.command == "consensus":
+                if len(input_samples) == 0:
+                    parser.print_help()
+                    print("Error : no samples found")
+                    sys.exit(1)
+                passing_samples = []
+                samples_fail_perc_n = 0
+                samples_fail_count = 0
+                for sample in input_samples:
+                    count = 0
+                    sample_file = list(SeqIO.parse(f'{args.input}/{sample}{extension}', "fasta"))
+                    for record in sample_file:
+                        record.seq = record.seq.upper()
+                        count +=1
+                        if len(record.seq) == 0:
+                            perc_n = 100
+                        else:
+                            perc_n = (record.seq.count("N")/len(record.seq)) * 100 #factor indels in this count ? 
+                    if count > 1:
+                        samples_fail_count += 1
+                    elif perc_n >= args.cutoff:
+                        samples_fail_perc_n += 1
+                    else:
+                        Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
+                        sample_file[0].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].id)
+                        sample_file[0].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].name)
+                        sample_file[0].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].description)
+                        with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
+                            SeqIO.write(sample_file, output_handle, "fasta")
+                        passing_samples.append(sample_file[0].id)
+                print(f'''
+                    Input samples : {len(input_samples)}
+                    Passing samples : {len(passing_samples)}
+                    %N > {args.cutoff} : {samples_fail_perc_n}
+                    Incorrect format : {samples_fail_count}
+                    ''')
+                if len(passing_samples) == 1:
+                    single_sample = True
+                elif len(passing_samples) == 0:
+                    print("No samples to process, exiting.")
+                    sys.exit(1) 
+            elif args.command == "vcf":
+                passing_samples = []
+                for sample in input_samples:
+                    Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
+                    sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE,).stdout.decode('utf-8').rstrip('\n')
+                    sample_name = re.sub('[^a-zA-Z0-9]]', '_', sample_name)
+                    with open(f'{args.output}/input_files/id.txt', "w") as id_file:
+                        id_file.write(sample_name)
+                    with open(f'{args.output}/input_files/{sample_name}{extension}', "w") as outfile:
+                        subprocess.run(['bcftools', 'reheader', '-s', f'{args.output}/input_files/id.txt',  f'{args.input}/{sample}{extension}'], stdout=outfile)
+                    passing_samples.append(sample_name)
+                print(f'''
+                    Input samples : {len(passing_samples)}
+                    ''')
+                #adding this in pre-emptively for when VCF pre-filtering implemented
+                if len(passing_samples) == 1:
+                    single_sample = True
+                elif len(passing_samples) == 0:
+                    print("No samples to process, exiting.")
+                    sys.exit(1)          
+            else:
+                passing_samples = []
+                samples_fail_perc_n = 0
+                samples_fail_count = 0
+                for sample in input_samples:
+                    count = 0
+                    sample_file = list(SeqIO.parse(f'{args.input}/{sample}{extension}', "fasta"))
+                    for record in sample_file:
+                        count +=1
+                        if count == 1:
+                            reference = record.id #FIX THIS 
+                            continue
+                        elif len(record.seq) == 0:
+                            perc_n = 100
+                        else:
+                            perc_n = (record.seq.count("N")/len(record.seq)) * 100
+                    if count != 2:
+                        samples_fail_count += 1
+                    elif perc_n >= args.cutoff:
+                        samples_fail_perc_n += 1
+                    else:
+                        Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
+                        sample_file[1].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].id)
+                        sample_file[1].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].name)
+                        sample_file[1].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].description)
+                        with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
+                            SeqIO.write(sample_file, output_handle, "fasta")
+                        passing_samples.append(sample_file[1].id)
+                print(f'''
+                    Input samples : {len(input_samples)}
+                    Passing samples : {len(passing_samples)}
+                    %N > {args.cutoff} : {samples_fail_perc_n}
+                    Incorrect format : {samples_fail_count}
+                    ''')
+                if len(passing_samples) == 1:
+                    single_sample = True
+                elif len(passing_samples) == 0:
+                    print("No samples to process, exiting.")
+                    sys.exit(1)
+        elif os.path.isfile(args.input):
+            single_sample = True
+            input_sample = (Path(args.input).stem).split(".", 1)[0]
+            if args.command == "consensus": 
+                passing_samples = []
+                samples_fail_perc_n = 0
+                samples_fail_count = 0
                 count = 0
-                sample_file = list(SeqIO.parse(f'{args.input}/{sample}{extension}', "fasta"))
+                sample_file = list(SeqIO.parse(f'{args.input}', "fasta"))
                 for record in sample_file:
-                    record.seq = record.seq.upper()
-                    count +=1
+                    count += 1
                     if len(record.seq) == 0:
                         perc_n = 100
                     else:
@@ -133,7 +243,7 @@ def main():
                 if count > 1:
                     samples_fail_count += 1
                 elif perc_n >= args.cutoff:
-                    samples_fail_perc_n += 1
+                    samples_fail_perc_n += 1   
                 else:
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                     sample_file[0].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].id)
@@ -141,50 +251,41 @@ def main():
                     sample_file[0].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].description)
                     with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
-                    passing_samples.append(sample_file[0].id)
-            print(f'''
-                Input samples : {len(input_samples)}
-                Passing samples : {len(passing_samples)}
-                %N > {args.cutoff} : {samples_fail_perc_n}
-                Incorrect format : {samples_fail_count}
-                ''')
-            if len(passing_samples) == 1:
-                single_sample = True
-            elif len(passing_samples) == 0:
-                print("No samples to process, exiting.")
-                sys.exit(1) 
-        elif args.command == "vcf":
-            passing_samples = []
-            for sample in input_samples:
+                    passing_samples = [sample_file[0].id]
+                print(f'''
+                    Input samples : 1
+                    Passing samples : {len(passing_samples)}
+                    %N > {args.cutoff} : {samples_fail_perc_n}
+                    Incorrect format : {samples_fail_count}
+                    ''')
+                if len(passing_samples) == 0:
+                    print("No samples to process, exiting.")
+                    sys.exit(1)
+            elif args.command == "vcf":
                 Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE,).stdout.decode('utf-8').rstrip('\n')
-                sample_name = re.sub('[^a-zA-Z0-9]]', '_', sample_name)
-                #copyfile(f'{args.input}/{sample}{extension}', f'{args.output}/input_files/{sample_name}{extension}')
+                sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE,).stdout.decode('utf-8').rstrip('\n')
+                sample_name = re.sub('[^a-zA-Z0-9]', '_', sample_name)
                 with open(f'{args.output}/input_files/id.txt', "w") as id_file:
                     id_file.write(sample_name)
                 with open(f'{args.output}/input_files/{sample_name}{extension}', "w") as outfile:
-                    subprocess.run(['bcftools', 'reheader', '-s', f'{args.output}/input_files/id.txt',  f'{args.input}/{sample}{extension}'], stdout=outfile)
-                passing_samples.append(sample_name)
-            print(f'''
-                Input samples : {len(passing_samples)}
-                ''')
-            #adding this in pre-emptively for when VCF pre-filtering implemented
-            if len(passing_samples) == 1:
-                single_sample = True
-            elif len(passing_samples) == 0:
-                print("No samples to process, exiting.")
-                sys.exit(1)          
-        else:
-            passing_samples = []
-            samples_fail_perc_n = 0
-            samples_fail_count = 0
-            for sample in input_samples:
+                    subprocess.run(['bcftools', 'reheader', '-s', f'{args.output}/input_files/id.txt',  f'{args.input}'], stdout=outfile)
+                passing_samples = [sample_name]
+                print(f'''
+                    Input samples : {len(passing_samples)}
+                    ''')
+                #Adding this in pre-emptively before VCF pre-filtering is implemented for consistency with other inputs
+                if len(passing_samples) == 0:
+                    print("No samples to process, exiting.")
+                    sys.exit(1)              
+            else:
+                passing_samples = []
+                samples_fail_perc_n = 0
+                samples_fail_count = 0
                 count = 0
-                sample_file = list(SeqIO.parse(f'{args.input}/{sample}{extension}', "fasta"))
+                sample_file = list(SeqIO.parse(f'{args.input}', "fasta"))
                 for record in sample_file:
                     count +=1
-                    if count == 1:
-                        reference = record.id #FIX THIS 
+                    if record.id == "NC_045512.2": #FIX THIS 
                         continue
                     elif len(record.seq) == 0:
                         perc_n = 100
@@ -192,7 +293,7 @@ def main():
                         perc_n = (record.seq.count("N")/len(record.seq)) * 100
                 if count != 2:
                     samples_fail_count += 1
-                elif perc_n >= args.cutoff:
+                elif perc_n >= float(args.cutoff):
                     samples_fail_perc_n += 1
                 else:
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
@@ -201,192 +302,105 @@ def main():
                     sample_file[1].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].description)
                     with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
-                    passing_samples.append(sample_file[1].id)
-            print(f'''
-                Input samples : {len(input_samples)}
-                Passing samples : {len(passing_samples)}
-                %N > {args.cutoff} : {samples_fail_perc_n}
-                Incorrect format : {samples_fail_count}
-                ''')
-            if len(passing_samples) == 1:
-                single_sample = True
-            elif len(passing_samples) == 0:
-                print("No samples to process, exiting.")
-                sys.exit(1)
-    elif os.path.isfile(args.input):
-        single_sample = True
-        input_sample = (Path(args.input).stem).split(".", 1)[0]
-        if args.command == "consensus": 
-            passing_samples = []
-            samples_fail_perc_n = 0
-            samples_fail_count = 0
-            count = 0
-            sample_file = list(SeqIO.parse(f'{args.input}', "fasta"))
-            for record in sample_file:
-                count += 1
-                if len(record.seq) == 0:
-                    perc_n = 100
-                else:
-                    perc_n = (record.seq.count("N")/len(record.seq)) * 100 #factor indels in this count ? 
-            if count > 1:
-                samples_fail_count += 1
-            elif perc_n >= args.cutoff:
-                samples_fail_perc_n += 1   
-            else:
-                Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                sample_file[0].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].id)
-                sample_file[0].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].name)
-                sample_file[0].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].description)
-                with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
-                    SeqIO.write(sample_file, output_handle, "fasta")
-                passing_samples = [sample_file[0].id]
-            print(f'''
-                Input samples : 1
-                Passing samples : {len(passing_samples)}
-                %N > {args.cutoff} : {samples_fail_perc_n}
-                Incorrect format : {samples_fail_count}
-                ''')
-            if len(passing_samples) == 0:
-                print("No samples to process, exiting.")
-                sys.exit(1)
-        elif args.command == "vcf":
-            Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-            sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE,).stdout.decode('utf-8').rstrip('\n')
-            sample_name = re.sub('[^a-zA-Z0-9]', '_', sample_name)
-            with open(f'{args.output}/input_files/id.txt', "w") as id_file:
-                id_file.write(sample_name)
-            with open(f'{args.output}/input_files/{sample_name}{extension}', "w") as outfile:
-                subprocess.run(['bcftools', 'reheader', '-s', f'{args.output}/input_files/id.txt',  f'{args.input}'], stdout=outfile)
-            passing_samples = [sample_name]
-            print(f'''
-                Input samples : {len(passing_samples)}
-                ''')
-            #Adding this in pre-emptively before VCF pre-filtering is implemented for consistency with other inputs
-            if len(passing_samples) == 0:
-                print("No samples to process, exiting.")
-                sys.exit(1)              
-        else:
-            passing_samples = []
-            samples_fail_perc_n = 0
-            samples_fail_count = 0
-            count = 0
-            sample_file = list(SeqIO.parse(f'{args.input}', "fasta"))
-            for record in sample_file:
-                count +=1
-                if record.id == "NC_045512.2": #FIX THIS 
-                    continue
-                elif len(record.seq) == 0:
-                    perc_n = 100
-                else:
-                    perc_n = (record.seq.count("N")/len(record.seq)) * 100
-            if count != 2:
-                samples_fail_count += 1
-            elif perc_n >= float(args.cutoff):
-                samples_fail_perc_n += 1
-            else:
-                Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                sample_file[1].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].id)
-                sample_file[1].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].name)
-                sample_file[1].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].description)
-                with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
-                    SeqIO.write(sample_file, output_handle, "fasta")
-                passing_samples = [sample_file[1].id]
-            print(f'''
-                Input samples : 1
-                Passing samples : {len(passing_samples)}
-                %N > {args.cutoff} : {samples_fail_perc_n}
-                Incorrect format : {samples_fail_count}
-                ''')
-            if len(passing_samples) == 0:
-                print("No samples to process, exiting.")
-                sys.exit(1)
-    else:  
-        print("Input is not a file or directory" )
-        parser.print_help()
-        sys.exit(1)
-    
-    if args.allowAmbiguous:
-        exclude = ""
-        allow_ambiguous = "--allowAmbiguous"
-    else:
-        exclude = "-ambiguousToN"
-        allow_ambiguous = ""
-    problem_sites = args.mask_problem_sites
-
-    problem_exc = {
-        "SE" : "seq_end", 
-        "AB" : "ambiguous", 
-        "AM" : "amended",
-        "HA": "highly_ambiguous", 
-        "HH" : "highly_homoplasic", 
-        "HO" : "homoplasic", 
-        "IC" : "interspecific_contamination", 
-        "NA" : "nanopore_adapter", 
-        "NS": "narrow_src", 
-        "NL": "neighbour_linked" , 
-        "SS": "single_src", 
-        "AD": "amplicon_drop_or_primer_artefact", 
-        "BR": "back_to_ref"}
-
-    exclusion_statements = []
-    if problem_sites == None:
-        filter_snps = False
-        filter_statement = ""
-    else:
-        filter_snps = True
-        if "all" in problem_sites:
-            filter_statement = f"problem_filter = 'mask'"
-        else:
-            for site in problem_sites:
-                try:
-                    problem_exc[site]
-                    statement = f" problem_exc =~ '{problem_exc[site]}' "
-                    exclusion_statements.append(statement)
-
-                except KeyError:
-                    print("Masking parameter not recognised")
-                    parser.print_help()
+                    passing_samples = [sample_file[1].id]
+                print(f'''
+                    Input samples : 1
+                    Passing samples : {len(passing_samples)}
+                    %N > {args.cutoff} : {samples_fail_perc_n}
+                    Incorrect format : {samples_fail_count}
+                    ''')
+                if len(passing_samples) == 0:
+                    print("No samples to process, exiting.")
                     sys.exit(1)
-            exclusions = "|".join(exclusion_statements)
-            filter_statement = f"problem_filter = 'mask' & ({exclusions})"
-    
-    indir = f'{args.output}/input_files'
+        else:  
+            print("Input is not a file or directory" )
+            parser.print_help()
+            sys.exit(1)
+        
+        if args.allowAmbiguous:
+            exclude = ""
+            allow_ambiguous = "--allowAmbiguous"
+        else:
+            exclude = "-ambiguousToN"
+            allow_ambiguous = ""
+        problem_sites = args.mask_problem_sites
 
-    if single_sample: 
-        snakefile = f'{SPEAR_PATH}/bin/spear_single.smk'
-    else:
-        snakefile = f'{SPEAR_PATH}/bin/spear_multi.smk'
+        problem_exc = {
+            "SE" : "seq_end", 
+            "AB" : "ambiguous", 
+            "AM" : "amended",
+            "HA": "highly_ambiguous", 
+            "HH" : "highly_homoplasic", 
+            "HO" : "homoplasic", 
+            "IC" : "interspecific_contamination", 
+            "NA" : "nanopore_adapter", 
+            "NS": "narrow_src", 
+            "NL": "neighbour_linked" , 
+            "SS": "single_src", 
+            "AD": "amplicon_drop_or_primer_artefact", 
+            "BR": "back_to_ref"}
 
-    config = {
-        "input_dir" : indir,
-        "samples" : passing_samples, 
-        "output_dir" : args.output,
-        "data_dir" : f'{SPEAR_PATH}/data',
-        "align" : align_in,
-        "exclude_ambiguous" : exclude,
-        "reference_sequence" : f'{SPEAR_PATH}/data/reference.fasta',
-        "filter" : filter_snps,
-        "filter_params" : filter_statement,
-        "del_window" : args.window,
-        "extension" : extension,
-        "vcf" : vcf_in,
-        "single_sample" : single_sample,
-        "allow_ambiguous" : allow_ambiguous}
+        exclusion_statements = []
+        if problem_sites == None:
+            filter_snps = False
+            filter_statement = ""
+        else:
+            filter_snps = True
+            if "all" in problem_sites:
+                filter_statement = f"problem_filter = 'mask'"
+            else:
+                for site in problem_sites:
+                    try:
+                        problem_exc[site]
+                        statement = f" problem_exc =~ '{problem_exc[site]}' "
+                        exclusion_statements.append(statement)
 
-    status = snakemake.snakemake(
-                snakefile, 
-                printshellcmds=False,
-                config=config, 
-                quiet= args.debug,
-                forceall = False, 
-                printdag = args.dag, 
-                cores = args.threads,
-                printreason = False)
+                    except KeyError:
+                        print("Masking parameter not recognised")
+                        parser.print_help()
+                        sys.exit(1)
+                exclusions = "|".join(exclusion_statements)
+                filter_statement = f"problem_filter = 'mask' & ({exclusions})"
+        
+        indir = f'{args.output}/input_files'
 
-    if status:
-        #post snakemake cleanup here - remove the output directories that arent needed 
-       return 0
-    return 1
+        if single_sample: 
+            snakefile = f'{SPEAR_PATH}/bin/spear_single.smk'
+        else:
+            snakefile = f'{SPEAR_PATH}/bin/spear_multi.smk'
+
+        config = {
+            "input_dir" : indir,
+            "samples" : passing_samples, 
+            "output_dir" : args.output,
+            "data_dir" : f'{SPEAR_PATH}/data',
+            "align" : align_in,
+            "exclude_ambiguous" : exclude,
+            "reference_sequence" : f'{SPEAR_PATH}/data/reference.fasta',
+            "filter" : filter_snps,
+            "filter_params" : filter_statement,
+            "del_window" : args.window,
+            "extension" : extension,
+            "vcf" : vcf_in,
+            "single_sample" : single_sample,
+            "allow_ambiguous" : allow_ambiguous}
+
+        status = snakemake.snakemake(
+                    snakefile, 
+                    printshellcmds=False,
+                    config=config, 
+                    quiet= args.debug,
+                    forceall = False, 
+                    printdag = args.dag, 
+                    cores = args.threads,
+                    printreason = False)
+
+        if status:
+            print("Analysis complete!")
+            #IF NOT PRESERVE_PARAMS FLAG REMOVE INTERMEDIATE OUTPUTS
+            #post snakemake cleanup here - remove the output directories that arent needed 
+            return 0
+        return 1
 
 
 if __name__ == "__main__":
