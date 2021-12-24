@@ -41,7 +41,7 @@ rule snpeff:
 if config["filter"] == True:
    rule merge_vcfs:
       input:
-         expand(config["output_dir"] + "/masked/{id}.masked.vcf", id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/indels/{id}.indels.vcf.gz", id=config["samples"])
+         expand(config["output_dir"] + "/masked/{id}.masked.vcf", id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/indels/{id}.indels.vcf", id=config["samples"])
       output:
          config["output_dir"] + "/merged.vcf"
       shell:
@@ -50,7 +50,7 @@ if config["filter"] == True:
 if config["filter"] != True:
    rule merge_vcfs:
       input:
-         expand(config["input_dir"] + "/{id}" + config["extension"], id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/indels/{id}.indels.vcf.gz", id=config["samples"])
+         expand(config["input_dir"] + "/{id}" + config["extension"], id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/indels/{id}.indels.vcf", id=config["samples"])
       output:
          config["output_dir"] + "/merged.vcf"
       shell:
