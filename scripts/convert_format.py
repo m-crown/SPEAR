@@ -29,12 +29,12 @@ def main():
     Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
     
     sample_summaries = []
-    sample_summary_cols = ["sample_id", "POS", "REF", "ALT", "gene_name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES", "BEC_sample_EF"]
+    sample_summary_cols = ["sample_id", "POS", "REF", "ALT", "gene_name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_EF", "BEC_RES", "BEC_sample_EF"]
     with open(f'{args.output_dir}/spear_annotation_summary.tsv', 'w') as f_output:
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerow(sample_summary_cols)
     
-    scores_columns = ["sample_id","total_variants","contact_type_variants", "region_variants", "domain_variants", "ACE2_contact_counts","ACE2_contact_score","trimer_contact_counts", "trimer_contact_score", "barns_class_variants", "bloom_ACE2" , "VDS", "serum_escape", "mAb_escape_all_classes", "class_1_mAb_escape", "class_2_mAb_escape", "class_3_mAb_escape", "class_4_mAb_escape", "BEC_sample_EF", "BEC_REF"]
+    scores_columns = ["sample_id","total_variants","consequence_type_variants", "region_variants", "domain_variants", "ACE2_contact_counts","ACE2_contact_score","trimer_contact_counts", "trimer_contact_score", "barns_class_variants", "bloom_ACE2" , "VDS", "serum_escape", "mAb_escape_all_classes", "class_1_mAb_escape", "class_2_mAb_escape", "class_3_mAb_escape", "class_4_mAb_escape", "BEC_sample_EF", "BEC_REF"]
     with open(f'{args.output_dir}/spear_score_summary.tsv', 'w') as f_output:
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerow(scores_columns)
@@ -43,6 +43,7 @@ def main():
         sample_name = Path(Path(vcf).stem)
         sample_name = sample_name.stem #take off spear from input vcf - not very adaptable for other inputs but works for now 
         header, vcf , infocols = parse_vcf(vcf, split_info_cols = True)
+        vcf = vcf.loc[vcf["ANN"] != "no_annotation"]
         if len(vcf) != 0: #do not add summary if the vcf file is empty (but the empty file has to be created so need to handle). 
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
             vcf = vcf.explode("SPEAR")

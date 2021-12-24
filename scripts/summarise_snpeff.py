@@ -265,6 +265,7 @@ def main():
           locus_tag_mapping[feature.qualifiers["product"][0]] = feature.qualifiers["protein_id"][0]
     df = convert_snpeff_annotation(df.copy(), genbank_mapping, locus_tag_mapping, args.data_dir)
     infocols.append("SPEAR")
+    df.loc[df["ANN"] == "", "ANN"] = "no_annotation"
     for col in infocols:
       df[col] = col + "=" + df[col]
     df['INFO'] = df[infocols].agg(';'.join, axis=1)
