@@ -45,7 +45,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
     pattern = re.compile(r"[A-Z]+([0-9]+)([A-Z]+)")
     flat_s_respos = list(int(pattern.match(residue).group(1)) if pattern.match(residue) else -1 for residue in flat_s_residues)
     s_binding_calc_pos = [pos for pos in flat_s_respos if (pos != -1) and (pos >= min(bindingcalc.sites)) and (pos <= max(bindingcalc.sites))] #s residues that are in the RBD as definded by bloom binding calc
-    
+    sample_ef = 1 - bindingcalc.binding_retained(s_binding_calc_pos)
     esc_per_site = bindingcalc.escape_per_site(s_binding_calc_pos)
     annotation = []
     for residues in s_residues:
@@ -83,7 +83,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, data_dir):
             vds_score = vds.loc[(vds["site"] == respos) & (vds["mutation"] == altres), "mut_VDS"].fillna("").to_list()
             mutation_anno += vds_score
             if respos >= 331 and respos <= 531: #data for these residues of spike only (RBD) - above this is calculated as max and min of calculator sites
-              ab_escape_fraction_sample = 1 - bindingcalc.binding_retained(s_binding_calc_pos)
+              ab_escape_fraction_sample = sample_ef
               mab_escape = bloom_escape_all.loc[respos, altres] if bloom_escape_all.loc[respos, altres] != np.nan else ""
               serum_escape = greaney_serum_escape.loc[respos,altres] if greaney_serum_escape.loc[respos,altres] != np.nan else ""
               res_ret_esc = esc_per_site.loc[esc_per_site["site"] == respos, "retained_escape"].values[0]
