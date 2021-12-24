@@ -6,7 +6,7 @@
 
 ## Introduction
 
-SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of final protein products, in particular Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape.  SPEAR is a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores on sequencing results. SPEAR functional annotation and effect scoring is derived from protein structure, theoretical simulation, and omics' experiments.  SPEAR is capable of running on single input or multiple files, and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR is capable of annotating and scoring 1,000 pre-aligned input sequences in ~10 min using a single CPU core. 
+SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of final protein products, in particular Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape.  SPEAR is a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores on sequencing results. SPEAR functional annotation and effect scoring is derived from protein structure, theoretical simulation, and omics' experiments. SPEAR is capable of running on single or multiple input files, and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR is capable of annotating and scoring 1,000 pre-aligned input sequences in ~9 min using a single CPU core and in ~4mins with 4 cores. The SPEAR scoring system identifies both the potential immune escape and reduced ACE2 binding consequences of variants in Omicron RBD, as well as highlighting the potential increased stability of the open conformation of the Spike protein within Omicron, a more in depth discussion of these matters can be found in Teruel _et al_[1].
 
 ## Installation
 
@@ -91,10 +91,13 @@ To run on multiple input files replace the input file name with a directory:
 
 You can also use `.` as input directory to use files in the current working directory.
 
-By default consensus files are assumed to have the extension `.fa`, alignments `.aln` and vcf files `.vcf`, if you have a different extension then specify the suffix with `--extension`. This also allows you to remove a suffix from the sample ID used in output, so if all your input alignments conform to `<sample_id>.muscle.aln` specifying: `--extension .muscle.aln` will ensure only the sample id/name makes it into the output.
+By default consensus files are assumed to have the extension `.fa`, alignments `.aln` and vcf files `.vcf`, if you have a different extension then specify the suffix with `--extension`. This also allows you to remove a suffix from the sample ID used in output, so if all your input alignments conform to `<sample_id>.muscle.aln` specifying: `--extension .muscle.aln` will ensure only the sample id/name makes it into the output. Note that running on multiple input files may require you to increase the maximum number of open file handles on your system if your number of input samples starts to approach this limit, check this with `ulimit -n`.
 
 ### Expected alignment format
 If using spear alignment please make sure you samples are aligned to [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3), and that the multiple FASTA format is used, (expected file extension `.aln`) with the reference sequence being the fist one within the alignment.  We recommend using [MUSCLE v3.8](https://drive5.com/muscle/downloads_v3.htm) but other aligners should also work, spear can of course align consensus FASTA for you.
+
+### VCF considerations
+Make sure you VCF file uses [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3) as its reference and that all variants are co-ordinate sorted.
 
 ### Default filtering
 By default SPEAR will filter out the variants occurring in "genomic scraggly ends" the very most 5' 1-55 nucleotides and final 3' end of the genome 29,804-29,903. Input consensus FASTA will also be filtered to exclude samples that are more than 50% N before they are aligned to the reference.  Percentage N filtering can be tuned with `--cutoff`.
@@ -153,7 +156,7 @@ These columns are within both the per sample files and `spear_annotation_summary
 | `domain` | Currently only annotated for Spike, e.g. NTD, RBD, RBM, definitions to be added here shortly |
 | `contact_type` | Takes the format for `molecule:bond_type_residue`, *e*.*g*. `ACE2:h-bond_E35+contact_K31_H34`, implies a ACE2 h-bond made by annotated residue to E35 within ACE2 as well as 4Å cut-off contact made to K31 and H34, `+` delimits additional contact types. `trimer:h-bond_707_709+contact` implies a contact in the trimer interface of Spike h-binding to residues 707 and 709 with an additional generic none residue specific contact. The bond type salt-bridge is also possible here. Currently only annotated for Spike |
 | `NAb` | A list of bound neutralising antibodies, this list is `+` delimited, with `,` reserved to delimit multiple amino acid variant events as described in `residues`. Currently only annotated for Spike |
-| `barns_class` | If the residue is part of a Barns epitope class as defined in Barns _et al_. [1], annotated values are 1, 2, 3, 4 with a + delimiter, some classes are appended with a * where they were not part of formal epitope studies but that residue was found to be sensitive to biding of antibodies of that class via mutagenesis studies |
+| `barns_class` | If the residue is part of a Barns epitope class as defined in Barns _et al_.[2], annotated values are 1, 2, 3, 4 with a + delimiter, some classes are appended with a * where they were not part of formal epitope studies but that residue was found to be sensitive to biding of antibodies of that class via mutagenesis studies |
 
 The next 12 columns of output are scores rather than annotations and are described below.
 
@@ -165,22 +168,22 @@ SPEAR uses a number of different scores to evaluate the likely impact of viral g
 
 | Column ID | Level | Description |
 | --------- | ----- | ----------- |
-| `bloom_ace2` | mutation | ACE2 binding value Δlog10(KD,app) relative to the wild-type, data from Starr _et al_.[2] |
-| `VSD` | mutation | Vibrational Difference Score (VDS), positive VDS values suggests mutation stabilises the open state of Spike and/or makes the closed state more flexible, favouring the open conformation relative to the WT. Negative values suggest mutation favours the closed state more than WT. Data from Teruel _et al_.[3] |
-| `serum_escape` | mutation | Mean residue specific serum escape score from 7 individuals in Greaney _et al_.[4], larger values between indicate more escape |
-| `mAb_escape` | mutation | Mean residue specific mAb escape score from 26 mAbs data taken from Dong _et al_.[5], SARS-CoV-2-RBD\_MAP\_COV2-2955[6], Greaney _et al_.[7], Starr _et al_.[8], Starr _et al_.[9], Starr _et al_.[10] Tortorici _et al_.[11]|
+| `bloom_ace2` | mutation | ACE2 binding value Δlog10(KD,app) relative to the wild-type, data from Starr _et al_.[3] |
+| `VSD` | mutation | Vibrational Difference Score (VDS), positive VDS values suggests mutation stabilises the open state of Spike and/or makes the closed state more flexible, favouring the open conformation relative to the WT. Negative values suggest mutation favours the closed state more than WT. Data from Teruel _et al_.[4] |
+| `serum_escape` | mutation | Mean residue specific serum escape score from 7 individuals in Greaney _et al_.[5], larger values between indicate more escape |
+| `mAb_escape` | mutation | Mean residue specific mAb escape score from 26 mAbs data taken from Dong _et al_.[6], SARS-CoV-2-RBD\_MAP\_COV2-2955[7], Greaney _et al_.[8], Starr _et al_.[9], Starr _et al_.[10], Starr _et al_.[11] Tortorici _et al_.[12]|
 | `cm_mAb_escape` | mutation | As above, but calculated in a Barns class mask specific way such that the mean is taken only from Barns class mAbs that correspond to class of residue with mutation |
 | `mAb_escape_class_1` | mutation | As above, mean residue specific mAb escape score from class 1 mAbs only, only applied to residues in Barns class 1 epitope |
 | `mAb_escape_class_2` | mutation | As above, mean residue specific mAb escape score from class 2 mAbs only, only applied to residues in Barns class 2 epitope |
 | `mAb_escape_class_3` | mutation | As above, mean residue specific mAb escape score from class 3 mAbs only, only applied to residues in Barns class 1 epitope |
 | `mAb_escape_class_4` | mutation | As above, mean residue specific mAb escape score from class 4 mAbs only, only applied to residues in Barns class 4 epitope |
-| `BEC_EF` | residue | Bloom Escape Calculator, Escape factor a fraction (0 to 1) of antibodies escaped by mutations at this residue, this residue specific number is generated using [`bindingcalculator.py`](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) from [`jbloomlab/SARS2_RBD_Ab_escape_maps`](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps) as described in Greaney _et al_.[12] |
-| `BEC_RES` | residue | Bloom Escape Calculator Residue Escape Score, this residue specific number is generated using the full compliment of mutated residues in the sample using the tool described above |
-| `BEC_sample_EF` | sample | Bloom Escape Calculator Escape factor as `BEC_EF` but calculated using the full compliment of changed residues in the whole sample, this sore will be the same for every mutated residue in a sample | 
+| `BEC_EF` | residue | Bloom Escape Calculator Escape factor, a fraction (0 to 1) of antibodies escaped by mutations at this residue, this residue specific number is generated using [`bindingcalculator.py`](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) from [`jbloomlab/SARS2_RBD_Ab_escape_maps`](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps) as described in Greaney _et al_.[13] |
+| `BEC_RES` | residue | Bloom Escape Calculator Residue Escape Score, this residue specific number is generated using the tool described above |
+
 
 These scores are also summarised in the `spear_score_summary.tsv` with totals in a row for each sample. Some columns summarise values for multiple entities here and are internally `,` delimited.
 
-Some of the scores employed here have been used to demonstrate the immune escape and ACE2 binding properties of Omicron and are discussed further in Teruel _et al_. [13].
+Some of the scores employed here have been used to demonstrate the immune escape and ACE2 binding properties of Omicron and are discussed further in Teruel _et al_. [1].
 
 ## Acknowledgments 
 Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-crown) with supervision by [Matthew Bashton](https://twitter.com/mattbashton) and is developed in collaboration with the [Najmanovich Research Group](http://biophys.umontreal.ca/nrg/) specifically Natália Teruel and Rafael Najmanovich. This work is funded by [COG-UK](https://www.cogconsortium.uk/).
@@ -197,10 +200,11 @@ Spear makes use of the following:
 * [SnpEff and SnpSift](http://pcingola.github.io/SnpEff/) Cingolani _et al_.[18],Cingolani _et al_.[19]
 * [UCSC faToVCF](https://hgdownload.cse.ucsc.edu/admin/exe/)
 * [vcfanno](https://github.com/brentp/vcfanno) Pedersen _et al_.[20]
-* [Binding Calculator](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) Greaney _et al_.[12]
+* [Binding Calculator](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) Greaney _et al_.[13]
 
 ## References
-1. [Barnes, C. O. *et al*. Structures of Human Antibodies Bound to SARS-CoV-2 Spike Reveal Common Epitopes and Recurrent Features of Antibodies. *Cell* **182**, 828-842.e16 (2020).](https://doi.org/10.1016/j.cell.2020.06.025)
+1. [Teruel, N., Crown, M., Bashton, M. & Najmanovich, R. Computational analysis of the effect of SARS-CoV-2 variant Omicron Spike protein mutations on dynamics, ACE2 binding and propensity for immune escape. *Biorxiv* 2021.12.14.472622 (2021) doi:10.1101/2021.12.14.472622.](https://doi.org/10.1101/2021.12.14.472622)
+2. [Barnes, C. O. *et al*. Structures of Human Antibodies Bound to SARS-CoV-2 Spike Reveal Common Epitopes and Recurrent Features of Antibodies. *Cell* **182**, 828-842.e16 (2020).](https://doi.org/10.1016/j.cell.2020.06.025)
 2. [Starr, T. N. *et al*. Deep Mutational Scanning of SARS-CoV-2 Receptor Binding Domain Reveals Constraints on Folding and ACE2 Binding. *Cell* **182**, 1295-1310.e20 (2020).](https://doi.org/10.1016/j.cell.2020.08.012)
 3. [Teruel, N., Mailhot, O. & Najmanovich, R. J. Modelling conformational state dynamics and its role on infection for SARS-CoV-2 Spike protein variants. _Plos Comput Biol_ **17**, e1009286 (2021)](https://doi.org/10.1371/journal.pcbi.1009286).
 4. [Greaney, A. J. *et al*. Comprehensive mapping of mutations in the SARS-CoV-2 receptor-binding domain that affect recognition by polyclonal human plasma antibodies. *Cell Host Microbe* **29**, 463-476.e6 (2021)](https://doi.org/10.1016/j.chom.2021.02.003).
@@ -212,14 +216,13 @@ Spear makes use of the following:
 10. [Starr, T. N. *et al*. SARS-CoV-2 RBD antibodies that maximize breadth and resistance to escape. *Nature* **597**, 97–102 (2021)](https://doi.org/10.1038/s41586-021-03807-6).
 11. [Tortorici, M. A. *et al*. Broad sarbecovirus neutralization by a human monoclonal antibody. *Nature* **597**, 103–108 (2021)](https://doi.org/10.1038/s41586-021-03817-4).
 12. [Greaney, A. J., Starr, T. N. & Bloom, J. D. An antibody-escape calculator for mutations to the SARS-CoV-2 receptor-binding domain. *Biorxiv* 2021.12.04.471236 (2021) doi:10.1101/2021.12.04.471236](https://doi.org/10.1101/2021.12.04.471236).
-13. [Teruel, N., Crown, M., Bashton, M. & Najmanovich, R. Computational analysis of the effect of SARS-CoV-2 variant Omicron Spike protein mutations on dynamics, ACE2 binding and propensity for immune escape. *Biorxiv* 2021.12.14.472622 (2021) doi:10.1101/2021.12.14.472622.](https://doi.org/10.1101/2021.12.14.472622)
-14. [Team, T. B. et al. Bioconda: sustainable and comprehensive software distribution for the life sciences. *Nat Methods* **15**, 475–476 (2018)](https://doi.org/10.1038/s41592-018-0046-7).
-15. [Mölder, F. *et al*. Sustainable data analysis with Snakemake. *F1000research* **10**, 33 (2021)](https://doi.org/10.12688/f1000research.29032.2).
-16. [Edgar, R. C. MUSCLE: a multiple sequence alignment method with reduced time and space complexity. *Bmc Bioinformatics* **5**, 113 (2004)](https://doi.org/10.1186/1471-2105-5-113).
-17. [Danecek, P. *et al*. Twelve years of SAMtools and BCFtools. *Gigascience* **10**, giab008 (2021)](https://doi.org/10.1093/gigascience/giab008).
-18. [Cingolani, P. *et al*. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff: SNPs in the genome of Drosophila melanogaster strain w1118; iso-2; iso-3. *Fly* **6**, 80–92 (2012)](https://doi.org/10.4161/fly.19695).
-19. [Cingolani, P. *et al*. Using Drosophila melanogaster as a Model for Genotoxic Chemical Mutational Studies with a New Program, SnpSift. *Frontiers Genetics* **3**, 35 (2012)](https://doi.org/10.3389/fgene.2012.00035).
-20. [Pedersen, B. S., Layer, R. M. & Quinlan, A. R. Vcfanno: fast, flexible annotation of genetic variants. *Genome Biol* **17**, 118 (2016)](https://doi.org/10.1186/s13059-016-0973-5).
+13. [Team, T. B. et al. Bioconda: sustainable and comprehensive software distribution for the life sciences. *Nat Methods* **15**, 475–476 (2018)](https://doi.org/10.1038/s41592-018-0046-7).
+14. [Mölder, F. *et al*. Sustainable data analysis with Snakemake. *F1000research* **10**, 33 (2021)](https://doi.org/10.12688/f1000research.29032.2).
+15. [Edgar, R. C. MUSCLE: a multiple sequence alignment method with reduced time and space complexity. *Bmc Bioinformatics* **5**, 113 (2004)](https://doi.org/10.1186/1471-2105-5-113).
+16. [Danecek, P. *et al*. Twelve years of SAMtools and BCFtools. *Gigascience* **10**, giab008 (2021)](https://doi.org/10.1093/gigascience/giab008).
+17. [Cingolani, P. *et al*. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff: SNPs in the genome of Drosophila melanogaster strain w1118; iso-2; iso-3. *Fly* **6**, 80–92 (2012)](https://doi.org/10.4161/fly.19695).
+18. [Cingolani, P. *et al*. Using Drosophila melanogaster as a Model for Genotoxic Chemical Mutational Studies with a New Program, SnpSift. *Frontiers Genetics* **3**, 35 (2012)](https://doi.org/10.3389/fgene.2012.00035).
+19. [Pedersen, B. S., Layer, R. M. & Quinlan, A. R. Vcfanno: fast, flexible annotation of genetic variants. *Genome Biol* **17**, 118 (2016)](https://doi.org/10.1186/s13059-016-0973-5).
 
 
 
