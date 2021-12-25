@@ -404,7 +404,7 @@ def main():
 
         if status:
             print("Analysis complete!")
-            if not args.keep-tmp:
+            if not args.tmp:
                 rmtree(f'{args.output}/intermediate_output/')
             return 0
         return 1
