@@ -43,8 +43,8 @@ def main():
         sample_name = Path(Path(vcf).stem)
         sample_name = sample_name.stem #take off spear from input vcf - not very adaptable for other inputs but works for now 
         header, vcf , infocols = parse_vcf(vcf, split_info_cols = True)
-        vcf = vcf.loc[vcf["ANN"] != "no_annotation"]
         if len(vcf) != 0: #do not add summary if the vcf file is empty (but the empty file has to be created so need to handle). 
+            vcf = vcf.loc[vcf["ANN"] != "no_annotation"]
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
             vcf = vcf.explode("SPEAR")
             vcf[["gene_name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = vcf["SPEAR"].str.split("|", expand = True)
