@@ -23,7 +23,7 @@ def main():
         help="Verbose snakemake execution")
     consensus.add_argument('--dag', default=False, action='store_true',
         help = "Display DAG and exit")
-    consensus.add_argument('--keep-tmp', default=False, action='store_true',
+    consensus.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")  
     consensus.add_argument('--extension', metavar = '', type = str,
         help = "Suffix and extension for input files")    
@@ -46,7 +46,7 @@ def main():
         help="Verbose snakemake execution")
     alignment.add_argument('--dag', default=False, action='store_true',
         help = "Display DAG and exit")  
-    alignment.add_argument('--keep-tmp', default=False, action='store_true',
+    alignment.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")        
     alignment.add_argument('--extension', metavar = '', type = str,
         help = "Suffix and extension for input files")
@@ -69,7 +69,7 @@ def main():
         help="Verbose snakemake execution")
     vcf.add_argument('--extension', metavar = '', type = str,
         help = "Suffix and extension for input files")
-    vcf.add_argument('--keep-tmp', default=False, action='store_true',
+    vcf.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")        
     vcf.add_argument('--dag', default=False, action='store_true',
         help = "Display DAG and exit")        
