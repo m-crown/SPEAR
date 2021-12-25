@@ -8,6 +8,7 @@ import subprocess
 from Bio import SeqIO
 from pathlib import Path
 import re
+from shutil import rmtree
 
 def main():
     parser = argparse.ArgumentParser('spear')   
@@ -21,7 +22,9 @@ def main():
     consensus.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
     consensus.add_argument('--dag', default=False, action='store_true',
-        help = "Display DAG and exit")  
+        help = "Display DAG and exit")
+    consensus.add_argument('--keep-tmp', default=False, action='store_true',
+        help = "Preserve intermediate output files for debugging.")  
     consensus.add_argument('--extension', metavar = '', type = str,
         help = "Suffix and extension for input files")    
     consensus.add_argument('--mask-problem-sites', metavar = 'SE AB AM', nargs='+', 
@@ -42,7 +45,9 @@ def main():
     alignment.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
     alignment.add_argument('--dag', default=False, action='store_true',
-        help = "Display DAG and exit")        
+        help = "Display DAG and exit")  
+    alignment.add_argument('--keep-tmp', default=False, action='store_true',
+        help = "Preserve intermediate output files for debugging.")        
     alignment.add_argument('--extension', metavar = '', type = str,
         help = "Suffix and extension for input files")
     alignment.add_argument('--mask-problem-sites', metavar = 'SE AB AM', nargs='+', 
@@ -63,7 +68,9 @@ def main():
     vcf.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
     vcf.add_argument('--extension', metavar = '', type = str,
-        help = "Suffix and extension for input files")        
+        help = "Suffix and extension for input files")
+    vcf.add_argument('--keep-tmp', default=False, action='store_true',
+        help = "Preserve intermediate output files for debugging.")        
     vcf.add_argument('--dag', default=False, action='store_true',
         help = "Display DAG and exit")        
     vcf.add_argument('--mask-problem-sites', metavar = 'SE AB AM', nargs='+', 
@@ -397,8 +404,8 @@ def main():
 
         if status:
             print("Analysis complete!")
-            #IF NOT PRESERVE_PARAMS FLAG REMOVE INTERMEDIATE OUTPUTS
-            #post snakemake cleanup here - remove the output directories that arent needed 
+            if args.keep-tmp:
+                rmtree(f'{args.output}/intermediate_output/')
             return 0
         return 1
 
