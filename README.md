@@ -186,7 +186,7 @@ These scores are also summarised in the `spear_score_summary.tsv` with totals in
 Some of the scores employed here have been used to demonstrate the immune escape and ACE2 binding properties of Omicron and are discussed further in Teruel _et al_. [1].
 
 ## Acknowledgments 
-Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-crown) with supervision by [Matthew Bashton](https://twitter.com/mattbashton) and is developed in collaboration with the [Najmanovich Research Group](http://biophys.umontreal.ca/nrg/) specifically Natália Teruel and Rafael Najmanovich. This work is funded by [COG-UK](https://www.cogconsortium.uk/).
+Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-crown) project is lead by [Matthew Bashton](https://twitter.com/mattbashton) and is developed in collaboration with the [Najmanovich Research Group](http://biophys.umontreal.ca/nrg/) specifically Natália Teruel and Rafael Najmanovich. This work is funded by [COG-UK](https://www.cogconsortium.uk/).
 
 ### Software dependencies used
 
