@@ -9,6 +9,7 @@ from Bio import SeqIO
 from pathlib import Path
 import re
 from shutil import rmtree
+from summarise_snpeff import parse_vcf, write_vcf
 
 def main():
     parser = argparse.ArgumentParser('spear')   
@@ -27,8 +28,8 @@ def main():
         help = "Preserve intermediate output files for debugging.")  
     consensus.add_argument('--extension', metavar = '', type = str,
         help = "Suffix and extension for input files")    
-    consensus.add_argument('--mask-problem-sites', metavar = 'SE AB AM', nargs='+', 
-        help = "Filter problematic sides with these codes: [SE AB AM HA HH HO IC NA NS NL SS AD BR all]")     
+    consensus.add_argument('--mask-problem-sites', metavar = 'AB AM HA', nargs='+', 
+        help = "Filter problematic sides with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]")     
     consensus.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.") 
     consensus.add_argument('--allowAmbiguous', default=False, action='store_true',
@@ -50,8 +51,8 @@ def main():
         help = "Preserve intermediate output files for debugging.")        
     alignment.add_argument('--extension', metavar = '', type = str,
         help = "Suffix and extension for input files")
-    alignment.add_argument('--mask-problem-sites', metavar = 'SE AB AM', nargs='+', 
-        help = "Filter problematic sites with these codes: [SE AB AM HA HH HO IC NA NS NL SS AD BR all]") 
+    alignment.add_argument('--mask-problem-sites', metavar = 'AB AM HA', nargs='+', 
+        help = "Filter problematic sites with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]") 
     alignment.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.")  
     alignment.add_argument('--allowAmbiguous', default=False, action='store_true',
@@ -73,8 +74,8 @@ def main():
         help = "Preserve intermediate output files for debugging.")        
     vcf.add_argument('--dag', default=False, action='store_true',
         help = "Display DAG and exit")        
-    vcf.add_argument('--mask-problem-sites', metavar = 'SE AB AM', nargs='+', 
-        help = "Filter problematic sides with these codes [SE AB AM HA HH HO IC NA NS NL SS AD BR all]") 
+    vcf.add_argument('--mask-problem-sites', metavar = 'AB AM HA', nargs='+', 
+        help = "Filter problematic sides with these codes [AB AM HA HH HO IC NA NS NL SS AD BR all]") 
     vcf.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.")
     vcf.add_argument('input', metavar='input', type=str,
@@ -132,11 +133,11 @@ def main():
         if os.path.isdir(args.input):
             single_sample = False
             input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
+            if len(input_samples) == 0:
+                parser.print_help()
+                print("Error : no samples found")
+                sys.exit(1)
             if args.command == "consensus":
-                if len(input_samples) == 0:
-                    parser.print_help()
-                    print("Error : no samples found")
-                    sys.exit(1)
                 passing_samples = []
                 samples_fail_perc_n = 0
                 samples_fail_count = 0
@@ -175,35 +176,44 @@ def main():
                     sys.exit(1) 
             elif args.command == "vcf":
                 passing_samples = []
+                samples_fail_chrom_name = []
                 for sample in input_samples:
-                    Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                    sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE,).stdout.decode('utf-8').rstrip('\n')
+                    sample_name = subprocess.run(['bcftools', 'query',  '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
                     sample_name = re.sub('[^a-zA-Z0-9]]', '_', sample_name)
-                    with open(f'{args.output}/input_files/id.txt', "w") as id_file:
-                        id_file.write(sample_name)
-                    with open(f'{args.output}/input_files/{sample_name}{extension}', "w") as outfile:
-                        subprocess.run(['bcftools', 'reheader', '-s', f'{args.output}/input_files/id.txt',  f'{args.input}/{sample}{extension}'], stdout=outfile)
-                    passing_samples.append(sample_name)
+                    header , vcf = parse_vcf(f'{args.input}/{sample}{extension}', split_info_cols = False)
+                    if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
+                        Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
+                        vcf["#CHROM"] = "NC_045512.2"
+                        write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
+                        passing_samples.append(sample_name)
+                    else:
+                        samples_fail_chrom_name.append(sample_name)
                 print(f'''
-                    Input samples : {len(passing_samples)}
+                    Input samples : {len(input_samples)}
+                    Passing samples : {len(passing_samples)}
+                    Incorrect reference : {len(samples_fail_chrom_name)}
                     ''')
                 #adding this in pre-emptively for when VCF pre-filtering implemented
                 if len(passing_samples) == 1:
                     single_sample = True
                 elif len(passing_samples) == 0:
-                    print("No samples to process, exiting.")
+                    print("No samples found with matching CHROM field, exiting.")
                     sys.exit(1)          
             else:
                 passing_samples = []
                 samples_fail_perc_n = 0
                 samples_fail_count = 0
+                samples_fail_no_ref = 0
                 for sample in input_samples:
                     count = 0
                     sample_file = list(SeqIO.parse(f'{args.input}/{sample}{extension}', "fasta"))
+                    found_ref = False
+                    ref_regex = re.compile(r'NC_045512\.2|MN908947\.3')
                     for record in sample_file:
                         count +=1
-                        if count == 1:
-                            reference = record.id #FIX THIS 
+                        if ref_regex.search(record.id):
+                            record.id = "NC_045512.2"
+                            found_ref = True
                             continue
                         elif len(record.seq) == 0:
                             perc_n = 100
@@ -213,6 +223,8 @@ def main():
                         samples_fail_count += 1
                     elif perc_n >= args.cutoff:
                         samples_fail_perc_n += 1
+                    elif not found_ref:
+                        samples_fail_no_ref += 1
                     else:
                         Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                         sample_file[1].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].id)
@@ -221,11 +233,12 @@ def main():
                         with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[1].id)
+                #need to integrate no ref count into these stats !!
                 print(f'''
                     Input samples : {len(input_samples)}
                     Passing samples : {len(passing_samples)}
                     %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count}
+                    Incorrect format : {samples_fail_count + samples_fail_no_ref}
                     ''')
                 if len(passing_samples) == 1:
                     single_sample = True
@@ -234,7 +247,6 @@ def main():
                     sys.exit(1)
         elif os.path.isfile(args.input):
             single_sample = True
-            input_sample = (Path(args.input).stem).split(".", 1)[0]
             if args.command == "consensus": 
                 passing_samples = []
                 samples_fail_perc_n = 0
@@ -269,30 +281,32 @@ def main():
                     print("No samples to process, exiting.")
                     sys.exit(1)
             elif args.command == "vcf":
-                Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE,).stdout.decode('utf-8').rstrip('\n')
+                sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
                 sample_name = re.sub('[^a-zA-Z0-9]', '_', sample_name)
-                with open(f'{args.output}/input_files/id.txt', "w") as id_file:
-                    id_file.write(sample_name)
-                with open(f'{args.output}/input_files/{sample_name}{extension}', "w") as outfile:
-                    subprocess.run(['bcftools', 'reheader', '-s', f'{args.output}/input_files/id.txt',  f'{args.input}'], stdout=outfile)
-                passing_samples = [sample_name]
-                print(f'''
-                    Input samples : {len(passing_samples)}
-                    ''')
-                #Adding this in pre-emptively before VCF pre-filtering is implemented for consistency with other inputs
-                if len(passing_samples) == 0:
-                    print("No samples to process, exiting.")
+                header , vcf = parse_vcf(f'{args.input}', split_info_cols = False)
+                if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
+                    Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
+                    vcf["#CHROM"] = "NC_045512.2"
+                    write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
+                    passing_samples = [sample_name]
+                    print(f'Passing samples : {len(passing_samples)}')
+                else:
+                    print("Sample has incorrect CHROM field, exiting.")
                     sys.exit(1)              
             else:
                 passing_samples = []
                 samples_fail_perc_n = 0
                 samples_fail_count = 0
+                samples_fail_no_ref = 0
                 count = 0
                 sample_file = list(SeqIO.parse(f'{args.input}', "fasta"))
+                found_ref = False
+                ref_regex = re.compile(r'NC_045512\.2|MN908947\.3')
                 for record in sample_file:
                     count +=1
-                    if record.id == "NC_045512.2": #FIX THIS 
+                    if ref_regex.search(record.id):
+                        record.id = "NC_045512.2"
+                        found_ref = True
                         continue
                     elif len(record.seq) == 0:
                         perc_n = 100
@@ -302,6 +316,8 @@ def main():
                     samples_fail_count += 1
                 elif perc_n >= float(args.cutoff):
                     samples_fail_perc_n += 1
+                elif not found_ref:
+                    samples_fail_no_ref += 1
                 else:
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                     sample_file[1].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].id)
@@ -314,7 +330,7 @@ def main():
                     Input samples : 1
                     Passing samples : {len(passing_samples)}
                     %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count}
+                    Incorrect format : {samples_fail_count + samples_fail_no_ref}
                     ''')
                 if len(passing_samples) == 0:
                     print("No samples to process, exiting.")
@@ -332,8 +348,7 @@ def main():
             allow_ambiguous = ""
         problem_sites = args.mask_problem_sites
 
-        problem_exc = {
-            "SE" : "seq_end", 
+        problem_exc = { 
             "AB" : "ambiguous", 
             "AM" : "amended",
             "HA": "highly_ambiguous", 
