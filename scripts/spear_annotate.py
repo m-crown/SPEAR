@@ -121,7 +121,6 @@ def annotate_s_residues(vcf, data_dir):
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_EF"]] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_bindingcalc_values(x["respos"], bindingcalc, "escape_fraction"), axis=1)
 
     vcf = vcf.fillna("")
-    print(vcf.columns)
     cols = ['residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
     vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
     all_cols = vcf.columns.tolist()
@@ -149,11 +148,14 @@ def main():
         df = annotate_s_residues(df.copy(), args.data_dir)
 
         cols = [e for e in df.columns.to_list() if e not in ("ANN", "SUM", "SPEAR")]
-        df = df.groupby(cols, as_index = False).agg(list)
+        df = df.groupby(cols, as_index = False).agg({
+            "ANN": set,
+            "SUM": set,
+            "SPEAR": list})
 
         df["ANN"] = [','.join(map(str, l)) for l in df['ANN']]
         df["SUM"] = [','.join(map(str, l)) for l in df['SUM']]
-        df["SPEAR"] = [','.join(map(str, l)) for l in df['SPEAR']]
+        df["SPEAR"] = [','.join(map(str, l)) for l in df["SPEAR"].apply(lambda x: sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1]))] #sorting like this because the groupby list doesnt always put residues in correct order.
         infocols.append("SPEAR")
         for col in infocols:
             df[col] = col + "=" + df[col]
