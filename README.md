@@ -175,7 +175,7 @@ SPEAR uses a number of different scores to evaluate the likely impact of viral g
 | `cm_mAb_escape` | mutation | As above, but calculated in a Barns class mask specific way such that the mean is taken only from Barns class mAbs that correspond to class of residue with mutation |
 | `mAb_escape_class_1` | mutation | As above, mean residue specific mAb escape score from class 1 mAbs only, only applied to residues in Barns class 1 epitope |
 | `mAb_escape_class_2` | mutation | As above, mean residue specific mAb escape score from class 2 mAbs only, only applied to residues in Barns class 2 epitope |
-| `mAb_escape_class_3` | mutation | As above, mean residue specific mAb escape score from class 3 mAbs only, only applied to residues in Barns class 1 epitope |
+| `mAb_escape_class_3` | mutation | As above, mean residue specific mAb escape score from class 3 mAbs only, only applied to residues in Barns class 3 epitope |
 | `mAb_escape_class_4` | mutation | As above, mean residue specific mAb escape score from class 4 mAbs only, only applied to residues in Barns class 4 epitope |
 | `BEC_EF` | residue | Bloom Escape Calculator Escape factor, a fraction (0 to 1) of antibodies escaped by mutations at this residue, this residue specific number is generated using [`bindingcalculator.py`](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) from [`jbloomlab/SARS2_RBD_Ab_escape_maps`](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps) as described in Greaney _et al_.[13] |
 | `BEC_RES` | residue | Bloom Escape Calculator Residue Escape Score, this residue specific number is generated using the tool described above |
@@ -186,7 +186,7 @@ These scores are also summarised in the `spear_score_summary.tsv` with totals in
 Some of the scores employed here have been used to demonstrate the immune escape and ACE2 binding properties of Omicron and are discussed further in Teruel _et al_. [1].
 
 ## Acknowledgments 
-Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-crown) project is lead by [Matthew Bashton](https://twitter.com/mattbashton) and is developed in collaboration with the [Najmanovich Research Group](http://biophys.umontreal.ca/nrg/) specifically Natália Teruel and Rafael Najmanovich. This work is funded by [COG-UK](https://www.cogconsortium.uk/).
+Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-crown) project is led by [Matthew Bashton](https://twitter.com/mattbashton) and is developed in collaboration with the [Najmanovich Research Group](http://biophys.umontreal.ca/nrg/) specifically Natália Teruel and Rafael Najmanovich. This work is funded by [COG-UK](https://www.cogconsortium.uk/).
 
 ### Software dependencies used
 
