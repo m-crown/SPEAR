@@ -44,7 +44,8 @@ def annotate_s_residues(vcf, data_dir):
     vds = pd.read_csv(f'{data_dir}/vibentropy_occupancy_dmsdata.csv')
     
     bindingcalc = BindingCalculator(csv_or_url = f'{data_dir}/escape_calculator_data.csv')    
-    
+    vcf["SUM"] = vcf["SUM"].str.split(",", expand = False) #split SUM field where multiple annotations remain (NSP11 RDRP overlap)
+    vcf = vcf.explode("SUM") #explode on this list of SUM values
     vcf[["gene_name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues"]] = vcf["SUM"].str.split("|", expand = True)
     vcf["residues"] = vcf["residues"].str.split('~')
     vcf = vcf.explode("residues")
@@ -155,7 +156,7 @@ def main():
 
         df["ANN"] = [','.join(map(str, l)) for l in df['ANN']]
         df["SUM"] = [','.join(map(str, l)) for l in df['SUM']]
-        df["SPEAR"] = [','.join(map(str, l)) for l in df["SPEAR"].apply(lambda x: sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1]))] #sorting like this because the groupby list doesnt always put residues in correct order.
+        df["SPEAR"] = [','.join(map(str, l)) for l in df["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1])))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
         infocols.append("SPEAR")
         for col in infocols:
             df[col] = col + "=" + df[col]
