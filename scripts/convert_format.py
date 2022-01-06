@@ -73,6 +73,7 @@ def main():
             respos_list = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), "respos"].values.tolist()
             vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_RES"]] = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_contextual_bindingcalc_values(respos_list, x["respos"], bindingcalc, "res_ret_esc"), axis=1)
             vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_EF_sample"]] = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_contextual_bindingcalc_values(respos_list, x["respos"], bindingcalc, "escape_fraction"), axis=1)
+            vcf["BEC_EF_sample"] = vcf["BEC_EF_sample"].fillna("")
 
             vcf.loc[vcf["Gene_Name"].str.contains('-'), "Gene_Name"] = "Intergenic_" + vcf.loc[vcf["Gene_Name"].str.contains('-'), "Gene_Name"]
             vcf.loc[vcf["Annotation"] == "synonymous_variant", "variant"] = vcf.loc[vcf["Annotation"] == "synonymous_variant", "HGVS.c"]

@@ -8,7 +8,7 @@ rule summarise_vcfs:
    output:
       expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
    shell:
-      """convert_format.py {config[output_dir]} --vcf {input}"""
+      """convert_format.py {config[output_dir]} {config[data_dir]} --vcf {input}"""
 
 rule spear:
    input:
@@ -16,7 +16,7 @@ rule spear:
    output:
       config["output_dir"] + "/final_vcfs/{id}.spear.vcf" 
    shell:
-      "summarise_snpeff.py {output} {input} {config[data_dir]}"
+      "summarise_snpeff.py {output} {input} {config[data_dir]} ; spear_annotate.py {output} {output} {config[data_dir]}"
 
 if config["vcf"] == True:
    rule snpeff:
