@@ -62,6 +62,7 @@ def main():
             vcf = vcf.loc[vcf["ANN"] != "no_annotation"]
             total_variants = len(vcf)
             vcf[["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues"]] = vcf["SUM"].str.split("|", expand = True)
+            consequence_type_counts = vcf.groupby(["Annotation"]).size() #get the nucleotide variant conseqeunce type counts before exploding the vcf into per residue format
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
             vcf = vcf.explode("SPEAR")
             vcf[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = vcf["SPEAR"].str.split("|", expand = True)
@@ -106,7 +107,6 @@ def main():
 
             #now getting summary scores
             sample_residue_variant_number = len(per_sample_output)
-            consequence_type_counts = per_sample_output.groupby(["consequence_type"]).size()
             type_string = df_counts_to_string(consequence_type_counts)
             region_counts = per_sample_output["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
             region_string = df_counts_to_string(region_counts)
