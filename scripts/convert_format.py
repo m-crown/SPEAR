@@ -61,8 +61,10 @@ def main():
             #need to have two things happen here, for intergenics need to produce an output with the SUM field, for non intergenics summary output is going to come from SPEAR (or from both?) 
             vcf = vcf.loc[vcf["ANN"] != "no_annotation"]
             total_variants = len(vcf)
+            vcf["SUM"] = vcf["SUM"].str.split(",", expand = False) #split SUM field where multiple annotations remain (NSP11 RDRP overlap)
+            vcf = vcf.explode("SUM") #explode on this list of SUM values
             vcf[["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues"]] = vcf["SUM"].str.split("|", expand = True)
-            consequence_type_counts = vcf.groupby(["Annotation"]).size() #get the nucleotide variant conseqeunce type counts before exploding the vcf into per residue format
+            consequence_type_counts = vcf.groupby(["Annotation"]).size() #get the nucleotide variant conseqeunce type counts before exploding the vcf into per residue format. This will add up to the total number of SUM values in INFO field rather than total number of variants.
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
             vcf = vcf.explode("SPEAR")
             vcf[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = vcf["SPEAR"].str.split("|", expand = True)
@@ -78,16 +80,18 @@ def main():
 
             vcf.loc[vcf["Gene_Name"].str.contains('-'), "Gene_Name"] = "Intergenic_" + vcf.loc[vcf["Gene_Name"].str.contains('-'), "Gene_Name"]
             vcf.loc[vcf["Annotation"] == "synonymous_variant", "variant"] = vcf.loc[vcf["Annotation"] == "synonymous_variant", "HGVS.c"]
-            
+
             #writing the updated bloom score vcf
             final_vcf = vcf.copy()
             cols = ['residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bloom_ace2', 'VDS', 'serum_escape', 'mAb_escape', 'cm_mAb_escape', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
             final_vcf["SPEAR"] = final_vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
+            final_vcf["SUM"] = final_vcf[["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues"]].apply(lambda row: '|'.join(row.values.astype(str)), axis =1)
             all_cols = final_vcf.columns.tolist()
             final_vcf.drop([col for col in all_cols if col not in original_cols], axis = 1, inplace = True)
-            cols = [e for e in final_vcf.columns.to_list() if e not in ("SPEAR")]
-            final_vcf = final_vcf.groupby(cols, as_index = False).agg({"SPEAR": list})
-            final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1]))] #sorting like this because the groupby list doesnt always put residues in correct order.
+            cols = [e for e in final_vcf.columns.to_list() if e not in ("SUM", "SPEAR")]
+            final_vcf = final_vcf.groupby(cols, as_index = False).agg({"SUM": set , "SPEAR": list})
+            final_vcf["SUM"] = [','.join(map(str, l)) for l in final_vcf['SUM']]
+            final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1])))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
             for col in infocols:
                 final_vcf[col] = col + "=" + final_vcf[col]
             final_vcf['INFO'] = final_vcf[infocols].agg(';'.join, axis=1)
