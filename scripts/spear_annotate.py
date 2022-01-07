@@ -6,6 +6,7 @@ from pandas.io.pytables import dropna_doc
 from Bio import SeqIO
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #ignoring the performance warning  PerformanceWarning: your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types for spear_anno_file
 import pandas as pd
 from itertools import takewhile
 import argparse
@@ -32,17 +33,19 @@ def annotate_s_residues(vcf, data_dir):
             ab_escape_fraction = 1 - bindingcalc.binding_retained([respos])
             return(ab_escape_fraction)
 
-    spear_anno_file = pd.read_pickle(f'{data_dir}/spear.pkl')
+    spear_anno_file = pd.read_hdf(f'{data_dir}/spear_data.h5', "spear_anno_file")
     spear_anno_file["mod_barns_class_mask_sum_gt0.75"] = spear_anno_file["mod_barns_class_mask_sum_gt0.75"].replace("", -1).astype(int)
-    bloom_ace2_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv')
-    bloom_escape_all = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_all_class.csv', index_col = 0)
-    bloom_escape_class1 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_1.csv', index_col = 0)
-    bloom_escape_class2 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_2.csv', index_col = 0)
-    bloom_escape_class3 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_3.csv', index_col = 0)
-    bloom_escape_class4 = pd.read_csv(f'{data_dir}/Bloom_mAb_escape_class_4.csv', index_col = 0)
-    greaney_serum_escape = pd.read_csv(f'{data_dir}/Greaney_serum_escape.csv', index_col = 0)
-    vds = pd.read_csv(f'{data_dir}/vibentropy_occupancy_dmsdata.csv')
     
+    bloom_escape_all = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_all")
+    bloom_escape_class1 = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_class1")
+    bloom_escape_class2 = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_class2")
+    bloom_escape_class3 = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_class3")
+    bloom_escape_class4 = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_class4")
+    greaney_serum_escape = pd.read_hdf(f'{data_dir}/spear_data.h5', "greaney_serum_escape")    
+    
+    bloom_ace2_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv')
+    vds = pd.read_csv(f'{data_dir}/vibentropy_occupancy_dmsdata.csv')
+
     bindingcalc = BindingCalculator(csv_or_url = f'{data_dir}/escape_calculator_data.csv')    
     vcf["SUM"] = vcf["SUM"].str.split(",", expand = False) #split SUM field where multiple annotations remain (NSP11 RDRP overlap)
     vcf = vcf.explode("SUM") #explode on this list of SUM values
