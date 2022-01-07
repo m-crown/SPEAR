@@ -21,3 +21,6 @@ dependencies:
   - bioconda::grep
   - wget
   - conda-forge::pytables
+  - pip
+  - pip:
+    - rich
