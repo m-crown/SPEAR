@@ -10,7 +10,6 @@ import argparse
 import numpy as np
 import re
 from shutil import copy
-from bindingcalculator import BindingCalculator
 
 def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping):
 
@@ -107,7 +106,7 @@ def parse_vcf(vcf_file, split_info_cols = True):
     df = pd.concat([df, info_df], axis=1)
     cols = df.columns.to_list()
     infocols = info_df.columns.to_list()
-    cols = [x for x in cols if x not in infocols]
+    cols = [x for x in cols if x not in infocols] #would have used set subtraction here for a speedup but it loses the order of cols which needs to be retained
     cols[cols.index("INFO"):cols.index("INFO")] = infocols
     cols.pop(cols.index("INFO"))
     df = df[cols]
