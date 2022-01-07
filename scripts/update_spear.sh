@@ -1,4 +1,4 @@
-#|/usr/bin/env bash -eu 
+#|/usr/bin/env bash -eu
 # Matt Bashton 2021
 # Updates SPEAR
 # Assumes spear conda env is already active is script is envoked by spear itself
@@ -12,17 +12,18 @@ COMMAND=${1}
 if [[ $COMMAND == "spear" ]]; then
     echo "Updating SPEAR repo"
     cd ${CONDA_PREFIX}/repo
-    git pull 
+    git pull
     cd ${BASE}
 
     # Install SPEAR files to data/ and bin/
     cp ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
     cp ${CONDA_PREFIX}/repo/scripts/* ${CONDA_PREFIX}/bin
-    chmod +x ${CONDA_PREFIX}/bin/update_spear.sh
+    chmod +x ${CONDA_PREFIX}/bin/*.sh
+    chmod +x ${CONDA_PREFIX}/bin/*.py
     cp ${CONDA_PREFIX}/repo/spear ${CONDA_PREFIX}/bin
     chmod +x ${CONDA_PREFIX}/bin/spear
-    
-    
+
+
 elif [[ $COMMAND == "all-data" ]]; then
     echo "Updating all data sets"
     cd ${CONDA_PREFIX}/repo
@@ -30,8 +31,8 @@ elif [[ $COMMAND == "all-data" ]]; then
     cd ${BASE}
      # Install SPEAR files to data/
     cp ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
-    
-    # Download data from GitHub                                                                                                                                                                                                                         
+
+    # Download data from GitHub
     echo " - Downloading W-L/ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf"
     wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf
     bgzip -f ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
@@ -46,13 +47,13 @@ elif [[ $COMMAND == "all-data" ]]; then
 
     echo " - Downloading nataliateruel/data_Spike/vibentropy_occupancy_dmsdata.csv"
     wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentropy_occupancy_dmsdata.csv -O ${CONDA_PREFIX}/data/vibentropy_occupancy_dmsdata.csv
-    
-    
+
+
 elif [[ $COMMAND == "all" ]]; then
     echo "Updating SPEAR, data sets and dependencies"
     echo " - updating SPEAR repo"
     cd ${CONDA_PREFIX}/repo
-    git pull 
+    git pull
     cd ${BASE}
 
     # Update the env
@@ -62,14 +63,14 @@ elif [[ $COMMAND == "all" ]]; then
     conda config --set channel_priority strict
     # Update and remove old dependencies no longer in yml
     conda env update -n spear -q -f ${CONDA_PREFIX}/repo/environment.yml --prune
-        
-    # Download SnpEff and SnpSift                                                                                                                                                                                                                       
+
+    # Download SnpEff and SnpSift
     echo " - Downloading SnpEff and SnpSift"
     wget -q https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip -O ${CONDA_PREFIX}/snpEff_latest_core.zip
     unzip -q -o ${CONDA_PREFIX}/snpEff_latest_core.zip -d ${CONDA_PREFIX}
     rm ${CONDA_PREFIX}/snpEff_latest_core.zip
-    
-    # Detect OS                                                                                                                                                                                                                                         
+
+    # Detect OS
     if [[ ${OSTYPE} == "darwin"* ]]; then
 	OS="macOS"
     elif [[ ${OSTYPE} == "linux"* ]]; then
@@ -78,8 +79,8 @@ elif [[ $COMMAND == "all" ]]; then
 	echo "Unsupported OS: ${OSTYPE}"
 	exit 1
     fi
-    
-    # OS Dependent download                                                                                                                                                                                                                             
+
+    # OS Dependent download
     if [[ ${OS} = "linux" ]]; then
 	echo " - Downloading UCSC faToVcf"
 	wget -q http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/faToVcf -O ${CONDA_PREFIX}/bin/faToVcf
@@ -96,7 +97,7 @@ elif [[ $COMMAND == "all" ]]; then
 	chmod +x ${CONDA_PREFIX}/bin/vcfanno
     fi
 
-    # Download data from GitHub                                                                                                                                                                                                                         
+    # Download data from GitHub
     echo " - Downloading W-L/ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf"
     wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf
     bgzip -f ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
@@ -116,12 +117,12 @@ elif [[ $COMMAND == "all" ]]; then
     echo " - Reinstalling SPEAR"
     cp ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
     cp ${CONDA_PREFIX}/repo/scripts/* ${CONDA_PREFIX}/bin
-    chmod +x ${CONDA_PREFIX}/bin/update_spear.sh
+    chmod +x ${CONDA_PREFIX}/bin/*.sh
+    chmod +x ${CONDA_PREFIX}/bin/*.py
     cp ${CONDA_PREFIX}/repo/spear ${CONDA_PREFIX}/bin
     chmod +x ${CONDA_PREFIX}/bin/spear
 
-    # Test snpEff is working                                                                                                                                                    
+    # Test snpEff is working
     java -Xmx1g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 $CONDA_PREFIX/data/install_vcf.vcf > /dev/null
-    
-fi
 
+fi
