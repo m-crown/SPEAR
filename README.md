@@ -164,7 +164,7 @@ The next 12 columns of output are scores rather than annotations and are describ
 
 **WARNING: the scoring system is being actively developed and is likely to change in future updates.**
 
-SPEAR uses a number of different scores to evaluate the likely impact of viral genomes, these can be found at the residue level in the `.spear.annotation.tsv` files within `per_sample_annotation/` directory and also in the `spear_annotation_summary.tsv` file for all samples in the run.  Some scores operate at a per residue level, such that any variant will get the same score, while others are mutation specific, and some operate at a whole sample level. 
+SPEAR uses a number of different scores to evaluate the likely impact of viral genomes, these can be found at the residue level in the `.spear.annotation.tsv` files within `per_sample_annotation/` directory and also in the `spear_annotation_summary.tsv` file for all samples in the run.  Some scores operate at a per residue level, such that any variant will get the same score, while others are mutation specific (accounting for individual amino acid change), and some operate at a whole sample level. 
 
 | Column ID | Level | Description |
 | --------- | ----- | ----------- |
