@@ -7,6 +7,7 @@ from Bio import SeqIO
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
+warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #ignoring the performance warning  PerformanceWarning: your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types for spear_anno_file
 from itertools import takewhile
 import argparse
 import numpy as np
