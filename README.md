@@ -177,9 +177,9 @@ SPEAR uses a number of different scores to evaluate the likely impact of viral g
 | `mAb_escape_class_2` | mutation | As above, mean residue specific mAb escape score from class 2 mAbs only, only applied to residues in Barns class 2 epitope |
 | `mAb_escape_class_3` | mutation | As above, mean residue specific mAb escape score from class 3 mAbs only, only applied to residues in Barns class 3 epitope |
 | `mAb_escape_class_4` | mutation | As above, mean residue specific mAb escape score from class 4 mAbs only, only applied to residues in Barns class 4 epitope |
+| `BEC_RES` | residue | Bloom Escape Calculator Residue Escape Score, this residue specific number is generated from the full compliment of mutated residues in the sample using the tool described above |
 | `BEC_EF` | residue | Bloom Escape Calculator Escape factor, a fraction (0 to 1) of antibodies escaped by mutations at this residue, this residue specific number is generated using [`bindingcalculator.py`](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) from [`jbloomlab/SARS2_RBD_Ab_escape_maps`](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps) as described in Greaney _et al_.[13] |
-| `BEC_RES` | residue | Bloom Escape Calculator Residue Escape Score, this residue specific number is generated using the tool described above |
-
+| `BEC_sample_EF` | sample | Bloom Escape Calculator Escape factor as `BEC_EF` but calculated using the full compliment of changed residues in the whole sample, this score will be the same for every mutated residue in a sample | 
 
 These scores are also summarised in the `spear_score_summary.tsv` with totals in a row for each sample. Some columns summarise values for multiple entities here and are internally `,` delimited.
 
