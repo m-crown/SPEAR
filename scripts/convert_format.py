@@ -85,6 +85,7 @@ def main():
             final_vcf = vcf.copy()
             cols = ['residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bloom_ace2', 'VDS', 'serum_escape', 'mAb_escape', 'cm_mAb_escape', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
             final_vcf["SPEAR"] = final_vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
+            final_vcf["SUM"] = final_vcf[["Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues"]].apply(lambda row: '|'.join(row.values.astype(str)), axis =1)
             all_cols = final_vcf.columns.tolist()
             final_vcf.drop([col for col in all_cols if col not in original_cols], axis = 1, inplace = True)
             cols = [e for e in final_vcf.columns.to_list() if e not in ("SUM", "SPEAR")]
