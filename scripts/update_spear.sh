@@ -57,7 +57,7 @@ elif [[ $COMMAND == "all" ]]; then
     cd ${BASE}
 
     # Update the env
-    echo " - Updating up conda env"
+    echo " - Updating conda env"
     CONDA_PATH=$(conda list -n base | awk 'NR == 1' | grep -oP '/\S+[^:]')
     source ${CONDA_PATH}/etc/profile.d/conda.sh
     conda config --set channel_priority strict
