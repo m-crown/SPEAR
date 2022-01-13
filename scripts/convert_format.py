@@ -120,7 +120,7 @@ def main():
 
             #now getting summary scores 
             #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
-            summary_score_dataframe = per_sample_output.loc[(per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) | (per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False)]
+            summary_score_dataframe = per_sample_output.loc[((per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) & (per_sample_output["residues"].isin([""]) == False)) | ((per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False) & (per_sample_output["residues"].isin([""]) == False))]
             sample_residue_variant_number = len(summary_score_dataframe)
             type_string = df_counts_to_string(consequence_type_counts, dual = False)
             region_counts = summary_score_dataframe.loc[summary_score_dataframe["region"] != "" , ["Gene_Name", "region"]]
@@ -164,42 +164,42 @@ def main():
             if summary_score_dataframe["bloom_ace2"].isin([""]).all():
                 bloom_ace2_sum = ""
             else:
-                bloom_ace2_sum = summary_score_dataframe["bloom_ace2"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                bloom_ace2_sum = summary_score_dataframe["bloom_ace2"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
             
             if summary_score_dataframe["VDS"].isin([""]).all():
                 vds_sum = ""
             else:
-                vds_sum = summary_score_dataframe["VDS"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                vds_sum = summary_score_dataframe["VDS"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
 
             if summary_score_dataframe["serum_escape"].isin([""]).all():
                 serum_escape_sum = ""
             else:
-                serum_escape_sum = summary_score_dataframe["serum_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                serum_escape_sum = summary_score_dataframe["serum_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
             
             if summary_score_dataframe["mAb_escape"].isin([""]).all():
                 mab_escape_all_sum = ""
             else:
-                mab_escape_all_sum = summary_score_dataframe["mAb_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_all_sum = summary_score_dataframe["mAb_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
             
             if summary_score_dataframe["mAb_escape_class_1"].isin([""]).all():
                 mab_escape_class_1_sum = ""
             else:
-                mab_escape_class_1_sum = summary_score_dataframe["mAb_escape_class_1"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_1_sum = summary_score_dataframe["mAb_escape_class_1"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
             
             if summary_score_dataframe["mAb_escape_class_2"].isin([""]).all():
                 mab_escape_class_2_sum = ""
             else:
-                mab_escape_class_2_sum = summary_score_dataframe["mAb_escape_class_2"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_2_sum = summary_score_dataframe["mAb_escape_class_2"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
             
             if summary_score_dataframe["mAb_escape_class_3"].isin([""]).all():
                 mab_escape_class_3_sum = ""
             else:    
-                mab_escape_class_3_sum = summary_score_dataframe["mAb_escape_class_3"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_3_sum = summary_score_dataframe["mAb_escape_class_3"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
             
             if summary_score_dataframe["mAb_escape_class_4"].isin([""]).all():
                 mab_escape_class_4_sum = ""
             else:
-                mab_escape_class_4_sum = summary_score_dataframe["mAb_escape_class_4"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_4_sum = summary_score_dataframe["mAb_escape_class_4"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
 
             if summary_score_dataframe["BEC_EF_sample"].isin([""]).all():
                 bec_ef_sample_score = ""
@@ -208,7 +208,7 @@ def main():
             if summary_score_dataframe["BEC_RES"].isin([""]).all():
                 bec_res_score = ""
             else:
-                bec_res_score = summary_score_dataframe["BEC_RES"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                bec_res_score = summary_score_dataframe["BEC_RES"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
 
             scores_list = [sample_name,total_variants,sample_residue_variant_number, type_string, region_string, domain_string,ace2_contacts_sum, ace2_contacts_score, trimer_contacts_sum,trimer_contacts_score, barns_string,bloom_ace2_sum , vds_sum, serum_escape_sum, mab_escape_all_sum, mab_escape_class_1_sum, mab_escape_class_2_sum, mab_escape_class_3_sum, mab_escape_class_4_sum, bec_res_score, bec_ef_sample_score]
             scores_df = pd.DataFrame([scores_list], columns=scores_columns)
