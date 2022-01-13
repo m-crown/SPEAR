@@ -14,12 +14,20 @@ from bindingcalculator import BindingCalculator
 
 def main():
 
-    def df_counts_to_string(summary_df):
-        names = summary_df.index.to_list()
-        counts = summary_df.to_list()
-        list_items = [a + ":" + str(b) for a,b in zip(names,counts)]
-        string_items = ",".join(c for c in list_items)
-        return(string_items)
+    def df_counts_to_string(summary_df, dual = False):
+        if dual == False:
+            names = summary_df.index.to_list()
+            counts = summary_df.to_list()
+            list_items = [a + ":" + str(b) for a,b in zip(names,counts)]
+            string_items = ",".join(c for c in list_items)
+            return(string_items)
+        else:
+            names = summary_df.index.to_list()
+            names = [':'.join(sub_list) for sub_list in names]
+            counts = summary_df.to_list()
+            list_items = [a + ":" + str(b) for a,b in zip(names,counts)]
+            string_items = ",".join(c for c in list_items)
+            return(string_items)
 
     def get_contextual_bindingcalc_values(residues_list, respos, binding_calculator, option):
         res_ret_esc_df = binding_calculator.escape_per_site(residues_list)
@@ -114,11 +122,17 @@ def main():
             #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
             summary_score_dataframe = per_sample_output.loc[(per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) | (per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False)]
             sample_residue_variant_number = len(summary_score_dataframe)
-            type_string = df_counts_to_string(consequence_type_counts)
-            region_counts = summary_score_dataframe["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
-            region_string = df_counts_to_string(region_counts)
-            domain_counts = summary_score_dataframe["domain"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
-            domain_string = df_counts_to_string(domain_counts)
+            type_string = df_counts_to_string(consequence_type_counts, dual = False)
+            region_counts = summary_score_dataframe.loc[summary_score_dataframe["region"] != "" , ["Gene_Name", "region"]]
+            region_counts["region"] = region_counts["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)
+            region_counts = region_counts.value_counts(["Gene_Name", "region"])
+            region_string = df_counts_to_string(region_counts, True)
+
+            domain_counts = summary_score_dataframe.loc[summary_score_dataframe["domain"] != "", ["Gene_Name", "domain"]]
+            domain_counts["domain"] = domain_counts["domain"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)
+            domain_counts = domain_counts.value_counts(["Gene_Name", "domain"])
+            domain_string = df_counts_to_string(domain_counts, True)
+
             if summary_score_dataframe["contact_type"].isin([""]).all(): #if there are no contact types in SPEAR annotation
                 ace2_contacts_score = ""
                 trimer_contacts_score = ""
@@ -186,11 +200,7 @@ def main():
                 mab_escape_class_4_sum = ""
             else:
                 mab_escape_class_4_sum = summary_score_dataframe["mAb_escape_class_4"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
-            
-            if summary_score_dataframe["BEC_EF"].isin([""]).all():
-                bec_ef_score = ""
-            else:
-                bec_ef_score = summary_score_dataframe["BEC_EF"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+
             if summary_score_dataframe["BEC_EF_sample"].isin([""]).all():
                 bec_ef_sample_score = ""
             else:
