@@ -169,7 +169,7 @@ SPEAR uses a number of different scores to evaluate the likely impact of viral g
 | Column ID | Level | Description |
 | --------- | ----- | ----------- |
 | `bloom_ace2` | mutation | ACE2 binding value Δlog10(KD,app) relative to the wild-type, data from Starr _et al_.[3] |
-| `VSD` | mutation | Vibrational Difference Score (VDS), positive VDS values suggests mutation stabilises the open state of Spike and/or makes the closed state more flexible, favouring the open conformation relative to the WT. Negative values suggest mutation favours the closed state more than WT. Data from Teruel _et al_.[4] |
+| `VDS` | mutation | Vibrational Difference Score (VDS), positive VDS values suggests mutation stabilises the open state of Spike and/or makes the closed state more flexible, favouring the open conformation relative to the WT. Negative values suggest mutation favours the closed state more than WT. Data from Teruel _et al_.[4] |
 | `serum_escape` | mutation | Mean residue specific serum escape score from 7 individuals in Greaney _et al_.[5], larger values between indicate more escape |
 | `mAb_escape` | mutation | Mean residue specific mAb escape score from 26 mAbs data taken from Dong _et al_.[6], SARS-CoV-2-RBD\_MAP\_COV2-2955[7], Greaney _et al_.[8], Starr _et al_.[9], Starr _et al_.[10], Starr _et al_.[11] Tortorici _et al_.[12]|
 | `cm_mAb_escape` | mutation | As above, but calculated in a Barns class mask specific way such that the mean is taken only from Barns class mAbs that correspond to class of residue with mutation |
