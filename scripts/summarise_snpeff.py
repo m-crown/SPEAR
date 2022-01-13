@@ -88,9 +88,9 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, respos_df):
   vcf["ins_length"] = vcf['ins'].str.len().fillna(0).astype('int')
 
   #Because multiple substitutions is incorrectly handled range_df wont necessarily expand to correct size, so need to set the minimum size of the dataframe to be the size of these multiple insertions, then expand to del/delins
-  maxmultiaa = vcf.loc[vcf.variant.str.contains(r'p\.[A-Z]+[0-9]+[A-Z\*]{2,}') == True, "variant"].str.extract(r'p\.[A-Z]+[0-9]+([A-Z\*]{2,})', expand = False).str.len().max().astype("int")
+  maxmultiaa = vcf.loc[vcf.variant.str.contains(r'p\.[A-Z]+[0-9]+[A-Z\*]{2,}') == True, "variant"].str.extract(r'p\.[A-Z]+[0-9]+([A-Z\*]{2,})', expand = False).str.len().max()
   range_df= pd.DataFrame(list(range(i, j+1)) for i, j in vcf[["start_pos", "end_pos"]].values)
-  additional_cols = [x for x in list(range(0, maxmultiaa)) if x not in range_df.columns.tolist()]
+  additional_cols = [x for x in list(range(0, int(maxmultiaa))) if x not in range_df.columns.tolist()]
   range_df[additional_cols] = np.nan
   range_df = range_df.add_prefix("respos_")
   
