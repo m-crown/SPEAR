@@ -47,7 +47,7 @@ def main():
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerow(sample_summary_cols)
     
-    scores_columns = ["sample_id","total_variants","total_residue_variants", "consequence_type_variants", "region_variants", "domain_variants", "ACE2_contact_counts","ACE2_contact_score","trimer_contact_counts", "trimer_contact_score", "barns_class_variants", "bloom_ACE2" , "VDS", "serum_escape", "mAb_escape_all_classes", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample"]
+    scores_columns = ["sample_id","total_variants","total_residue_variants", "consequence_type_variants", "region_residues", "domain_residues", "ACE2_contact_counts","ACE2_contact_score","trimer_contact_counts", "trimer_contact_score", "barns_class_variants", "bloom_ACE2" , "VDS", "serum_escape", "mAb_escape_all_classes", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES", "BEC_EF_sample"]
     with open(f'{args.output_dir}/spear_score_summary.tsv', 'w') as f_output:
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerow(scores_columns)
@@ -60,6 +60,7 @@ def main():
         if len(vcf) != 0: #do not add summary if the vcf file is empty (but the empty file has to be created so need to handle).
             #need to have two things happen here, for intergenics need to produce an output with the SUM field, for non intergenics summary output is going to come from SPEAR (or from both?) 
             vcf = vcf.loc[vcf["ANN"] != "no_annotation"]
+            #need to store the no_anns here and then add them on and sort the vcf after new binding calc score is added to final vcf
             total_variants = len(vcf)
             vcf["SUM"] = vcf["SUM"].str.split(",", expand = False) #split SUM field where multiple annotations remain (NSP11 RDRP overlap)
             vcf = vcf.explode("SUM") #explode on this list of SUM values
@@ -109,20 +110,22 @@ def main():
             per_sample_output.to_csv(f'{args.output_dir}/per_sample_annotation/{sample_name}.spear.annotation.summary.tsv', sep = '\t', header = True, index = False)
             per_sample_output.to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = '\t', mode='a', header=False, index = False)
 
-            #now getting summary scores
-            sample_residue_variant_number = len(per_sample_output)
+            #now getting summary scores 
+            #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
+            summary_score_dataframe = per_sample_output.loc[(per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) | (per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False)]
+            sample_residue_variant_number = len(summary_score_dataframe)
             type_string = df_counts_to_string(consequence_type_counts)
-            region_counts = per_sample_output["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
+            region_counts = summary_score_dataframe["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
             region_string = df_counts_to_string(region_counts)
-            domain_counts = per_sample_output["domain"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
+            domain_counts = summary_score_dataframe["domain"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
             domain_string = df_counts_to_string(domain_counts)
-            if per_sample_output["contact_type"].isin([""]).all(): #if there are no contact types in SPEAR annotation
+            if summary_score_dataframe["contact_type"].isin([""]).all(): #if there are no contact types in SPEAR annotation
                 ace2_contacts_score = ""
                 trimer_contacts_score = ""
                 ace2_contacts_sum = ""
                 trimer_contacts_sum = ""
             else:
-                contacts_df = per_sample_output["contact_type"].str.split(" ").explode().replace("", np.nan).str.split(":", expand = True).reset_index(drop = True)
+                contacts_df = summary_score_dataframe["contact_type"].str.split(" ").explode().replace("", np.nan).str.split(":", expand = True).reset_index(drop = True)
                 contacts_df.rename(columns={0: "contact", 1: "contact_type"}, inplace = True)
                 contacts_df["contact_type"] = contacts_df["contact_type"].str.split("+")
                 contacts_df = contacts_df.explode(["contact_type"])
@@ -135,69 +138,69 @@ def main():
                 ace2_contacts_sum = contacts_counts.loc[contacts_scores.index=="ACE2", "contact_type"].values[0] if len(contacts_counts.loc[contacts_scores.index=="ACE2", "contact_type"].values) == 1 else ""
                 trimer_contacts_sum = contacts_counts.loc[contacts_scores.index=="trimer", "contact_type"].values[0] if len(contacts_counts.loc[contacts_scores.index=="trimer", "contact_type"].values) == 1 else ""
             
-            if per_sample_output["barns_class"].isin([""]).all():
+            if summary_score_dataframe["barns_class"].isin([""]).all():
                 barns_string = ""
             else:
-                barns_counts = per_sample_output["barns_class"].explode(",").str.split("+").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
+                barns_counts = summary_score_dataframe["barns_class"].explode(",").str.split("+").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
                 barns_counts.index = "class_" + barns_counts.index
                 barns_string = df_counts_to_string(barns_counts)
             
             #rethink this part at some point
 
-            if per_sample_output["bloom_ace2"].isin([""]).all():
+            if summary_score_dataframe["bloom_ace2"].isin([""]).all():
                 bloom_ace2_sum = ""
             else:
-                bloom_ace2_sum = per_sample_output["bloom_ace2"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                bloom_ace2_sum = summary_score_dataframe["bloom_ace2"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
             
-            if per_sample_output["VDS"].isin([""]).all():
+            if summary_score_dataframe["VDS"].isin([""]).all():
                 vds_sum = ""
             else:
-                vds_sum = per_sample_output["VDS"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                vds_sum = summary_score_dataframe["VDS"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
 
-            if per_sample_output["serum_escape"].isin([""]).all():
+            if summary_score_dataframe["serum_escape"].isin([""]).all():
                 serum_escape_sum = ""
             else:
-                serum_escape_sum = per_sample_output["serum_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                serum_escape_sum = summary_score_dataframe["serum_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
             
-            if per_sample_output["mAb_escape"].isin([""]).all():
+            if summary_score_dataframe["mAb_escape"].isin([""]).all():
                 mab_escape_all_sum = ""
             else:
-                mab_escape_all_sum = per_sample_output["mAb_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_all_sum = summary_score_dataframe["mAb_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
             
-            if per_sample_output["mAb_escape_class_1"].isin([""]).all():
+            if summary_score_dataframe["mAb_escape_class_1"].isin([""]).all():
                 mab_escape_class_1_sum = ""
             else:
-                mab_escape_class_1_sum = per_sample_output["mAb_escape_class_1"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_1_sum = summary_score_dataframe["mAb_escape_class_1"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
             
-            if per_sample_output["mAb_escape_class_2"].isin([""]).all():
+            if summary_score_dataframe["mAb_escape_class_2"].isin([""]).all():
                 mab_escape_class_2_sum = ""
             else:
-                mab_escape_class_2_sum = per_sample_output["mAb_escape_class_2"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_2_sum = summary_score_dataframe["mAb_escape_class_2"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
             
-            if per_sample_output["mAb_escape_class_3"].isin([""]).all():
+            if summary_score_dataframe["mAb_escape_class_3"].isin([""]).all():
                 mab_escape_class_3_sum = ""
             else:    
-                mab_escape_class_3_sum = per_sample_output["mAb_escape_class_3"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_3_sum = summary_score_dataframe["mAb_escape_class_3"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
             
-            if per_sample_output["mAb_escape_class_4"].isin([""]).all():
+            if summary_score_dataframe["mAb_escape_class_4"].isin([""]).all():
                 mab_escape_class_4_sum = ""
             else:
-                mab_escape_class_4_sum = per_sample_output["mAb_escape_class_4"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_4_sum = summary_score_dataframe["mAb_escape_class_4"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
             
-            if per_sample_output["BEC_EF"].isin([""]).all():
+            if summary_score_dataframe["BEC_EF"].isin([""]).all():
                 bec_ef_score = ""
             else:
-                bec_ef_score = per_sample_output["BEC_EF"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
-            if per_sample_output["BEC_EF_sample"].isin([""]).all():
+                bec_ef_score = summary_score_dataframe["BEC_EF"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+            if summary_score_dataframe["BEC_EF_sample"].isin([""]).all():
                 bec_ef_sample_score = ""
             else:
-                bec_ef_sample_score = per_sample_output["BEC_EF_sample"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
-            if per_sample_output["BEC_RES"].isin([""]).all():
+                bec_ef_sample_score = summary_score_dataframe["BEC_EF_sample"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+            if summary_score_dataframe["BEC_RES"].isin([""]).all():
                 bec_res_score = ""
             else:
-                bec_res_score = per_sample_output["BEC_RES"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                bec_res_score = summary_score_dataframe["BEC_RES"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
 
-            scores_list = [sample_name,total_variants,sample_residue_variant_number, type_string, region_string, domain_string,ace2_contacts_sum, ace2_contacts_score, trimer_contacts_sum,trimer_contacts_score, barns_string,bloom_ace2_sum , vds_sum, serum_escape_sum, mab_escape_all_sum, mab_escape_class_1_sum, mab_escape_class_2_sum, mab_escape_class_3_sum, mab_escape_class_4_sum, bec_res_score, bec_ef_score, bec_ef_sample_score]
+            scores_list = [sample_name,total_variants,sample_residue_variant_number, type_string, region_string, domain_string,ace2_contacts_sum, ace2_contacts_score, trimer_contacts_sum,trimer_contacts_score, barns_string,bloom_ace2_sum , vds_sum, serum_escape_sum, mab_escape_all_sum, mab_escape_class_1_sum, mab_escape_class_2_sum, mab_escape_class_3_sum, mab_escape_class_4_sum, bec_res_score, bec_ef_sample_score]
             scores_df = pd.DataFrame([scores_list], columns=scores_columns)
             scores_df.to_csv(f'{args.output_dir}/spear_score_summary.tsv', sep = '\t', mode='a', header=False, index = False)
 
