@@ -24,6 +24,8 @@ def main():
         help="Verbose snakemake execution")
     consensus.add_argument('--dag', default=False, action='store_true',
         help = "Display DAG and exit")
+    consensus.add_argument('--no-report', default=False, action='store_true',
+        help = "Do not produce HTML report")
     consensus.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")  
     consensus.add_argument('--extension', metavar = '', type = str,
@@ -46,7 +48,9 @@ def main():
     alignment.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
     alignment.add_argument('--dag', default=False, action='store_true',
-        help = "Display DAG and exit")  
+        help = "Display DAG and exit")
+    alignment.add_argument('--no-report', default=False, action='store_true',
+        help = "Do not produce HTML report")     
     alignment.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")        
     alignment.add_argument('--extension', metavar = '', type = str,
@@ -73,7 +77,9 @@ def main():
     vcf.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")        
     vcf.add_argument('--dag', default=False, action='store_true',
-        help = "Display DAG and exit")        
+        help = "Display DAG and exit")
+    vcf.add_argument('--no-report', default=False, action='store_true',
+        help = "Do not produce HTML report")         
     vcf.add_argument('--mask-problem-sites', metavar = 'AB AM HA', nargs='+', 
         help = "Filter problematic sides with these codes [AB AM HA HH HO IC NA NS NL SS AD BR all]") 
     vcf.add_argument('--threads' , metavar='', type = int, default = 1,
@@ -390,6 +396,11 @@ def main():
             snakefile = f'{SPEAR_PATH}/bin/spear_single.smk'
         else:
             snakefile = f'{SPEAR_PATH}/bin/spear_multi.smk'
+        if args.no_report == True:
+            report = False
+        else:
+            report = True
+
 
         config = {
             "input_dir" : indir,
@@ -405,7 +416,8 @@ def main():
             "extension" : extension,
             "vcf" : vcf_in,
             "single_sample" : single_sample,
-            "allow_ambiguous" : allow_ambiguous}
+            "allow_ambiguous" : allow_ambiguous,
+            "report": report}
 
         status = snakemake.snakemake(
                     snakefile, 

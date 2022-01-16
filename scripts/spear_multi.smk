@@ -1,6 +1,22 @@
-rule all:
-   input: 
-      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
+if config["report"] == False:
+   rule all:
+      input: 
+         expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
+else:
+   rule all:
+      input:
+         samples = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
+         report = config["output_dir"] + "/report/report.html"
+
+rule produce_report:
+   input:
+      summary = config["output_dir"] + "/spear_score_summary.tsv",
+      all_samples = config["output_dir"] + "/spear_annotation_summary.tsv"
+   output:
+      config["output_dir"] + "/report/report.html"
+   log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
+   shell:
+      """report.py {input.summary} {input.all_samples} {output} 2> {log}"""
 
 rule summarise_vcfs:
    input:
@@ -22,7 +38,7 @@ rule split_vcfs:
       bcftools view -Ov -c 1 -s {wildcards.id} -o {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf {input} 2> {log}
       """
 
-rule spear:
+rule spear_annotate:
    input:
       config["output_dir"] + "/intermediate_output/snpeff/merged.ann.vcf"
    output:
@@ -31,7 +47,7 @@ rule spear:
    shell:
       "summarise_snpeff.py {output} {input} {config[data_dir]} ; spear_annotate.py {output} {output} {config[data_dir]} 2> {log}"
 
-rule snpeff:
+rule annotate_variants:
    input:
       config["output_dir"] + "/intermediate_output/merged.vcf" if config["filter"] else config["output_dir"] + "/intermediate_output/merged.vcf"
    output:
@@ -101,7 +117,7 @@ rule get_snps:
       "faToVcf {config[exclude_ambiguous]} {input} {output.snps} ; update_vcf_header.sh {output.snps} 2> {log}"
 
 if config["align"]:
-   rule muscle_alignment:
+   rule align:
       input:
          config["input_dir"] + "/{id}" + config["extension"]
       output: 
