@@ -10,7 +10,8 @@ import numpy as np
 from shutil import copyfile
 from numpy.random import seed
 from numpy.random import uniform
-import random
+
+
 
 #need to pip install -U kaleido
 
@@ -219,67 +220,52 @@ def main():
         'ORF10 protein': "magenta"}
     merged_occurences = pd.merge(occurences, respos_df, left_on = ["description", "respos"], right_on = ["product", "residue-position"], how = "left")
     prods_in_samples = [x for x in products if x in merged_occurences["product"].unique()]
+
     axis_products = {val:prods_in_samples.index(val) for val in prods_in_samples}
-    #print(axis_products)
     merged_occurences['axis_pos'] = merged_occurences['product'].map(axis_products)
     merged_orf_occurences = merged_occurences.loc[merged_occurences["residue"].isna() == False]
-    #print(merged_occurences)
-    #print(respos_df.loc[respos_df['product'] == "nsp2", "position"].max())
+    merged_orf_occurences["product"] = merged_orf_occurences["product"].astype("category")
+    merged_orf_occurences["product"] = merged_orf_occurences["product"].cat.set_categories(products)
+    merged_orf_occurences = merged_orf_occurences.sort_values(["product", "respos"])
     shapes_to_plot = merged_occurences[["product", "axis_pos"]].groupby(["product", "axis_pos"]).size().reset_index()
     shapes_to_plot["min_pos"] = shapes_to_plot["product"].apply(lambda x: respos_df.loc[respos_df['product'] == x, "position"].min())
     shapes_to_plot["max_pos"] = shapes_to_plot["product"].apply(lambda x: respos_df.loc[respos_df['product'] == x, "position"].max())
     shapes_to_plot["axis_pos"] = 0
     seed(42069)
-    prod_res_pos = {}
     positive = True
     for prod in prods_in_samples:
         if prod in orf1ab:
             if positive:
-                numbers = uniform(low = 1 , high = 5 , size = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod]))
+                merged_orf_occurences.loc[merged_orf_occurences["product"] == prod, "axis_pos"] = np.linspace(start = 5, stop = 1, num = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod]))
+                merged_orf_occurences.loc[merged_orf_occurences["product"] == prod, "textpos"] = "top center"
                 positive = False
             else:
-                numbers = uniform(low = -5 , high = -1  , size = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod]))
+                merged_orf_occurences.loc[merged_orf_occurences["product"] == prod, "axis_pos"] = np.linspace(start = -5, stop = -1, num = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod]))
+                merged_orf_occurences.loc[merged_orf_occurences["product"] == prod, "textpos"] = "bottom center"
                 positive = True
-        elif prod in structural:
-            if positive:
-                numbers = uniform(low = 3.5, high = 8.5 , size = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod]))
-                positive = False
-            else:
-                numbers = uniform(low = -3.5 , high = 1.5  , size = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod]))
-                positive = True
-        elif prod in accessory:
-            if positive:
-                numbers = uniform(low = -1.5, high = 3.5 , size = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod]))
-                positive = False
-            else:
-                numbers = uniform(low = -8.5 , high = -3.5  , size = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod]))
-                positive = True
-        else:
-            numbers = uniform(low = 10 , high = 15 , size = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == prod])) #shouldnt ever be active, here to make these points obvious if they are around
-        prod_res_pos[prod] = numbers
-        merged_orf_occurences.loc[merged_orf_occurences["product"] == prod, "axis_pos"] = numbers
-
-    #print(shapes_to_plot)
+    #rest are direct
+    merged_orf_occurences.loc[merged_orf_occurences["product"] == "surface glycoprotein", "axis_pos"] = np.linspace(start = 10.5, stop = 5.5, num = len(merged_orf_occurences.loc[merged_orf_occurences["product"] == "surface glycoprotein"]))
+    merged_orf_occurences.loc[merged_orf_occurences["product"] == "surface glycoprotein", "textpos"] = "top center"
+    merged_orf_occurences.loc[merged_orf_occurences["product"].isin([x for x in structural if x != "surface glycoprotein"]), "axis_pos"] = np.linspace(start = 10.5, stop = 5.5, num = len(merged_orf_occurences.loc[merged_orf_occurences["product"].isin([x for x in structural if x != "surface glycoprotein"])]))
+    merged_orf_occurences.loc[merged_orf_occurences["product"].isin([x for x in structural if x != "surface glycoprotein"]), "textpos"] = "top center"
+    merged_orf_occurences.loc[merged_orf_occurences["product"].isin(accessory), "axis_pos"] = np.linspace(start = -5, stop = -10, num = len(merged_orf_occurences.loc[merged_orf_occurences["product"].isin(accessory)]))
+    merged_orf_occurences.loc[merged_orf_occurences["product"].isin(accessory), "textpos"] = "bottom center"
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=merged_orf_occurences["position"], y=merged_orf_occurences["axis_pos"], text = merged_orf_occurences["residues"],textposition="top center", mode = "markers+text"))
+    fig.add_trace(go.Scatter(x=merged_orf_occurences["position"], y=merged_orf_occurences["axis_pos"], text = merged_orf_occurences["residues"],mode = "markers+text", textposition= merged_orf_occurences["textpos"]))
     fig.update_traces(
         marker={
             "size" : 12,
             "line" : {"width" : 2 , "color": 'DarkSlateGrey'}},
         selector=dict(mode='markers+text'))
-    fig.update_layout(title_text='WHAT SHOULD THIS TITLE BE ? ', title_x=0.5, paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',xaxis=dict(showgrid=False, showline = False),yaxis=dict(showgrid=False, showline = False))
-    def add_orf_shape(fig, x_min_pos, x_max_pos, product, orf1ab, structural, accessory,product_colours):
-        print(product)
-        print(x_max_pos)
-        print(orf1ab)
-        print(structural)
-        print(accessory)
+    fig.update_layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',xaxis=dict(showgrid=False, showline = False, zeroline = False),yaxis=dict(showgrid=False, showline = False, zeroline = False)) #title_text='WHAT SHOULD THIS TITLE BE ? ', title_x=0.5, 
+    def add_orf_shape(x_min_pos, x_max_pos, product, orf1ab, structural, accessory,product_colours):
+        shapes = []
         if product in orf1ab:
             y_start = 0
         elif product in structural:
-            y_start = 2
+            y_start = 4
         elif product in accessory:
-            y_start = -2
+            y_start = -4
         else:
             y_start = 10 #shouldnt ever be set but just in case it makes it obvious
         x0 = x_min_pos
@@ -294,24 +280,25 @@ def main():
         rounded_bottom_right = f' L {x1}, {y0+h_y} Q {x1}, {y0} {x1-h_x}, {y0}Z'
         path = rounded_bottom_left + rounded_top_left+\
                 rounded_top_right+rounded_bottom_right
-        fig.add_shape(
+        shape = dict(
             path=path,
             fillcolor= product_colours[product],
             layer='above', 
             line=dict(color='rgba(128, 0, 128, 0.7)', width=0.5))
+        return shape
+    #draw orf boxes from the respos_df using min and max of each group of groubpy product
+    orf_boxes = shapes_to_plot.apply(lambda x: add_orf_shape(x.min_pos, x.max_pos, x["product"], orf1ab, structural, accessory, product_colours), axis =1).values.tolist()
 
-    shapes_to_plot.apply(lambda x: add_orf_shape(fig, x.min_pos, x.max_pos, x["product"], orf1ab, structural, accessory, product_colours), axis =1)
-
-    def add_mutation_line(fig, x_pos, y_pos, prod, orf1ab, structural, accessory):
+    def add_mutation_line(x_pos, y_pos, prod, orf1ab, structural, accessory):
         if prod in orf1ab:
             y = 0
         elif prod in structural:
-            y = 2
+            y = 4
         elif prod in accessory:
-            y = -2
+            y = -4
         else:
             y = 10 #shouldnt ever be set but just in case it makes it obvious
-        fig.add_shape(
+        shape = dict(
             type="line",
             x0=x_pos, y0=y, x1=x_pos, y1=y_pos,
             line=dict(
@@ -320,16 +307,11 @@ def main():
                 ),
             layer='below'
             )
-    print(merged_orf_occurences)
-    merged_orf_occurences.apply(lambda x: add_mutation_line(fig, x.position, x.axis_pos, x["product"], orf1ab, structural, accessory),axis = 1)
-
-
-    print(shapes_to_plot)
-    print(len(products))
-    print(len(orf1ab))
-    print(len(structural))
-    print(len(accessory))
-
+        return shape
+    
+    lines = merged_orf_occurences.apply(lambda x: add_mutation_line(x.position, x.axis_pos, x["product"], orf1ab, structural, accessory),axis = 1).values.tolist()
+    combo = orf_boxes + lines
+    fig.update_layout(shapes = combo)
     # Add dropdown
     fig.update_layout(
         updatemenus=[
@@ -344,54 +326,53 @@ def main():
                         label="Hide text",
                         method="restyle"
                     ),
+                    dict(
+                        args=["mode", "text"],
+                        label="Text only",
+                        method="restyle"
+                    ),
                 ]),
+                active = 0,
                 direction="down",
                 pad={"r": 10, "t": 10},
                 showactive=True,
                 x=0.1,
                 xanchor="left",
-                y=1.1,
+                y=1.08,
+                yanchor="top"
+            ),
+            dict(
+                buttons=list([
+                    dict(
+                        args=[{"shapes" : combo}],
+                        label="Show shapes",
+                        method="relayout"),
+                    dict(
+                        args=[{"shapes" : orf_boxes}],
+                        label="Hide shapes",
+                        method="relayout"),
+                ]),
+                active = 0,
+                direction="down",
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=0.2,
+                xanchor="left",
+                y=1.08,
                 yanchor="top"
             ),
         ]
     )
 
-    # Add annotation
-    fig.update_layout(
-        annotations=[
-            dict(text="Show/Hide Text Labels:", showarrow=False,
-            x=0, y=1.085, yref="paper", align="left")
-        ]
-    )
+    #fig.show()
+    mutation_plot_html = offline.plot(fig, output_type = 'div', include_plotlyjs=False ,config = {'displaylogo': False})
 
-    fig.show()
-
-    # could use something like this to restyle the shapes and rescale the axis in one go ? i.e. have an all plot and then rescale axis based on selection. 
-    # fig.update_layout(
-    # updatemenus=[
-    #     dict(
-    #         type="buttons",
-    #         buttons=[
-    #             dict(label="None",
-    #                     method="relayout",
-    #                     args=["shapes", []]),
-    #             dict(label="Cluster 0",
-    #                     method="relayout",
-    #                     args=["shapes", cluster0]),
-    #             dict(label="Cluster 1",
-    #                     method="relayout",
-    #                     args=["shapes", cluster1]),
-    #             dict(label="Cluster 2",
-    #                     method="relayout",
-    #                     args=["shapes", cluster2]),
-    #             dict(label="All",
-    #                     method="relayout",
-    #                     args=["shapes", cluster0 + cluster1 + cluster2])
-    #         ],
-    #     )
-    # ]
-    # )
-
+    #going to make a line set for each sample: ORF positions and points can be dynamically controlled.
+    #can have a line set for all and set data according to this. 
+    print(merged_orf_occurences.loc[merged_orf_occurences["respos"] == 1033])
+    print(merged_occurences[["respos", "residue"]].groupby("respos").count())
+    #can do a cluttered plot at top (or near top of page for all samples) that just has a warning that for lots of samples it is very cluttered and to refer to the table of sample plot links. Or when single sample have a report with everything at top, when multi have a table and lots of plots. 
+    
 
     #fig.write_image(f'{args.experiment}.png')
     #fig.update_traces(marker=dict(size=12,
@@ -424,7 +405,7 @@ def main():
                     </a>
                 </div>
             </nav>
-            <div class="container">
+            <div class="container-fluid">
                 <div class="row">
                     <h2>Section 1: Variant and residue counts</h2>
                 </div>
@@ -461,6 +442,11 @@ def main():
                 <div class = "row">
                     <div class = "col-12">
                         <p>Plot of scores, use dropdown menu to view individual scores for all samples.</p>
+                    </div>
+                </div>
+                <div class = "row">
+                    <div class = "col-12 h-100">
+                        ''' + mutation_plot_html + '''
                     </div>
                 </div>
             </div> 
