@@ -198,6 +198,15 @@ def main():
                 mab_escape_all_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["mAb_escape"].replace("", np.nan).astype(float).max())])
                 mab_escape_all_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["mAb_escape"].replace("", np.nan).astype(float).min())])
             
+            if summary_score_dataframe["cm_mAb_escape"].isin([""]).all():
+                mab_escape_all_sum = ""
+                mab_escape_all_max = ""
+                mab_escape_all_min = ""
+            else:
+                mab_escape_all_sum = summary_score_dataframe["cm_mAb_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                mab_escape_all_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["cm_mAb_escape"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["cm_mAb_escape"].replace("", np.nan).astype(float).max())])
+                mab_escape_all_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["cm_mAb_escape"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["cm_mAb_escape"].replace("", np.nan).astype(float).min())])
+            
             if summary_score_dataframe["mAb_escape_class_1"].isin([""]).all():
                 mab_escape_class_1_sum = ""
                 mab_escape_class_1_max = ""
