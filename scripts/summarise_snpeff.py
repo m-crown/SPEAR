@@ -22,7 +22,11 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, respos_df):
     return summaries
 
   def get_ref_res(refres_info, respos, gene):
-    if respos == respos:
+    if respos != respos:
+      return np.nan
+    elif int(respos) not in refres_info.index:
+      return np.nan
+    elif respos == respos:
         return(refres_info.loc[refres_info.index == int(respos), gene].values[0])
     else:
         return np.nan
@@ -38,8 +42,8 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, respos_df):
             alt_res = "del" 
         else:
             alt_res = ""
-    elif re.match('p\.[A-Z]+[0-9]+[A-Z\*]+|fs', variant):
-        alt_residues = re.match('p\.[A-Z]+[0-9]+([A-Z\*]+|fs)', variant)[1]
+    elif re.match('p\.[A-Z]+[0-9]+[A-Z\?\*]+|fs', variant):
+        alt_residues = re.match('p\.[A-Z]+[0-9]+([A-Z\?\*]+|fs)', variant)[1]
         if alt_residues != "fs":
             alt_res_list = [res for res in alt_residues]
         else:
@@ -50,8 +54,8 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, respos_df):
         except:
             alt_res = ""           
     elif re.match('p\.[A-Z][0-9]+_[A-Z][0-9]+delins[A-Z\*]+?',variant):
-        max_res = int(re.match('p\.[A-Z][0-9]+_[A-Z]([0-9]+)delins[A-Z\*]+', variant)[1])
-        alt_residues = re.match('p\.[A-Z][0-9]+_[A-Z][0-9]+delins([A-Z\*]+)', variant)[1]
+        max_res = int(re.match('p\.[A-Z][0-9]+_[A-Z]([0-9]+)delins[A-Z\?\*]+', variant)[1])
+        alt_residues = re.match('p\.[A-Z][0-9]+_[A-Z][0-9]+delins([A-Z\?\*]+)', variant)[1]
         alt_res_list = [res for res in alt_residues]
         if respos <= max_res:
             try:
@@ -82,13 +86,13 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, respos_df):
 
   #convert HGVS annotation to per residue for residue annotation. 
   #handle deletions and insertions residues first
-  vcf[["start_res", "start_pos", "end_res", "end_pos", "change", "ins"]] = vcf["variant"].str.extract('([A-Z])([0-9]+)_*([A-Z])?([0-9]+)?([a-z]+)([A-Z]+)?')
+  vcf[["start_res", "start_pos", "end_res", "end_pos", "change", "ins"]] = vcf["variant"].str.extract('([A-Z])([0-9]+)_*([A-Z\*\?])?([0-9]+)?([a-z]+)?([A-Z\*\?]+)?')
   vcf["end_pos"] = vcf["end_pos"].fillna(vcf["start_pos"])
   vcf[["start_pos", "end_pos"]] = vcf[["start_pos", "end_pos"]].fillna(0).astype("int")
   vcf["ins_length"] = vcf['ins'].str.len().fillna(0).astype('int')
 
   #Because multiple substitutions is incorrectly handled range_df wont necessarily expand to correct size, so need to set the minimum size of the dataframe to be the size of these multiple insertions, then expand to del/delins
-  maxmultiaa = vcf.loc[vcf.variant.str.contains(r'p\.[A-Z]+[0-9]+[A-Z\*]{2,}') == True, "variant"].str.extract(r'p\.[A-Z]+[0-9]+([A-Z\*]{2,})', expand = False).str.len().max()
+  maxmultiaa = vcf.loc[vcf.variant.str.contains(r'p\.[A-Z]+[0-9]+[A-Z\?\*]{2,}') == True, "variant"].str.extract(r'p\.[A-Z]+[0-9]+([A-Z\?\*]{2,})', expand = False).str.len().max()
   maxmultiaa = max(1, maxmultiaa)
   range_df= pd.DataFrame(list(range(i, j+1)) for i, j in vcf[["start_pos", "end_pos"]].values)
   additional_cols = [x for x in list(range(0, int(maxmultiaa))) if x not in range_df.columns.tolist()]
@@ -117,7 +121,7 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, respos_df):
   residue_col_list = list(range(1, range_df.shape[1] - 2, 4))
 
   range_df.loc[range_df.variant.str.contains(r'p\.[A-Z]+[0-9]+[A-Z\*]+') == True, "respos_0"] = range_df.loc[range_df.variant.str.contains(r'p\.[A-Z]+[0-9]+[A-Z\*]+') == True, "variant"].str.extract(r'p\.[A-Z]+([0-9]+)[A-Z\*]+')[0]
-  
+  range_df["variant"] = range_df["variant"].fillna("")
   for x in range(1,len(residue_col_list)):
       range_df.iloc[:, residue_col_list[x]] = range_df.iloc[:, residue_col_list[x-1]].fillna(-2).astype(int) + 1
 
