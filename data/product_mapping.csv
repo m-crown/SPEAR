@@ -1,184 +1,184 @@
 ﻿organism,product,residue,residue-position,position,size
-SARS-CoV-2,leader,M,1,1,1
-SARS-CoV-2,leader,E,2,2,1
-SARS-CoV-2,leader,S,3,3,1
-SARS-CoV-2,leader,L,4,4,1
-SARS-CoV-2,leader,V,5,5,1
-SARS-CoV-2,leader,P,6,6,1
-SARS-CoV-2,leader,G,7,7,1
-SARS-CoV-2,leader,F,8,8,1
-SARS-CoV-2,leader,N,9,9,1
-SARS-CoV-2,leader,E,10,10,1
-SARS-CoV-2,leader,K,11,11,1
-SARS-CoV-2,leader,T,12,12,1
-SARS-CoV-2,leader,H,13,13,1
-SARS-CoV-2,leader,V,14,14,1
-SARS-CoV-2,leader,Q,15,15,1
-SARS-CoV-2,leader,L,16,16,1
-SARS-CoV-2,leader,S,17,17,1
-SARS-CoV-2,leader,L,18,18,1
-SARS-CoV-2,leader,P,19,19,1
-SARS-CoV-2,leader,V,20,20,1
-SARS-CoV-2,leader,L,21,21,1
-SARS-CoV-2,leader,Q,22,22,1
-SARS-CoV-2,leader,V,23,23,1
-SARS-CoV-2,leader,R,24,24,1
-SARS-CoV-2,leader,D,25,25,1
-SARS-CoV-2,leader,V,26,26,1
-SARS-CoV-2,leader,L,27,27,1
-SARS-CoV-2,leader,V,28,28,1
-SARS-CoV-2,leader,R,29,29,1
-SARS-CoV-2,leader,G,30,30,1
-SARS-CoV-2,leader,F,31,31,1
-SARS-CoV-2,leader,G,32,32,1
-SARS-CoV-2,leader,D,33,33,1
-SARS-CoV-2,leader,S,34,34,1
-SARS-CoV-2,leader,V,35,35,1
-SARS-CoV-2,leader,E,36,36,1
-SARS-CoV-2,leader,E,37,37,1
-SARS-CoV-2,leader,V,38,38,1
-SARS-CoV-2,leader,L,39,39,1
-SARS-CoV-2,leader,S,40,40,1
-SARS-CoV-2,leader,E,41,41,1
-SARS-CoV-2,leader,A,42,42,1
-SARS-CoV-2,leader,R,43,43,1
-SARS-CoV-2,leader,Q,44,44,1
-SARS-CoV-2,leader,H,45,45,1
-SARS-CoV-2,leader,L,46,46,1
-SARS-CoV-2,leader,K,47,47,1
-SARS-CoV-2,leader,D,48,48,1
-SARS-CoV-2,leader,G,49,49,1
-SARS-CoV-2,leader,T,50,50,1
-SARS-CoV-2,leader,C,51,51,1
-SARS-CoV-2,leader,G,52,52,1
-SARS-CoV-2,leader,L,53,53,1
-SARS-CoV-2,leader,V,54,54,1
-SARS-CoV-2,leader,E,55,55,1
-SARS-CoV-2,leader,V,56,56,1
-SARS-CoV-2,leader,E,57,57,1
-SARS-CoV-2,leader,K,58,58,1
-SARS-CoV-2,leader,G,59,59,1
-SARS-CoV-2,leader,V,60,60,1
-SARS-CoV-2,leader,L,61,61,1
-SARS-CoV-2,leader,P,62,62,1
-SARS-CoV-2,leader,Q,63,63,1
-SARS-CoV-2,leader,L,64,64,1
-SARS-CoV-2,leader,E,65,65,1
-SARS-CoV-2,leader,Q,66,66,1
-SARS-CoV-2,leader,P,67,67,1
-SARS-CoV-2,leader,Y,68,68,1
-SARS-CoV-2,leader,V,69,69,1
-SARS-CoV-2,leader,F,70,70,1
-SARS-CoV-2,leader,I,71,71,1
-SARS-CoV-2,leader,K,72,72,1
-SARS-CoV-2,leader,R,73,73,1
-SARS-CoV-2,leader,S,74,74,1
-SARS-CoV-2,leader,D,75,75,1
-SARS-CoV-2,leader,A,76,76,1
-SARS-CoV-2,leader,R,77,77,1
-SARS-CoV-2,leader,T,78,78,1
-SARS-CoV-2,leader,A,79,79,1
-SARS-CoV-2,leader,P,80,80,1
-SARS-CoV-2,leader,H,81,81,1
-SARS-CoV-2,leader,G,82,82,1
-SARS-CoV-2,leader,H,83,83,1
-SARS-CoV-2,leader,V,84,84,1
-SARS-CoV-2,leader,M,85,85,1
-SARS-CoV-2,leader,V,86,86,1
-SARS-CoV-2,leader,E,87,87,1
-SARS-CoV-2,leader,L,88,88,1
-SARS-CoV-2,leader,V,89,89,1
-SARS-CoV-2,leader,A,90,90,1
-SARS-CoV-2,leader,E,91,91,1
-SARS-CoV-2,leader,L,92,92,1
-SARS-CoV-2,leader,E,93,93,1
-SARS-CoV-2,leader,G,94,94,1
-SARS-CoV-2,leader,I,95,95,1
-SARS-CoV-2,leader,Q,96,96,1
-SARS-CoV-2,leader,Y,97,97,1
-SARS-CoV-2,leader,G,98,98,1
-SARS-CoV-2,leader,R,99,99,1
-SARS-CoV-2,leader,S,100,100,1
-SARS-CoV-2,leader,G,101,101,1
-SARS-CoV-2,leader,E,102,102,1
-SARS-CoV-2,leader,T,103,103,1
-SARS-CoV-2,leader,L,104,104,1
-SARS-CoV-2,leader,G,105,105,1
-SARS-CoV-2,leader,V,106,106,1
-SARS-CoV-2,leader,L,107,107,1
-SARS-CoV-2,leader,V,108,108,1
-SARS-CoV-2,leader,P,109,109,1
-SARS-CoV-2,leader,H,110,110,1
-SARS-CoV-2,leader,V,111,111,1
-SARS-CoV-2,leader,G,112,112,1
-SARS-CoV-2,leader,E,113,113,1
-SARS-CoV-2,leader,I,114,114,1
-SARS-CoV-2,leader,P,115,115,1
-SARS-CoV-2,leader,V,116,116,1
-SARS-CoV-2,leader,A,117,117,1
-SARS-CoV-2,leader,Y,118,118,1
-SARS-CoV-2,leader,R,119,119,1
-SARS-CoV-2,leader,K,120,120,1
-SARS-CoV-2,leader,V,121,121,1
-SARS-CoV-2,leader,L,122,122,1
-SARS-CoV-2,leader,L,123,123,1
-SARS-CoV-2,leader,R,124,124,1
-SARS-CoV-2,leader,K,125,125,1
-SARS-CoV-2,leader,N,126,126,1
-SARS-CoV-2,leader,G,127,127,1
-SARS-CoV-2,leader,N,128,128,1
-SARS-CoV-2,leader,K,129,129,1
-SARS-CoV-2,leader,G,130,130,1
-SARS-CoV-2,leader,A,131,131,1
-SARS-CoV-2,leader,G,132,132,1
-SARS-CoV-2,leader,G,133,133,1
-SARS-CoV-2,leader,H,134,134,1
-SARS-CoV-2,leader,S,135,135,1
-SARS-CoV-2,leader,Y,136,136,1
-SARS-CoV-2,leader,G,137,137,1
-SARS-CoV-2,leader,A,138,138,1
-SARS-CoV-2,leader,D,139,139,1
-SARS-CoV-2,leader,L,140,140,1
-SARS-CoV-2,leader,K,141,141,1
-SARS-CoV-2,leader,S,142,142,1
-SARS-CoV-2,leader,F,143,143,1
-SARS-CoV-2,leader,D,144,144,1
-SARS-CoV-2,leader,L,145,145,1
-SARS-CoV-2,leader,G,146,146,1
-SARS-CoV-2,leader,D,147,147,1
-SARS-CoV-2,leader,E,148,148,1
-SARS-CoV-2,leader,L,149,149,1
-SARS-CoV-2,leader,G,150,150,1
-SARS-CoV-2,leader,T,151,151,1
-SARS-CoV-2,leader,D,152,152,1
-SARS-CoV-2,leader,P,153,153,1
-SARS-CoV-2,leader,Y,154,154,1
-SARS-CoV-2,leader,E,155,155,1
-SARS-CoV-2,leader,D,156,156,1
-SARS-CoV-2,leader,F,157,157,1
-SARS-CoV-2,leader,Q,158,158,1
-SARS-CoV-2,leader,E,159,159,1
-SARS-CoV-2,leader,N,160,160,1
-SARS-CoV-2,leader,W,161,161,1
-SARS-CoV-2,leader,N,162,162,1
-SARS-CoV-2,leader,T,163,163,1
-SARS-CoV-2,leader,K,164,164,1
-SARS-CoV-2,leader,H,165,165,1
-SARS-CoV-2,leader,S,166,166,1
-SARS-CoV-2,leader,S,167,167,1
-SARS-CoV-2,leader,G,168,168,1
-SARS-CoV-2,leader,V,169,169,1
-SARS-CoV-2,leader,T,170,170,1
-SARS-CoV-2,leader,R,171,171,1
-SARS-CoV-2,leader,E,172,172,1
-SARS-CoV-2,leader,L,173,173,1
-SARS-CoV-2,leader,M,174,174,1
-SARS-CoV-2,leader,R,175,175,1
-SARS-CoV-2,leader,E,176,176,1
-SARS-CoV-2,leader,L,177,177,1
-SARS-CoV-2,leader,N,178,178,1
-SARS-CoV-2,leader,G,179,179,1
-SARS-CoV-2,leader,G,180,180,1
+SARS-CoV-2,leader protein,M,1,1,1
+SARS-CoV-2,leader protein,E,2,2,1
+SARS-CoV-2,leader protein,S,3,3,1
+SARS-CoV-2,leader protein,L,4,4,1
+SARS-CoV-2,leader protein,V,5,5,1
+SARS-CoV-2,leader protein,P,6,6,1
+SARS-CoV-2,leader protein,G,7,7,1
+SARS-CoV-2,leader protein,F,8,8,1
+SARS-CoV-2,leader protein,N,9,9,1
+SARS-CoV-2,leader protein,E,10,10,1
+SARS-CoV-2,leader protein,K,11,11,1
+SARS-CoV-2,leader protein,T,12,12,1
+SARS-CoV-2,leader protein,H,13,13,1
+SARS-CoV-2,leader protein,V,14,14,1
+SARS-CoV-2,leader protein,Q,15,15,1
+SARS-CoV-2,leader protein,L,16,16,1
+SARS-CoV-2,leader protein,S,17,17,1
+SARS-CoV-2,leader protein,L,18,18,1
+SARS-CoV-2,leader protein,P,19,19,1
+SARS-CoV-2,leader protein,V,20,20,1
+SARS-CoV-2,leader protein,L,21,21,1
+SARS-CoV-2,leader protein,Q,22,22,1
+SARS-CoV-2,leader protein,V,23,23,1
+SARS-CoV-2,leader protein,R,24,24,1
+SARS-CoV-2,leader protein,D,25,25,1
+SARS-CoV-2,leader protein,V,26,26,1
+SARS-CoV-2,leader protein,L,27,27,1
+SARS-CoV-2,leader protein,V,28,28,1
+SARS-CoV-2,leader protein,R,29,29,1
+SARS-CoV-2,leader protein,G,30,30,1
+SARS-CoV-2,leader protein,F,31,31,1
+SARS-CoV-2,leader protein,G,32,32,1
+SARS-CoV-2,leader protein,D,33,33,1
+SARS-CoV-2,leader protein,S,34,34,1
+SARS-CoV-2,leader protein,V,35,35,1
+SARS-CoV-2,leader protein,E,36,36,1
+SARS-CoV-2,leader protein,E,37,37,1
+SARS-CoV-2,leader protein,V,38,38,1
+SARS-CoV-2,leader protein,L,39,39,1
+SARS-CoV-2,leader protein,S,40,40,1
+SARS-CoV-2,leader protein,E,41,41,1
+SARS-CoV-2,leader protein,A,42,42,1
+SARS-CoV-2,leader protein,R,43,43,1
+SARS-CoV-2,leader protein,Q,44,44,1
+SARS-CoV-2,leader protein,H,45,45,1
+SARS-CoV-2,leader protein,L,46,46,1
+SARS-CoV-2,leader protein,K,47,47,1
+SARS-CoV-2,leader protein,D,48,48,1
+SARS-CoV-2,leader protein,G,49,49,1
+SARS-CoV-2,leader protein,T,50,50,1
+SARS-CoV-2,leader protein,C,51,51,1
+SARS-CoV-2,leader protein,G,52,52,1
+SARS-CoV-2,leader protein,L,53,53,1
+SARS-CoV-2,leader protein,V,54,54,1
+SARS-CoV-2,leader protein,E,55,55,1
+SARS-CoV-2,leader protein,V,56,56,1
+SARS-CoV-2,leader protein,E,57,57,1
+SARS-CoV-2,leader protein,K,58,58,1
+SARS-CoV-2,leader protein,G,59,59,1
+SARS-CoV-2,leader protein,V,60,60,1
+SARS-CoV-2,leader protein,L,61,61,1
+SARS-CoV-2,leader protein,P,62,62,1
+SARS-CoV-2,leader protein,Q,63,63,1
+SARS-CoV-2,leader protein,L,64,64,1
+SARS-CoV-2,leader protein,E,65,65,1
+SARS-CoV-2,leader protein,Q,66,66,1
+SARS-CoV-2,leader protein,P,67,67,1
+SARS-CoV-2,leader protein,Y,68,68,1
+SARS-CoV-2,leader protein,V,69,69,1
+SARS-CoV-2,leader protein,F,70,70,1
+SARS-CoV-2,leader protein,I,71,71,1
+SARS-CoV-2,leader protein,K,72,72,1
+SARS-CoV-2,leader protein,R,73,73,1
+SARS-CoV-2,leader protein,S,74,74,1
+SARS-CoV-2,leader protein,D,75,75,1
+SARS-CoV-2,leader protein,A,76,76,1
+SARS-CoV-2,leader protein,R,77,77,1
+SARS-CoV-2,leader protein,T,78,78,1
+SARS-CoV-2,leader protein,A,79,79,1
+SARS-CoV-2,leader protein,P,80,80,1
+SARS-CoV-2,leader protein,H,81,81,1
+SARS-CoV-2,leader protein,G,82,82,1
+SARS-CoV-2,leader protein,H,83,83,1
+SARS-CoV-2,leader protein,V,84,84,1
+SARS-CoV-2,leader protein,M,85,85,1
+SARS-CoV-2,leader protein,V,86,86,1
+SARS-CoV-2,leader protein,E,87,87,1
+SARS-CoV-2,leader protein,L,88,88,1
+SARS-CoV-2,leader protein,V,89,89,1
+SARS-CoV-2,leader protein,A,90,90,1
+SARS-CoV-2,leader protein,E,91,91,1
+SARS-CoV-2,leader protein,L,92,92,1
+SARS-CoV-2,leader protein,E,93,93,1
+SARS-CoV-2,leader protein,G,94,94,1
+SARS-CoV-2,leader protein,I,95,95,1
+SARS-CoV-2,leader protein,Q,96,96,1
+SARS-CoV-2,leader protein,Y,97,97,1
+SARS-CoV-2,leader protein,G,98,98,1
+SARS-CoV-2,leader protein,R,99,99,1
+SARS-CoV-2,leader protein,S,100,100,1
+SARS-CoV-2,leader protein,G,101,101,1
+SARS-CoV-2,leader protein,E,102,102,1
+SARS-CoV-2,leader protein,T,103,103,1
+SARS-CoV-2,leader protein,L,104,104,1
+SARS-CoV-2,leader protein,G,105,105,1
+SARS-CoV-2,leader protein,V,106,106,1
+SARS-CoV-2,leader protein,L,107,107,1
+SARS-CoV-2,leader protein,V,108,108,1
+SARS-CoV-2,leader protein,P,109,109,1
+SARS-CoV-2,leader protein,H,110,110,1
+SARS-CoV-2,leader protein,V,111,111,1
+SARS-CoV-2,leader protein,G,112,112,1
+SARS-CoV-2,leader protein,E,113,113,1
+SARS-CoV-2,leader protein,I,114,114,1
+SARS-CoV-2,leader protein,P,115,115,1
+SARS-CoV-2,leader protein,V,116,116,1
+SARS-CoV-2,leader protein,A,117,117,1
+SARS-CoV-2,leader protein,Y,118,118,1
+SARS-CoV-2,leader protein,R,119,119,1
+SARS-CoV-2,leader protein,K,120,120,1
+SARS-CoV-2,leader protein,V,121,121,1
+SARS-CoV-2,leader protein,L,122,122,1
+SARS-CoV-2,leader protein,L,123,123,1
+SARS-CoV-2,leader protein,R,124,124,1
+SARS-CoV-2,leader protein,K,125,125,1
+SARS-CoV-2,leader protein,N,126,126,1
+SARS-CoV-2,leader protein,G,127,127,1
+SARS-CoV-2,leader protein,N,128,128,1
+SARS-CoV-2,leader protein,K,129,129,1
+SARS-CoV-2,leader protein,G,130,130,1
+SARS-CoV-2,leader protein,A,131,131,1
+SARS-CoV-2,leader protein,G,132,132,1
+SARS-CoV-2,leader protein,G,133,133,1
+SARS-CoV-2,leader protein,H,134,134,1
+SARS-CoV-2,leader protein,S,135,135,1
+SARS-CoV-2,leader protein,Y,136,136,1
+SARS-CoV-2,leader protein,G,137,137,1
+SARS-CoV-2,leader protein,A,138,138,1
+SARS-CoV-2,leader protein,D,139,139,1
+SARS-CoV-2,leader protein,L,140,140,1
+SARS-CoV-2,leader protein,K,141,141,1
+SARS-CoV-2,leader protein,S,142,142,1
+SARS-CoV-2,leader protein,F,143,143,1
+SARS-CoV-2,leader protein,D,144,144,1
+SARS-CoV-2,leader protein,L,145,145,1
+SARS-CoV-2,leader protein,G,146,146,1
+SARS-CoV-2,leader protein,D,147,147,1
+SARS-CoV-2,leader protein,E,148,148,1
+SARS-CoV-2,leader protein,L,149,149,1
+SARS-CoV-2,leader protein,G,150,150,1
+SARS-CoV-2,leader protein,T,151,151,1
+SARS-CoV-2,leader protein,D,152,152,1
+SARS-CoV-2,leader protein,P,153,153,1
+SARS-CoV-2,leader protein,Y,154,154,1
+SARS-CoV-2,leader protein,E,155,155,1
+SARS-CoV-2,leader protein,D,156,156,1
+SARS-CoV-2,leader protein,F,157,157,1
+SARS-CoV-2,leader protein,Q,158,158,1
+SARS-CoV-2,leader protein,E,159,159,1
+SARS-CoV-2,leader protein,N,160,160,1
+SARS-CoV-2,leader protein,W,161,161,1
+SARS-CoV-2,leader protein,N,162,162,1
+SARS-CoV-2,leader protein,T,163,163,1
+SARS-CoV-2,leader protein,K,164,164,1
+SARS-CoV-2,leader protein,H,165,165,1
+SARS-CoV-2,leader protein,S,166,166,1
+SARS-CoV-2,leader protein,S,167,167,1
+SARS-CoV-2,leader protein,G,168,168,1
+SARS-CoV-2,leader protein,V,169,169,1
+SARS-CoV-2,leader protein,T,170,170,1
+SARS-CoV-2,leader protein,R,171,171,1
+SARS-CoV-2,leader protein,E,172,172,1
+SARS-CoV-2,leader protein,L,173,173,1
+SARS-CoV-2,leader protein,M,174,174,1
+SARS-CoV-2,leader protein,R,175,175,1
+SARS-CoV-2,leader protein,E,176,176,1
+SARS-CoV-2,leader protein,L,177,177,1
+SARS-CoV-2,leader protein,N,178,178,1
+SARS-CoV-2,leader protein,G,179,179,1
+SARS-CoV-2,leader protein,G,180,180,1
 SARS-CoV-2,nsp2,A,1,181,1
 SARS-CoV-2,nsp2,Y,2,182,1
 SARS-CoV-2,nsp2,T,3,183,1
