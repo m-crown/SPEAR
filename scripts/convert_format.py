@@ -14,12 +14,20 @@ from bindingcalculator import BindingCalculator
 
 def main():
 
-    def df_counts_to_string(summary_df):
-        names = summary_df.index.to_list()
-        counts = summary_df.to_list()
-        list_items = [a + ":" + str(b) for a,b in zip(names,counts)]
-        string_items = ",".join(c for c in list_items)
-        return(string_items)
+    def df_counts_to_string(summary_df, dual = False):
+        if dual == False:
+            names = summary_df.index.to_list()
+            counts = summary_df.to_list()
+            list_items = [a + ":" + str(b) for a,b in zip(names,counts)]
+            string_items = ",".join(c for c in list_items)
+            return(string_items)
+        else:
+            names = summary_df.index.to_list()
+            names = [':'.join(sub_list) for sub_list in names]
+            counts = summary_df.to_list()
+            list_items = [a + ":" + str(b) for a,b in zip(names,counts)]
+            string_items = ",".join(c for c in list_items)
+            return(string_items)
 
     def get_contextual_bindingcalc_values(residues_list, respos, binding_calculator, option):
         res_ret_esc_df = binding_calculator.escape_per_site(residues_list)
@@ -47,7 +55,7 @@ def main():
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerow(sample_summary_cols)
     
-    scores_columns = ["sample_id","total_variants","total_residue_variants", "consequence_type_variants", "region_residues", "domain_residues", "ACE2_contact_counts","ACE2_contact_score","trimer_contact_counts", "trimer_contact_score", "barns_class_variants", "bloom_ACE2" , "VDS", "serum_escape", "mAb_escape_all_classes", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES", "BEC_EF_sample"]
+    scores_columns = ["sample_id","total_variants","total_residue_variants", "consequence_type_variants", "region_residues", "domain_residues", "ACE2_contact_counts","ACE2_contact_score","trimer_contact_counts", "trimer_contact_score", "barns_class_variants", "bloom_ACE2_sum", "bloom_ACE2_max", "bloom_ACE2_min" , "VDS_sum","VDS_max","VDS_min", "serum_escape_sum","serum_escape_max","serum_escape_min", "mAb_escape_all_classes_sum","mAb_escape_all_classes_max","mAb_escape_all_classes_min","cm_mAb_escape_all_classes_sum","cm_mAb_escape_all_classes_max","cm_mAb_escape_all_classes_min", "mAb_escape_class_1_sum", "mAb_escape_class_1_max", "mAb_escape_class_1_min", "mAb_escape_class_2_sum","mAb_escape_class_2_max","mAb_escape_class_2_min", "mAb_escape_class_3_sum","mAb_escape_class_3_max","mAb_escape_class_3_min", "mAb_escape_class_4_sum","mAb_escape_class_4_max","mAb_escape_class_4_min", "BEC_RES_sum","BEC_RES_max","BEC_RES_min", "BEC_EF_sample"]
     with open(f'{args.output_dir}/spear_score_summary.tsv', 'w') as f_output:
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerow(scores_columns)
@@ -112,13 +120,19 @@ def main():
 
             #now getting summary scores 
             #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
-            summary_score_dataframe = per_sample_output.loc[(per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) | (per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False)]
+            summary_score_dataframe = per_sample_output.loc[((per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) & (per_sample_output["residues"].isin([""]) == False)) | ((per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False) & (per_sample_output["residues"].isin([""]) == False))]
             sample_residue_variant_number = len(summary_score_dataframe)
-            type_string = df_counts_to_string(consequence_type_counts)
-            region_counts = summary_score_dataframe["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
-            region_string = df_counts_to_string(region_counts)
-            domain_counts = summary_score_dataframe["domain"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True).value_counts()
-            domain_string = df_counts_to_string(domain_counts)
+            type_string = df_counts_to_string(consequence_type_counts, dual = False)
+            region_counts = summary_score_dataframe.loc[summary_score_dataframe["region"] != "" , ["Gene_Name", "region"]]
+            region_counts["region"] = region_counts["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)
+            region_counts = region_counts.value_counts(["Gene_Name", "region"])
+            region_string = df_counts_to_string(region_counts, True)
+
+            domain_counts = summary_score_dataframe.loc[summary_score_dataframe["domain"] != "", ["Gene_Name", "domain"]]
+            domain_counts["domain"] = domain_counts["domain"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)
+            domain_counts = domain_counts.value_counts(["Gene_Name", "domain"])
+            domain_string = df_counts_to_string(domain_counts, True)
+
             if summary_score_dataframe["contact_type"].isin([""]).all(): #if there are no contact types in SPEAR annotation
                 ace2_contacts_score = ""
                 trimer_contacts_score = ""
@@ -149,58 +163,101 @@ def main():
 
             if summary_score_dataframe["bloom_ace2"].isin([""]).all():
                 bloom_ace2_sum = ""
+                bloom_ace2_max = ""
+                bloom_ace2_mix = ""
             else:
-                bloom_ace2_sum = summary_score_dataframe["bloom_ace2"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                bloom_ace2_sum = summary_score_dataframe["bloom_ace2"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                bloom_ace2_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["bloom_ace2"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["bloom_ace2"].replace("", np.nan).astype(float).max())])
+                bloom_ace2_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["bloom_ace2"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["bloom_ace2"].replace("", np.nan).astype(float).min())])
             
             if summary_score_dataframe["VDS"].isin([""]).all():
                 vds_sum = ""
+                vds_max = ""
+                vds_min = ""
+
             else:
-                vds_sum = summary_score_dataframe["VDS"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                vds_sum = summary_score_dataframe["VDS"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                vds_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["VDS"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["VDS"].replace("", np.nan).astype(float).max())])
+                vds_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["VDS"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["VDS"].replace("", np.nan).astype(float).min())])
 
             if summary_score_dataframe["serum_escape"].isin([""]).all():
                 serum_escape_sum = ""
+                serum_escape_max = ""
+                serum_escape_min = ""
             else:
-                serum_escape_sum = summary_score_dataframe["serum_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                serum_escape_sum = summary_score_dataframe["serum_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                serum_escape_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["serum_escape"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["serum_escape"].replace("", np.nan).astype(float).max())])
+                serum_escape_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["serum_escape"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["serum_escape"].replace("", np.nan).astype(float).min())])
             
             if summary_score_dataframe["mAb_escape"].isin([""]).all():
                 mab_escape_all_sum = ""
+                mab_escape_all_max = ""
+                mab_escape_all_min = ""
             else:
-                mab_escape_all_sum = summary_score_dataframe["mAb_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_all_sum = summary_score_dataframe["mAb_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                mab_escape_all_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["mAb_escape"].replace("", np.nan).astype(float).max())])
+                mab_escape_all_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["mAb_escape"].replace("", np.nan).astype(float).min())])
+            
+            if summary_score_dataframe["cm_mAb_escape"].isin([""]).all():
+                cm_mab_escape_all_sum = ""
+                cm_mab_escape_all_max = ""
+                cm_mab_escape_all_min = ""
+            else:
+                cm_mab_escape_all_sum = summary_score_dataframe["cm_mAb_escape"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                cm_mab_escape_all_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["cm_mAb_escape"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["cm_mAb_escape"].replace("", np.nan).astype(float).max())])
+                cm_mab_escape_all_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["cm_mAb_escape"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["cm_mAb_escape"].replace("", np.nan).astype(float).min())])
             
             if summary_score_dataframe["mAb_escape_class_1"].isin([""]).all():
                 mab_escape_class_1_sum = ""
+                mab_escape_class_1_max = ""
+                mab_escape_class_1_min = ""
             else:
-                mab_escape_class_1_sum = summary_score_dataframe["mAb_escape_class_1"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_1_sum = summary_score_dataframe["mAb_escape_class_1"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                mab_escape_class_1_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape_class_1"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["mAb_escape_class_1"].replace("", np.nan).astype(float).max())])
+                mab_escape_class_1_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape_class_1"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["mAb_escape_class_1"].replace("", np.nan).astype(float).min())])
             
             if summary_score_dataframe["mAb_escape_class_2"].isin([""]).all():
                 mab_escape_class_2_sum = ""
+                mab_escape_class_2_max = ""
+                mab_escape_class_2_min = ""
             else:
-                mab_escape_class_2_sum = summary_score_dataframe["mAb_escape_class_2"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_2_sum = summary_score_dataframe["mAb_escape_class_2"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                mab_escape_class_2_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape_class_2"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["mAb_escape_class_2"].replace("", np.nan).astype(float).max())])
+                mab_escape_class_2_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape_class_2"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["mAb_escape_class_2"].replace("", np.nan).astype(float).min())])
             
             if summary_score_dataframe["mAb_escape_class_3"].isin([""]).all():
                 mab_escape_class_3_sum = ""
+                mab_escape_class_3_max = ""
+                mab_escape_class_3_min = ""
             else:    
-                mab_escape_class_3_sum = summary_score_dataframe["mAb_escape_class_3"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_3_sum = summary_score_dataframe["mAb_escape_class_3"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                mab_escape_class_3_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape_class_3"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["mAb_escape_class_3"].replace("", np.nan).astype(float).max())])
+                mab_escape_class_3_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape_class_3"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["mAb_escape_class_3"].replace("", np.nan).astype(float).min())])
             
             if summary_score_dataframe["mAb_escape_class_4"].isin([""]).all():
                 mab_escape_class_4_sum = ""
+                mab_escape_class_4_max = ""
+                mab_escape_class_4_min = ""
             else:
-                mab_escape_class_4_sum = summary_score_dataframe["mAb_escape_class_4"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
-            
-            if summary_score_dataframe["BEC_EF"].isin([""]).all():
-                bec_ef_score = ""
-            else:
-                bec_ef_score = summary_score_dataframe["BEC_EF"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                mab_escape_class_4_sum = summary_score_dataframe["mAb_escape_class_4"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                mab_escape_class_4_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape_class_4"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["mAb_escape_class_4"].replace("", np.nan).astype(float).max())])
+                mab_escape_class_4_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["mAb_escape_class_4"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["mAb_escape_class_4"].replace("", np.nan).astype(float).min())])
+
+
             if summary_score_dataframe["BEC_EF_sample"].isin([""]).all():
                 bec_ef_sample_score = ""
             else:
                 bec_ef_sample_score = summary_score_dataframe["BEC_EF_sample"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
             if summary_score_dataframe["BEC_RES"].isin([""]).all():
-                bec_res_score = ""
+                bec_res_score_sum = ""
+                bec_res_score_max = ""
+                bec_res_score_min = ""
             else:
-                bec_res_score = summary_score_dataframe["BEC_RES"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
+                bec_res_score_sum = summary_score_dataframe["BEC_RES"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
+                bec_res_score_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["BEC_RES"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["BEC_RES"].replace("", np.nan).astype(float).max())])
+                bec_res_score_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["BEC_RES"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["BEC_RES"].replace("", np.nan).astype(float).min())])
 
-            scores_list = [sample_name,total_variants,sample_residue_variant_number, type_string, region_string, domain_string,ace2_contacts_sum, ace2_contacts_score, trimer_contacts_sum,trimer_contacts_score, barns_string,bloom_ace2_sum , vds_sum, serum_escape_sum, mab_escape_all_sum, mab_escape_class_1_sum, mab_escape_class_2_sum, mab_escape_class_3_sum, mab_escape_class_4_sum, bec_res_score, bec_ef_sample_score]
+            scores_list = [sample_name,total_variants,sample_residue_variant_number, type_string, region_string, domain_string,ace2_contacts_sum, ace2_contacts_score, trimer_contacts_sum,trimer_contacts_score, barns_string,bloom_ace2_sum, bloom_ace2_max, bloom_ace2_min, vds_sum, vds_max, vds_min, serum_escape_sum,serum_escape_max,serum_escape_min, mab_escape_all_sum,mab_escape_all_max,mab_escape_all_min,cm_mab_escape_all_sum, cm_mab_escape_all_max, cm_mab_escape_all_min, mab_escape_class_1_sum,mab_escape_class_1_max,mab_escape_class_1_min, mab_escape_class_2_sum,mab_escape_class_2_max,mab_escape_class_2_min, mab_escape_class_3_sum,mab_escape_class_3_max,mab_escape_class_3_min, mab_escape_class_4_sum,mab_escape_class_4_max,mab_escape_class_4_min, bec_res_score_sum,bec_res_score_max,bec_res_score_min, bec_ef_sample_score]
             scores_df = pd.DataFrame([scores_list], columns=scores_columns)
             scores_df.to_csv(f'{args.output_dir}/spear_score_summary.tsv', sep = '\t', mode='a', header=False, index = False)
 
