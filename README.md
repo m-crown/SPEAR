@@ -124,7 +124,7 @@ There are known problematic sites in [SARS-CoV-2 sequencing](https://github.com/
 
 **Table 1**. Filtering codes
 
-All sites flagged with "caution" within [W-L/ProblematicSites_SARS-CoV2](https://github.com/W-L/ProblematicSites_SARS-CoV2/) will be annotated as such within SPEAR output .vcf when `--mask-problem-sites` is used.
+All sites flagged with "caution" within [W-L/ProblematicSites_SARS-CoV2](https://github.com/W-L/ProblematicSites_SARS-CoV2/) will be annotated as such within SPEAR output `.vcf` when `--mask-problem-sites` is used.
 
 ## Output
 
@@ -186,7 +186,7 @@ SPEAR uses a number of different scores to evaluate the likely impact of viral g
 
 **Table 3**. Per sample scores.
 
-These scores are also summarised in the `spear_score_summary.tsv` file with a row for each sample. Some columns summarise values for multiple entities here and are internally `,` delimited. Documentation for this file is found in [Table 4](docs/Tabel4.md).
+These scores are also summarised in the `spear_score_summary.tsv` file with a row for each sample. Some columns summarise values for multiple entities here and are internally `,` delimited. Documentation for this file is found in [Table 4](docs/Table4.md).
 
 Some of the scores employed here have been used to demonstrate the immune escape and ACE2 binding properties of Omicron and are discussed further in Teruel _et al_. [1].
 

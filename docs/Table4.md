@@ -8,7 +8,7 @@ The table below outlines the fields in `spear_score_summary.tsv` which is produc
 | `total_residue_variants` | The total number of amino acid changes, here, note insertions are counted as a single event, each deleted residue is counted |
 | `consequence_type_variants` | Comma separated list of `consequence:count` present in sample, summary of values in `consequence_type` from Table 2 "
 | `region_residues` | Amino acid changes as comma separated list summarised per `product:region:count` |
-| `domain_residues` | Amino acid changes as comma separated list summarised per `product:domain:count`, domain defitions can be found in [`/docs`](docs/) |
+| `domain_residues` | Amino acid changes as comma separated list summarised per `product:domain:count`, domain definitions can be found in [`/docs`](docs/) |
 | `ACE2_contact_counts` | Total number of mutated amino acids involved in ACE2 contacts |
 | `ACE2_contact_score` | Sum of contact scores, salt bridges:3, hydrogen-bonds:2, generic residue contact:1 |
 | `trimer_contact_counts` | Total number of mutated amino acids involved in trimer interface contacts, this is specifically for Spike |
