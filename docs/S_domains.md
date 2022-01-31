@@ -4,11 +4,11 @@
 | --------- | ------ | ----- | --- | ---------------- |
 | `leader` | S1 | 1 | 12 | Leader |
 | `NTD` | S1 | 13 | 305 | N-terminal domain |
-| `NTD_linker_RBD` | S1 | 306 | 332 | Linker between NTD and RBD |
-| `RBD` | S1 | 333 | 437 | Receptor binding domain |
+| `NTD_linker_RBD` | S1 | 306 | 330 | Linker between NTD and RBD |
+| `RBD` | S1 | 331 | 437 | Receptor binding domain |
 | `RBM` | S1 | 438 | 506 | Receptor binding motif |
-| `RBD` | S1	| 507 | 527 | Receptor binding domain |
-| `SD1-2` | S1 |528 | 684 | Subdomain 1 and 2 |
+| `RBD` | S1	| 507 | 531 | Receptor binding domain |
+| `SD1-2` | S1 |532 | 684 | Subdomain 1 and 2 |
 | `furin_cleavage_site` | S1 | 685 | 685 | Furin cleavage site |
 | `SD1-2` | S2 | 686 | 696 | Subdomain 1 and 2 |
 | `S2_N` | S2 | 697 | 815 | Subunit S2 N-terminal domain |
