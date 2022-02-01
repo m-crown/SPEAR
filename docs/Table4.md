@@ -38,9 +38,6 @@ The table below outlines the fields in `spear_score_summary.tsv` which is produc
 | `mAb_escape_class_4_sum` | As above, sum of mean residue specific mAb escape score for all mutated residues from class 4 mAbs only, only applied to residues in Barns class 4 epitope | 
 | `mAb_escape_class_4_max` | Highest scoring residue for class 4 mAb escape out of all mutated residues | 
 | `mAb_escape_class_4_min` | Lowest scoring residue for class 4 mAb escape out of all mutated residues | 
-| `BEC_RES_sum` | Sum of all per residue Bloom Escape Calculator Residue Escape scores |
-| `BEC_RES_max` | Highest BEC scoring residue |
-| `BEC_RES_min` | Lowest BEC scoring residue | 
 | `BEC_EF_sample` | Bloom Escape Calculator Escape factor as `BEC_EF` but calculated using the full compliment of changed residues in the whole sample |
 
 **Table 4**. `spear_score_summary.tsv` fields.
