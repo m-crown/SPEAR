@@ -120,6 +120,7 @@ def main():
 
             #now getting summary scores 
             #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
+            #this regex could be improved/simplified
             summary_score_dataframe = per_sample_output.loc[((per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) & (per_sample_output["residues"].isin([""]) == False)) | ((per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False) & (per_sample_output["residues"].isin([""]) == False))]
             sample_residue_variant_number = len(summary_score_dataframe)
             type_string = df_counts_to_string(consequence_type_counts, dual = False)

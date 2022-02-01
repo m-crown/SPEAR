@@ -140,8 +140,6 @@ def main():
         help='lineage for baseline') #ADD A DEFAULT FOR THIS
     args = parser.parse_args()
 
-    #eventually make this an argument:
-    cli_out = True
     #needs to take as input the conda bin location where plotly js is stored!
     #NEED TO GET THE MIN AND MAX OF EACH SCORE SCALE IN A FILE TO READ IN AND USE TO SET COLOR SCALES - OR JUST WORK IT OUT AND HARD CODE IT ? 
     #need to make a function for each of the manipulations of dataframes to streamline it and allow things like changing baseline? ? 
@@ -149,56 +147,20 @@ def main():
     
     Path(f'{args.output_dir}/images').mkdir(parents=True, exist_ok=True)
     Path(f'{args.output_dir}/plots/plotly').mkdir(parents=True, exist_ok=True)
-    copyfile(f'{args.scripts_dir}/plotly-2.8.3.min.js', f'{args.output_dir}/plots/plotly/plotly-2.8.3.min.js')
     Path(f'{args.output_dir}/plots/product_plots').mkdir(parents=True, exist_ok=True)
+    copyfile(f'{args.scripts_dir}/plotly-2.8.3.min.js', f'{args.output_dir}/plots/plotly/plotly-2.8.3.min.js')
+    
 
     scores_summary = pd.read_csv(f'{args.score_summary}', sep = '\t')
     annotation_summary = pd.read_csv(f'{args.annotation_summary}', sep = '\t')
     annotation_summary["compound_nt_var"] = annotation_summary["description"] + annotation_summary["REF"] + annotation_summary["POS"].astype("str") + annotation_summary["ALT"]
     annotation_summary["compound_res_var"] = annotation_summary["description"] + annotation_summary["residues"]
     total_genomic_variants = annotation_summary["compound_nt_var"].nunique()
-    total_residue_variants = annotation_summary["compound_res_var"].nunique()
 
     #for insertions these are annotated as a change on the last ref res !! THINK THIS REGEX NEEDS TO BE USED IN SPEAR ANNOTATION TO CHECK IF REFRES AND ALTRES ARE SAME!!
     annotation_summary['refres'] = annotation_summary["residues"].str.extract('([A-Z])-*[0-9]+-*[a-zA-Z\*\?]+')
     annotation_summary['respos'] = annotation_summary["residues"].str.extract('[A-Z]-*([0-9]+)-*[a-zA-Z\*\?]+')
     annotation_summary['altres'] = annotation_summary["residues"].str.extract('[A-Z]-*[0-9]+-*([a-zA-Z\*\?]+)')
-
-    annotation_summary["respos"] = annotation_summary["respos"].fillna(0).astype(int)
-    annotation_summary = annotation_summary.loc[(annotation_summary["refres"] != annotation_summary["altres"]) & (annotation_summary["refres"].isna() == False)]
-    baseline_scores = pd.read_csv(f'{args.baseline_scores}', sep = '\t')
-    
-    orf1ab = ['leader protein', 'nsp2', 'nsp3', 'nsp4', '3C-like proteinase', 'nsp6', 'nsp7', 'nsp8', 'nsp9', 'nsp10', 'nsp11', 'RNA-dependent RNA polymerase', 'helicase', "3'-to-5' exonuclease", 'endoRNAse', "2'-O-ribose methyltransferase"]
-    structural = ['surface glycoprotein','nucleocapsid phosphoprotein', 'envelope protein', 'membrane glycoprotein']
-    accessory = ['ORF3a protein', 'ORF6 protein', 'ORF7a protein', 'ORF7b', 'ORF8 protein', 'ORF10 protein']
-    products = orf1ab + structural + accessory
-    product_colours = {
-        'leader protein': "lightsteelblue", 
-        'nsp2': "lightskyblue", 
-        'nsp3':"lightsteelblue", 
-        'nsp4':"lightskyblue", 
-        '3C-like proteinase':"lightsteelblue", 
-        'nsp6':"lightskyblue", 
-        'nsp7':"lightsteelblue", 
-        'nsp8':"lightskyblue", 
-        'nsp9':"lightsteelblue", 
-        'nsp10':"lightskyblue", 
-        'nsp11':"lightsteelblue", 
-        'RNA-dependent RNA polymerase':"lightskyblue", 
-        'helicase':"lightsteelblue", 
-        "3'-to-5' exonuclease":"lightskyblue", 
-        'endoRNAse':"lightsteelblue", 
-        "2'-O-ribose methyltransferase":"lightskyblue",
-        'surface glycoprotein': "crimson",
-        'nucleocapsid phosphoprotein': "darkred", 
-        'envelope protein': "darkred", 
-        'membrane glycoprotein': "crimson",
-        'ORF3a protein': "cadetblue",
-        'ORF6 protein': "darkcyan", 
-        'ORF7a protein': "cadetblue", 
-        'ORF7b': "darkcyan", 
-        'ORF8 protein': "cadetblue",
-        'ORF10 protein': "darkcyan"}
 
     #MAKING A COUNT TABLE OF RAW NUCLEOTIDE VARIANTS - USES THE FILTERED ANNO SUMMARY SO DOES NOT INCLUDE REFRES = ALTRES (BUT SHOULD IT?)
     variants_counts_table = annotation_summary[["sample_id","REF","POS", "ALT","compound_nt_var"]].drop_duplicates(["sample_id", "compound_nt_var"])
@@ -257,7 +219,46 @@ def main():
         )
 
     variants_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})  
-    variants_table_plt = offline.plot(variants_table,output_type='div', include_plotlyjs = True, config = {'displaylogo': False}) #including plotly js with this plot and not with any future ones to keep html size down 
+    variants_table_plt = offline.plot(variants_table,output_type='div', include_plotlyjs = f'plots/plotly/plotly-2.8.3.min.js', config = {'displaylogo': False}) #including plotly js with this plot and not with any future ones to keep html size down 
+
+
+    annotation_summary["respos"] = annotation_summary["respos"].fillna(0).astype(int)
+    annotation_summary = annotation_summary.loc[(annotation_summary["refres"] != annotation_summary["altres"]) & (annotation_summary["refres"].isna() == False)]
+    total_residue_variants = annotation_summary["compound_res_var"].nunique()
+    
+    baseline_scores = pd.read_csv(f'{args.baseline_scores}', sep = '\t')
+    
+    orf1ab = ['leader protein', 'nsp2', 'nsp3', 'nsp4', '3C-like proteinase', 'nsp6', 'nsp7', 'nsp8', 'nsp9', 'nsp10', 'nsp11', 'RNA-dependent RNA polymerase', 'helicase', "3'-to-5' exonuclease", 'endoRNAse', "2'-O-ribose methyltransferase"]
+    structural = ['surface glycoprotein','nucleocapsid phosphoprotein', 'envelope protein', 'membrane glycoprotein']
+    accessory = ['ORF3a protein', 'ORF6 protein', 'ORF7a protein', 'ORF7b', 'ORF8 protein', 'ORF10 protein']
+    products = orf1ab + structural + accessory
+    product_colours = {
+        'leader protein': "lightsteelblue", 
+        'nsp2': "lightskyblue", 
+        'nsp3':"lightsteelblue", 
+        'nsp4':"lightskyblue", 
+        '3C-like proteinase':"lightsteelblue", 
+        'nsp6':"lightskyblue", 
+        'nsp7':"lightsteelblue", 
+        'nsp8':"lightskyblue", 
+        'nsp9':"lightsteelblue", 
+        'nsp10':"lightskyblue", 
+        'nsp11':"lightsteelblue", 
+        'RNA-dependent RNA polymerase':"lightskyblue", 
+        'helicase':"lightsteelblue", 
+        "3'-to-5' exonuclease":"lightskyblue", 
+        'endoRNAse':"lightsteelblue", 
+        "2'-O-ribose methyltransferase":"lightskyblue",
+        'surface glycoprotein': "crimson",
+        'nucleocapsid phosphoprotein': "darkred", 
+        'envelope protein': "darkred", 
+        'membrane glycoprotein': "crimson",
+        'ORF3a protein': "cadetblue",
+        'ORF6 protein': "darkcyan", 
+        'ORF7a protein': "cadetblue", 
+        'ORF7b': "darkcyan", 
+        'ORF8 protein': "cadetblue",
+        'ORF10 protein': "darkcyan"}
 
     #MAKING A COUNT TABLE OF RESIDUE CHANGES - USES THE FILTERED ANNO SUMMARY SO DOES NOT INCLUDE REFRES = ALTRES
     residues_counts_table = annotation_summary[["sample_id", "description", "residues", "compound_res_var"]].drop_duplicates(["sample_id", "compound_res_var"])
@@ -325,12 +326,14 @@ def main():
     #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE 
 
     scores_cols = baseline_scores.columns.tolist()
-    non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues','ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barns_class_variants','bloom_ACE2_max', 'bloom_ACE2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_EF_sample']
+    non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues','ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barns_class_variants','bloom_ACE2_max', 'bloom_ACE2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_RES_sum']
     displayed_scores_cols = [score for score in scores_cols if score not in non_displayed_scores]
-    actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
     sample_scores = scores_summary[displayed_scores_cols]
-    sample_scores = sample_scores.dropna(axis=0, how = "all", subset = actual_scores_cols) #remove empty rows from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
-    sample_scores = sample_scores.dropna(axis=1, how = "all") #remove empty cols from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
+    sample_scores = sample_scores.replace("", np.nan).dropna(axis=1, how = "all") #remove empty cols from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
+    
+    displayed_scores_cols = [score for score in displayed_scores_cols if score in sample_scores.columns.tolist()]
+    actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
+    sample_scores = sample_scores.replace("", np.nan).sort_values(by = "cm_mAb_escape_all_classes_sum", ascending = False )
     sample_scores = pd.concat([baseline_scores.loc[baseline_scores["sample_id"] == args.baseline, displayed_scores_cols], sample_scores])
     sample_scores = sample_scores.reset_index(drop = True)
     #if baseline is also in sample set this can cause problems for the subtraction of a single numpy array from dataframe. Baseline will always be first index value so can fallback on this if multiple matches
@@ -387,7 +390,7 @@ def main():
         updatemenus=[
             dict(
                 buttons=buttons,
-                #active = displayed_scores_cols.index("sample_id"),
+                active = displayed_scores_cols.index("cm_mAb_escape_all_classes_sum"),
                 direction="down",
                 bgcolor = "white",
                 pad={"r": 10, "t": 10},
@@ -406,26 +409,27 @@ def main():
             ]
         )
 
-    scores_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+    scores_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5), "autosize" : True})
     scores_table_plt = offline.plot(scores_table, output_type='div', include_plotlyjs = False , config = {'displaylogo': False})
+    scores_table.write_html(f'{args.output_dir}/plots/scores_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
 
-    if cli_out: #ORDER FOR THIS SHOULD BE DEFAULTED TO CM MAB ESCAPE
-        console = Console()
-        table = Table(show_header=True, header_style="bold magenta")
-        for column in sample_scores.columns:
-            table.add_column(column.replace("_"," "), style="dim", width=12)
-        cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours,["rgb(179,205,227)", "lavender"]), False, True)
-        for x, y in zip(sample_scores.values, cli_baseline_relative_sample_truths):
-            row_value = []
-            for (a, b) in zip(x,y):
-                colour = "red" if b else "blue"
-                value = a if a == a else ""
-                row_value.append((f'[bold {colour}]{value}'))
-            table.add_row(*row_value)
+    console = Console()
+    table = Table(show_header=True, header_style="bold magenta")
+    for column in sample_scores.columns:
+        table.add_column(column.replace("_"," "), style="dim", width=12)
+    cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours,["rgb(179,205,227)", "lavender"]), False, True)
+    for x, y in zip(sample_scores.values, cli_baseline_relative_sample_truths):
+        row_value = []
+        for (a, b) in zip(x,y):
+            colour = "#FF0000" if b else "#2CBDC9"
+            value = a if a == a else ""
+            bold = "bold" if b else "default"
+            row_value.append((f'[{bold} {colour}]{value}'))
+        table.add_row(*row_value)
 
 
     #MAKING THE INTERACTIVE PLOTS:
-    #use the pkl file of all ORFs to make a heatmap, where you merge the respos from anno df with
+    
     respos_df = pd.read_csv(f'{args.data_dir}/product_mapping.csv')
     orf_boxes = []
     orf_labels = []
@@ -436,7 +440,7 @@ def main():
     count = 0
     if args.product_plots == True:
         table_html_string = []
-        table_header = '''<table class="table table-responsive text-center table-hover"><tr><td>Sample ID</td><td>ORF Plot</td><td>Total Variants</td></tr>''' #style="width: auto;"
+        table_header = '''<table class="table table-responsive text-center table-hover"><tr><td>Sample ID</td><td>Product Plot</td><td>AA Mutations</td></tr>''' #style="width: auto;"
         table_html_string.append(table_header)
         for sample in track(annotation_summary["sample_id"].unique().tolist(), description="Saving per sample mutation plots..."):
             sample_annotation_summary = annotation_summary.loc[annotation_summary["sample_id"] == sample]
@@ -478,7 +482,8 @@ def main():
                 y=merged_sample_occurences["axis_pos"], 
                 text = merged_sample_occurences["residues"],
                 mode = "markers+text", 
-                textposition= merged_sample_occurences["textpos"]
+                textposition= merged_sample_occurences["textpos"],
+                hovertemplate = merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["VDS"].fillna("").astype("str") + "</br><extra></extra>"
                 ))
 
             sample_orf_plot.update_traces(
@@ -556,8 +561,9 @@ def main():
                                         "size" : 12,
                                         "color" : merged_sample_occurences["VDS"],
                                         "colorbar" : dict(title = "VDS"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
-                                label="Bloom ACE 2",
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}},
+                                "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["VDS"].fillna("").astype("str") + "</br><extra></extra>"}],
+                                label="VDS",
                                 method="restyle"),
                             dict(
                                 args = [{
@@ -565,8 +571,82 @@ def main():
                                         "size" : 12,
                                         "color" : merged_sample_occurences["bloom_ace2"],
                                         "colorbar" : dict(title = "Bloom ACE2 Score"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}},
+                                "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["bloom_ace2"].fillna("").astype("str") + "</br><extra></extra>"}],
                                 label="Bloom ACE 2",
+                                method="restyle"),
+                            dict(
+                                args = [{
+                                    "marker" : {
+                                        "size" : 12,
+                                        "color" : merged_sample_occurences["serum_escape"],
+                                        "colorbar" : dict(title = "Serum Escape"),
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}},
+                                    "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["serum_escape"].fillna("").astype("str") + "</br><extra></extra>"}],
+                                label="Serum Escape",
+                                method="restyle"),
+                            dict(
+                                args = [{
+                                    "marker" : {
+                                        "size" : 12,
+                                        "color" : merged_sample_occurences["mAb_escape"],
+                                        "colorbar" : dict(title = "mAb Escape All Classes"),
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
+                                label="mAb Escape All Classes",
+                                method="restyle"),
+                            dict(
+                                args = [{
+                                    "marker" : {
+                                        "size" : 12,
+                                        "color" : merged_sample_occurences["cm_mAb_escape"],
+                                        "colorbar" : dict(title = "Class Masked mAb Escape All Classes"),
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
+                                label="Class Masked mAb Escape All Classes",
+                                method="restyle"),
+                            dict(
+                                args = [{
+                                    "marker" : {
+                                        "size" : 12,
+                                        "color" : merged_sample_occurences["mAb_escape_class_1"],
+                                        "colorbar" : dict(title = "mAb Escape Class 1"),
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
+                                label="Class Masked mAb Escape All Classes",
+                                method="restyle"),
+                            dict(
+                                args = [{
+                                    "marker" : {
+                                        "size" : 12,
+                                        "color" : merged_sample_occurences["mAb_escape_class_2"],
+                                        "colorbar" : dict(title = "mAb Escape Class 2"),
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
+                                label="mAb Escape Class 2",
+                                method="restyle"),
+                            dict(
+                                args = [{
+                                    "marker" : {
+                                        "size" : 12,
+                                        "color" : merged_sample_occurences["mAb_escape_class_3"],
+                                        "colorbar" : dict(title = "mAb Escape Class 3"),
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
+                                label="mAb Escape Class 3",
+                                method="restyle"),
+                            dict(
+                                args = [{
+                                    "marker" : {
+                                        "size" : 12,
+                                        "color" : merged_sample_occurences["mAb_escape_class_4"],
+                                        "colorbar" : dict(title = "mAb Escape Class 4"),
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
+                                label="mAb Escape Class 4",
+                                method="restyle"),
+                            dict(
+                                args = [{
+                                    "marker" : {
+                                        "size" : 12,
+                                        "color" : merged_sample_occurences["BEC_RES"],
+                                        "colorbar" : dict(title = "BEC RES"),
+                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
+                                label="BEC RES",
                                 method="restyle"),
                         ]),
                         active = 0,
@@ -589,9 +669,34 @@ def main():
                                 method="relayout"),
                             dict(
                                 args = [
-                                    {"xaxis" : {"range" :[7000,8400], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[3.8,14], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
+                                    {"xaxis" : {"range" :[7000,8400], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[3.3,14], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
                                 ],
                                 label="Spike Protein",
+                                method="relayout"),
+                            dict(
+                                args = [
+                                    {"xaxis" : {"range" :[8658,9719], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[3.3,14], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
+                                ],
+                                label="Structural (non-Spike)",
+                                method="relayout"),
+                            dict(
+                                args = [
+                                    {"xaxis" : {"range" :[8383,9757], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[-14,-2], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
+                                ],
+                                label="Accessory proteins",
+                                method="relayout"),
+                            dict(
+                                args = [
+                                    {"xaxis" : {"range" :[0,4393], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[-9,9], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}},
+                                    {"annotations" : {"font" : {"size" : 50}}}
+                                ],
+                                label="pp1a",
+                                method="relayout"),
+                            dict(
+                                args = [
+                                    {"xaxis" : {"range" :[4394,7109], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[-9,9], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
+                                ],
+                                label="pp1ab only",
                                 method="relayout"),
                         ]),
                         active = 0,
@@ -606,31 +711,33 @@ def main():
                     ),
                 ]
             )
-            sample_orf_plot.write_html(f'{args.output_dir}/plots/product_plots/{sample}_orf_plot.html', include_plotlyjs = f'../plotly/plotly-2.8.3.min.js')
+            sample_orf_plot.write_html(f'{args.output_dir}/plots/product_plots/{sample}_product_plot.html', include_plotlyjs = f'../plotly/plotly-2.8.3.min.js')
             sample_total_variants = merged_sample_occurences["residues"].count()
-            sample_table_row = f'<tr><td>{sample}</td><td><a href={args.output_dir}/plots/product_plots/{sample}_orf_plot.html>{sample} ORF Plot</a></td><td>TEST</td>'
+            sample_table_row = f'<tr><td>{sample}</td><td><a href="{args.output_dir}/plots/product_plots/{sample}_product_plot.html">{sample} Product Plot</a></td><td>{sample_total_variants}</td>'
             table_html_string.append(sample_table_row)
         table_html_string.append("</table>")
         table_html_string = "".join(table_html_string)
         table_card = '''
-            <div class="row mt-2">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header" id="headingOne">
-                            <h5 class="mb-2">
-                                <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                                ORF Product Plots
-                                </button>
-                            </h5>
-                        </div>
-                        <div id="collapseOne" class="collapse show" aria-labelledby="headingOne">
-                            <div class="card-body">
-                                ''' + table_html_string + '''
+                <div class="row justify-content-center mt-2">
+                    <div class="col-auto">
+                        <div class="card text-center">
+                            <div class="card-header" id="headingOne">
+                                <h5 class="mb-2">
+                                    <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                                    ORF Product Plots
+                                    </button>
+                                </h5>
+                            </div>
+                            <div id="collapseOne" class="collapse hide" aria-labelledby="headingOne">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                    ''' + table_html_string + '''
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </div>   
         '''
     else:
         table_card = ""
@@ -641,9 +748,10 @@ def main():
     anno_merge.set_index("residues")
     anno_merge.to_csv("~/Desktop/anno_merge.csv")
     scores_cols = ["bloom_ace2", "VDS","serum_escape", "mAb_escape", "cm_mAb_escape", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
-    scores_z_max = {"bloom_ace2" : 0.3, "VDS": 0.518040609 , "serum_escape" : 1 , "mAb_escape" : 1, "cm_mAb_escape" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
+    scores_z_max = {"bloom_ace2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape" : 1, "cm_mAb_escape" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
     scores_z_min = {"bloom_ace2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape" : 0, "cm_mAb_escape" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}
-    scores_z_mid = {"serum_escape" : 0.5, "mAb_escape" : 0.5, "cm_mAb_escape" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
+    scores_z_mid = {"bloom_ace2" : 0,"VDS" : 0, "serum_escape" : 0.5, "mAb_escape" : 0.5, "cm_mAb_escape" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
+    scores_title = {"bloom_ace2" : "Bloom ACE 2", "VDS" : "VDS","serum_escape" : "Serum Escape", "mAb_escape" : "mAb Escape", "cm_mAb_escape" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
     anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
     displayed_scores = []
     heatmap = go.Figure()
@@ -665,10 +773,10 @@ def main():
                         'text' : heatmap_text,
                         'texttemplate' : "%{text}",
                         'visible' : False,
-                        "colorscale" : "hot_r",
-                        "colorbar" : dict(title=score), 
+                        "colorscale" : "rdbu",
                         "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score]
+                        "zmax" : scores_z_max[score],
+                        "zmid" : scores_z_mid[score]
                     }))
                 heatmap_all.add_trace(go.Heatmap(
                     {
@@ -678,10 +786,10 @@ def main():
                         'text' : heatmap_all_text,
                         'texttemplate' : "%{text}",
                         'visible' : False,
-                        "colorscale" : "hot_r",
-                        "colorbar" : dict(title=score), 
+                        "colorscale" : "rdbu",
                         "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score]
+                        "zmax" : scores_z_max[score],
+                        "zmid" : scores_z_mid[score]
                     }))
             elif score == "bloom_ace2":
                 heatmap.add_trace(go.Heatmap(
@@ -691,11 +799,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
-                        'visible' : False,
-                        "colorscale" : "hot_r",
-                        "colorbar" : dict(title=score), 
-                        "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score]
+                        'visible' : False, 
                     }))
                 heatmap_all.add_trace(go.Heatmap(
                     {
@@ -705,10 +809,6 @@ def main():
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
                         'visible' : False,
-                        "colorscale" : "RdBu_r",
-                        "colorbar" : dict(title=score), 
-                        "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score]
                     }))
             elif score == "cm_mAb_escape":                
                 heatmap.add_trace(go.Heatmap(
@@ -719,8 +819,7 @@ def main():
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
                         'visible' : True,
-                        "colorscale" : "hot_r",
-                        "colorbar" : dict(title=score), 
+                        "colorscale" : "hot_r", 
                         "zmin" : scores_z_min[score],
                         "zmax" : scores_z_max[score],
                         "zmid" : scores_z_mid[score]
@@ -734,10 +833,30 @@ def main():
                         'texttemplate' : "%{text}",
                         'visible' : True,
                         "colorscale" : "hot_r",
-                        "colorbar" : dict(title=score), 
                         "zmin" : scores_z_min[score],
                         "zmax" : scores_z_max[score],
                         "zmid" : scores_z_mid[score]
+                        }))
+            elif score == "BEC_RES":                
+                heatmap.add_trace(go.Heatmap(
+                    {
+                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
+                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
+                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
+                        'texttemplate' : "%{text}",
+                        'visible' : False,
+                        'colorscale' : "purd_r",
+                        }))
+                heatmap_all.add_trace(go.Heatmap(
+                    {
+                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
+                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
+                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
+                        'texttemplate' : "%{text}",
+                        'visible' : False,
+                        'colorscale' : "purd_r",
                         }))
             else:
                 heatmap.add_trace(go.Heatmap(
@@ -748,8 +867,7 @@ def main():
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
                         'visible' : False,
-                        "colorscale" : "hot_r",
-                        "colorbar" : dict(title=score), 
+                        "colorscale" : "hot_r", 
                         "zmin" : scores_z_min[score],
                         "zmax" : scores_z_max[score],
                         "zmid" : scores_z_mid[score]
@@ -762,8 +880,7 @@ def main():
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
                         'visible' : False,
-                        "colorscale" : "hot_r",
-                        "colorbar" : dict(title=score), 
+                        "colorscale" : "hot_r", 
                         "zmin" : scores_z_min[score],
                         "zmax" : scores_z_max[score],
                         "zmid" : scores_z_mid[score]
@@ -775,7 +892,7 @@ def main():
     heatmap.update_layout(layout)
 
     heatmap_all.update_layout(layout)
-
+    
     trace_list = [True] * len(displayed_scores)
     count = 0
     buttons = []
@@ -783,15 +900,15 @@ def main():
         trace_list = [False] * len(displayed_scores)
         trace_list[count] = True
         buttons.append(dict(
-                        label = score,
+                        label = scores_title[score],
                         method = 'update',
                         args = [
                             {'visible': trace_list},
-                            {'title': dict(text = score, x = 0.5)},
+                            {'title': dict(text = scores_title[score], x = 0.5)},
                             {'yaxes_type' : 'category'}]))
         count += 1
-    heatmap.update_layout(paper_bgcolor = 'rgba(0,0,0,0)')  
-    heatmap_all.update_layout(paper_bgcolor = 'rgba(0,0,0,0)')
+    heatmap.update_layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor = "rgb(246,246,246)")  
+    heatmap_all.update_layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor = "rgb(246,246,246)")
     heatmap.update_layout(
         updatemenus=[
             dict(
@@ -821,9 +938,10 @@ def main():
                 yanchor="top")
                 ])
 
-    heatmap_html = io.to_html(heatmap, full_html = False, include_plotlyjs=False ,config = {'displaylogo': False})
-    heatmap_all_html = io.to_html(heatmap, full_html = False, include_plotlyjs=False ,config = {'displaylogo': False})
-    heatmap_all.show()
+    heatmap_html = offline.plot(heatmap,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+
+    heatmap.write_html(f'{args.output_dir}/plots/mutated_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+    heatmap_all.write_html(f'{args.output_dir}/plots/all_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
     #maybe a blobbogram of median min max and a baseline line? could have a dropdown on the horizontal bar plot to change the data vis style. 
     
     #################### HTML FORMATTING #####################
@@ -832,29 +950,34 @@ def main():
     <html>
         <head>
             <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-            <style>body{ margin:0 100; background:whitesmoke; }</style>
+            <style>body{ margin:0 100; background:white; }</style>
         </head>
         <body>
-            <nav class="navbar navbar-expand-md">
-	            <div class="container-fluid">	    
-		            <div class="collapse navbar-collapse " id="navbarSupportedContent">
-		                <ul class="navbar-nav me-auto order-0 ">
-			                <li class="nav-item">
-			                    <a class="nav-link" href="#"><img src="images/SPEAR_smallest.png" class="img-fluid" alt="Responsive image"></a>
-			                </li>
-		                </ul>
-		                <div class="mx-auto">
-			                <a class="navbar-brand text-center" href="#">SPEAR Summary Report</a>
-		                </div>
-		            </div>
-	            </div>
-	        </nav>
+            <nav class="navbar navbar-light bg-light navbar-expand-md">
+                <div class="navbar-collapse collapse w-100 order-1 order-md-0 dual-collapse2">
+                    <ul class="navbar-nav mr-auto">
+                        <li class="nav-item active">
+                            <a class="nav-link" href="#"><img src="images/SPEAR_smallest.png" class="img-fluid" alt="Responsive image"></a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="mx-auto order-0">
+                    <a class="navbar-brand text-center" href="#"><span class="mb-0 h1">Summary Report</span></a>
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".dual-collapse2">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+                <div class="navbar-collapse collapse w-100 order-3 dual-collapse2">
+                    <ul class="navbar-nav ml-auto">
+                    </ul>
+                </div>
+            </nav>
             <div class="container-fluid">
                 <div class = "row mt-2">
                     <div class = "col-12">
                         <div class="card">
                             <div class="card-body">
-                            <p class="p1 text-justify">From a total of ''' + str(args.input_samples) + ''' input samples, ''' + str(args.qc_samples) + ''' passed QC and were annotated by SPEAR. A total of ''' + str(total_genomic_variants) + ''' nucleotide variants were identified across all samples, which resulted in  ''' + str(total_residue_variants) + ''' AA missense, deletion or insertions which are listed and evaluated below. </p>
+                            <p class="p1 text-justify">From a total of ''' + args.input_samples + ''' input samples, ''' + args.qc_samples + ''' passed QC and were annotated by SPEAR. A total of ''' + str(total_genomic_variants) + ''' nucleotide variants were identified across all samples, which resulted in ''' + str(total_residue_variants) + ''' AA missense, deletion or insertions which are listed and evaluated below. </p>
                             </div>
                         </div>
                     </div>
@@ -868,7 +991,7 @@ def main():
                                 ''' + variants_table_plt + '''
                                 </div>
                             </div>
-                            <div class="card-footer">TEST TEXT</div>
+                            <div class="card-footer">Genomic variants detected across all samples. Sorted by variant count, use dropdown to sort by genomic position.</div>
                         </div>
                     </div>
                     <div class="col-6">
@@ -879,7 +1002,7 @@ def main():
                                 ''' + residues_table_plt + '''
                                 </div>
                             </div>
-                            <div class="card-footer">TEST TEXT</div>
+                            <div class="card-footer">Amino acid missense, deletion, or insertion mutations across all samples. Sorted by count of mutation, use dropdown to sort by genomic position.</div>
                         </div>
                     </div>
                 </div>
@@ -891,7 +1014,11 @@ def main():
                                 ''' + heatmap_html + '''
                             </div>
                             <div class="card-footer">
-                                The above plot shows a heatmap of all residue positions for which the residue was changed in at least one sample, and the associated score. <a href="https://github.com/m-crown/SPEAR">Explanation of scores</a> <a href="https://github.com/m-crown/SPEAR">Full screen</a>
+                                Summary heatmap of all residue positions for which there is at least one mutation across all samples. 
+                                Individual sample IDs and mutations are plotted on datapoint, for large samples sets these become visible at higher zoom levels.  
+                                Hover text will show z: selected score for sample-residue and sample ID and mutation.  
+                                For a description of these scores see <a href="https://github.com/m-crown/SPEAR#scores">Table 4</a> in the SPEAR README.  
+                                For a full screen view of the current plot see <a href="">here</a>, and for a fullscreen heatmap across all residues (easier comparison between reports), see <a href="">here</a>.
                             </div>
                         </div>
                     </div>
@@ -903,48 +1030,29 @@ def main():
                             <div class="card-body">
                                 ''' + scores_table_plt + '''
                             </div>
+                            <div class = "card-footer">
+                            Summarised sores per sample, cells with values higher than selected baseline are highlighted. 
+                            Selected baseline is always shown in the top row, table is sorted by the cm mAb escape all classes sum column by default, 
+                            the drop down can be used to sort on other scores.  
+                            For a description of these scores see <a href="https://github.com/m-crown/SPEAR/blob/main/docs/Table4.md#spear-score-summary">Table 4</a> in the SPEAR README.<br>
+                            For a full screen view of this table see <a href="">here</a>. Source data used to produce this table can be found in the file spear_score_summary.tsv </br>
                             </div>
                         </div>
                     </div> 
                 </div>       
-                ''' + table_card + '''
-            </div>
-            <!-- Footer -->
-            <footer class="page-footer font-small teal pt-4">
-                <!-- Footer Text -->
+                ''' + table_card + '''    
+
+            <footer class="page-footer font-small teal pt-4 border-top">
                 <div class="container-fluid text-center text-md-left">
-                    <!-- Grid row -->
                     <div class="row">
-                    <!-- Grid column -->
-                    <div class="col-md-6 mt-md-0 mt-3">
-                        <!-- Content -->
+                    <div class="col-md-12 mt-md-0 mt-3">
                         <h5 class="text-uppercase font-weight-bold">Footer text 1</h5>
-                        <p>This report was generated using SPEAR using v0.4.</p>
+                        <p>This report was generated using SPEAR v0.4 version. <a href="https://github.com/m-crown/SPEAR">SPEAR</a> was developed by Matt Crown and Matt Bashton at <a href="https://www.northumbria.ac.uk/">Northumbria University UK</a> from work funded by <a href="https://www.cogconsortium.uk/">COG-UK</a>. Please post bugs, issue and feature requests on <a href="https://github.com/m-crown/SPEAR/issues">GitHub</a>. </p>
                     </div>
-                    <!-- Grid column -->
-                    <hr class="clearfix w-100 d-md-none pb-3">
-
-                    <!-- Grid column -->
-                    <div class="col-md-6 mb-md-0 mb-3">
-
-                        <!-- Content -->
-                        <h5 class="text-uppercase font-weight-bold">Footer text 2</h5>
-                        <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Optio deserunt fuga perferendis modi earum
-                        commodi aperiam temporibus quod nulla nesciunt aliquid debitis ullam omnis quos ipsam, aspernatur id
-                        excepturi hic.</p>
-
                     </div>
-                    <!-- Grid column -->
-
-                    </div>
-                    <!-- Grid row -->
-
-                    </div>
-                    <!-- Footer Text -->
-
-                </footer>
-                <!-- Footer -->
- 
+                </div>
+            </footer>
+        </div>
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
@@ -958,6 +1066,6 @@ def main():
     f.close()
 
     #after all processing is complete, print the table of results. 
-    #console.print(table)
+    console.print(table)
 if __name__ == "__main__":
     main()
