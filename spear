@@ -40,6 +40,12 @@ def main():
         help = "Percentage N cutoff for input sequences. Default 50")
     consensus.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
+    consensus.add_argument('--baseline-scores-file' , metavar='', type = str,
+        help = "Custom baseline scores file for use in summary report")
+    consensus.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
+    consensus.add_argument('--no-product-plot', default=False, action='store_true',
+        help = "Do not produce individual sample product plots (for fastest operation)")   
     consensus.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     consensus.add_argument('output', metavar='output', type=str,
@@ -65,6 +71,12 @@ def main():
         help = "Percentage N cutoff for input sequences. Default 50")
     alignment.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
+    alignment.add_argument('--baseline-scores-file' , metavar='', type = str,
+        help = "Custom baseline scores file for use in summary report")
+    alignment.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
+    alignment.add_argument('--no-product-plot', default=False, action='store_true',
+        help = "Do not produce individual sample product plots (for fastest operation)")        
     alignment.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     alignment.add_argument('output', metavar='output', type=str,
@@ -84,6 +96,12 @@ def main():
         help = "Filter problematic sides with these codes [AB AM HA HH HO IC NA NS NL SS AD BR all]") 
     vcf.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.")
+    vcf.add_argument('--baseline-scores-file' , metavar='', type = str,
+        help = "Custom baseline scores file for use in summary report")
+    vcf.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
+    vcf.add_argument('--no-product-plot', default=False, action='store_true',
+        help = "Do not produce individual sample product plots (for fastest operation)")   
     vcf.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     vcf.add_argument('output', metavar='output', type=str,
@@ -401,6 +419,20 @@ def main():
         else:
             report = True
 
+        if args.baseline_scores_file:
+            baseline_scores = args.baseline_scores
+        else:
+            baseline_scores = f'{SPEAR_PATH}/data/baseline_scores.tsv'
+        if single_sample:
+            input_sample_num = 1
+        else:
+            input_sample_num = len(input_samples)
+        qc_sample_num = len(passing_samples)
+
+        if args.no_product_plot:
+            product_plot = ""
+        else:
+            product_plot = "--product_plots"
 
         config = {
             "input_dir" : indir,
@@ -417,7 +449,14 @@ def main():
             "vcf" : vcf_in,
             "single_sample" : single_sample,
             "allow_ambiguous" : allow_ambiguous,
-            "report": report}
+            "report": report,
+            "images_dir" : f'{SPEAR_PATH}/images',
+            "scripts_dir" : f'{SPEAR_PATH}/bin',
+            "baseline" : args.baseline,
+            "baseline_scores": baseline_scores,
+            "input_sample_num" : input_sample_num,
+            "qc_sample_num" : qc_sample_num,
+            "product_plots" : product_plot}
 
         status = snakemake.snakemake(
                     snakefile, 

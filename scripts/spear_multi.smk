@@ -16,13 +16,15 @@ rule produce_report:
       config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
    shell:
-      """report.py {input.summary} {input.all_samples} {output} 2> {log}"""
+      """summary_report.py {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} 2> {log}"""
 
 rule summarise_vcfs:
    input:
       expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"])
    output:
-      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
+      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
+      config["output_dir"] + "/spear_annotation_summary.tsv",
+      config["output_dir"] + "/spear_score_summary.tsv"
    log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
    shell:
       """convert_format.py {config[output_dir]} {config[data_dir]} --vcf {input} 2> {log}"""
