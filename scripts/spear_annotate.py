@@ -34,7 +34,7 @@ def annotate_s_residues(vcf, data_dir):
             return(ab_escape_fraction)
 
     spear_anno_file = pd.read_hdf(f'{data_dir}/spear_data.h5', "spear_anno_file")
-    spear_anno_file["mod_barns_class_mask_sum_gt0.75"] = spear_anno_file["mod_barns_class_mask_sum_gt0.75"].replace("", -1).astype(int)
+    spear_anno_file["mod_barns_class_mask_sum_gt0.75"] = spear_anno_file["mod_barns_class_mask_sum_gt0.75"].replace(["", np.nan], -1).astype(int)
     
     bloom_escape_all = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_all")
     bloom_escape_class1 = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_class1")
