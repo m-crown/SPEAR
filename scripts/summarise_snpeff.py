@@ -42,6 +42,13 @@ def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, respos_df):
             alt_res = "del" 
         else:
             alt_res = ""
+    elif re.match('p\.[A-Z][0-9]+del$', variant):
+        max_res = int(re.match('p\.[A-Z]([0-9]+)del$', variant)[1])
+        #only give a deletion to positions which are within the deletion range
+        if respos <= max_res:
+            alt_res = "del" 
+        else:
+            alt_res = ""
     elif re.match('p\.[A-Z]+[0-9]+[A-Z\?\*]+|fs', variant):
         alt_residues = re.match('p\.[A-Z]+[0-9]+([A-Z\?\*]+|fs)', variant)[1]
         if alt_residues != "fs":
