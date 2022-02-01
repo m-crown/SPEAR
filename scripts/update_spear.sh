@@ -60,7 +60,7 @@ elif [[ $COMMAND == "all" ]]; then
     wget -q https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip -O ${CONDA_PREFIX}/snpEff_latest_core.zip
     unzip -q -o ${CONDA_PREFIX}/snpEff_latest_core.zip -d ${CONDA_PREFIX}
     rm ${CONDA_PREFIX}/snpEff_latest_core.zip
-    ${CONDA_PREFIX}/snpEff/data
+    mkdir -p ${CONDA_PREFIX}/snpEff/data
     unzip -q -o ${CONDA_PREFIX}/repo/data/NC_045512.2.zip -d ${CONDA_PREFIX}/snpEff/data
     
     # Detect OS
