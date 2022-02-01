@@ -21,10 +21,12 @@ conda env create -q --force -f environment.yml
 conda activate spear
 
 # Download SnpEff and SnpSift
-echo " - Downloading SnpEff and SnpSift"
-wget -q https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip -O snpEff_latest_core.zip
-unzip -q -o snpEff_latest_core.zip
-cp -r snpEff ${CONDA_PREFIX}/
+echo " - Downloading dependencies"
+wget -q https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip -O ${CONDA_PREFIX}/snpEff_latest_core.zip
+unzip -q -o ${CONDA_PREFIX}/snpEff_latest_core.zip -d ${CONDA_PREFIX}
+rm ${CONDA_PREFIX}/snpEff_latest_core.zip
+mkdir -p ${CONDA_PREFIX}/snpEff/data
+unzip -q -o data/NC_045512.2.zip -d ${CONDA_PREFIX}/snpEff/data
 
 # Detect OS
 if [[ ${OSTYPE} == "darwin"* ]]; then
@@ -38,53 +40,28 @@ fi
 
 # OS Dependent download
 if [[ ${OS} = "linux" ]]; then
-    echo " - Downloading UCSC faToVcf"
-    wget -q http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/faToVcf -O faToVcf
-    chmod +x faToVcf
-    cp faToVcf ${CONDA_PREFIX}/bin
-    echo " - Downloading brentp/vcfanno"
-    wget -q https://github.com/brentp/vcfanno/releases/download/v0.3.3/vcfanno_linux64 -O vcfanno
-    chmod +x vcfanno
-    cp vcfanno ${CONDA_PREFIX}/bin
+    wget -q http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/faToVcf -O  ${CONDA_PREFIX}/bin/faToVcf
+    chmod +x  ${CONDA_PREFIX}/bin/faToVcf
+    wget -q https://github.com/brentp/vcfanno/releases/download/v0.3.3/vcfanno_linux64 -O  ${CONDA_PREFIX}/bin/vcfanno
+    chmod +x  ${CONDA_PREFIX}/bin/vcfanno
 elif [[ ${OS} = "macOS" ]]; then
-    echo " - Downloading UCSC faToVcf"
-    wget -q http://hgdownload.cse.ucsc.edu/admin/exe/macOSX.x86_64/faToVcf -O faToVcf
-    chmod +x faToVcf
+    wget -q http://hgdownload.cse.ucsc.edu/admin/exe/macOSX.x86_64/faToVcf -O  ${CONDA_PREFIX}/bin/faToVcf
+    chmod +x  ${CONDA_PREFIX}/bin/faToVcf
     cp faToVcf ${CONDA_PREFIX}/bin
-    echo " - Downloading brentp/vcfanno"
-    wget -q https://github.com/brentp/vcfanno/releases/download/v0.3.3/vcfanno_osx -O vcfanno
-    chmod +x vcfanno
-    cp vcfanno ${CONDA_PREFIX}/bin
+    wget -q https://github.com/brentp/vcfanno/releases/download/v0.3.3/vcfanno_osx -O  ${CONDA_PREFIX}/bin/vcfanno
+    chmod +x  ${CONDA_PREFIX}/bin/vcfanno
 fi
 
 # Download data from GitHub
-echo " - Downloading W-L/ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf"
 mkdir -p ${CONDA_PREFIX}/data
-mkdir -p ProblematicSites_SARS-CoV2
-wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf
-bgzip -f ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz
-tabix -p vcf ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz
-cp ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz ${CONDA_PREFIX}/data
-cp ProblematicSites_SARS-CoV2/problematic_sites_sarsCov2.vcf.gz.tbi ${CONDA_PREFIX}/data
-
-echo " - Downloading jbloomlab/SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv"
-mkdir -p SARS-CoV-2-RBD_DMS/results/single_mut_effects/
-wget -q https://raw.githubusercontent.com/jbloomlab/SARS-CoV-2-RBD_DMS/master/LICENSE.md -O SARS-CoV-2-RBD_DMS/LICENSE.md
-wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv
-cp SARS-CoV-2-RBD_DMS/results/single_mut_effects/single_mut_effects.csv ${CONDA_PREFIX}/data
-
-echo " - Downloading Bloom Escape Calculator (jbloomlab/SARS2_RBD_Ab_escape_maps/{bindingcalculator.py,processed_data/escape_calculator_data.csv}"
-mkdir -p SARS2_RBD_Ab_escape_maps/processed_data/
-wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/LICENSE.txt -O SARS2_RBD_Ab_escape_maps/LICENSE.txt
-wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O SARS2_RBD_Ab_escape_maps/processed_data/escape_calculator_data.csv
-wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/bindingcalculator.py -O SARS2_RBD_Ab_escape_maps/bindingcalculator.py
-cp SARS2_RBD_Ab_escape_maps/bindingcalculator.py $CONDA_PREFIX/bin
-cp SARS2_RBD_Ab_escape_maps/processed_data/escape_calculator_data.csv ${CONDA_PREFIX}/data
-
-echo " - Downloading nataliateruel/data_Spike/vibentropy_occupancy_dmsdata.csv"
-mkdir -p data_Spike/
-wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentropy_occupancy_dmsdata.csv -O data_Spike/vibentropy_occupancy_dmsdata.csv
-cp data_Spike/vibentropy_occupancy_dmsdata.csv ${CONDA_PREFIX}/data
+mkdir -p ${CONDA_PREFIX}/data/ProblematicSites_SARS-CoV2
+wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf
+bgzip -f ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf  ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
+tabix -p vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
+wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O  ${CONDA_PREFIX}/data/single_mut_effects.csv
+wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O ${CONDA_PREFIX}/data/escape_calculator_data.csv
+wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/bindingcalculator.py -O ${CONDA_PREFIX}/bin/bindingcalculator.py
+wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentropy_occupancy_dmsdata.csv -O ${CONDA_PREFIX}/data/vibentropy_occupancy_dmsdata.csv
 
 # Install SPEAR files
 echo " - Installing SPEAR"
@@ -94,12 +71,14 @@ chmod +x scripts/*.py
 cp scripts/* ${CONDA_PREFIX}/bin
 chmod +x spear
 cp spear ${CONDA_PREFIX}/bin
+mkdir -p  ${CONDA_PREFIX}/images
+cp images/* ${CONDA_PREFIX}/images
 
 # Clone SPEAR to conda env
 git clone --quiet https://github.com/m-crown/SPEAR.git ${CONDA_PREFIX}/repo
 
 # Test snpEff is working
-java -Xmx1g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 $CONDA_PREFIX/data/install_vcf.vcf > /dev/null
+java -Xmx1g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -nodownload -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 $CONDA_PREFIX/data/install_vcf.vcf > /dev/null
 
 # Finish up
 echo "To use SPEAR activate the conda enviroment like so:"
