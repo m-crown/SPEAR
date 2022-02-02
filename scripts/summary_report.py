@@ -746,7 +746,6 @@ def main():
     
     anno_merge = pd.merge(respos_df, annotation_summary, left_on = ["product", "residue-position"], right_on = ["description", "respos"], how = "left")
     anno_merge.set_index("residues")
-    anno_merge.to_csv("~/Desktop/anno_merge.csv")
     scores_cols = ["bloom_ace2", "VDS","serum_escape", "mAb_escape", "cm_mAb_escape", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
     scores_z_max = {"bloom_ace2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape" : 1, "cm_mAb_escape" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
     scores_z_min = {"bloom_ace2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape" : 0, "cm_mAb_escape" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}

@@ -19,9 +19,9 @@ dependencies:
   - conda-forge::sed
   - conda-forge::unzip
   - bioconda::grep
-  - plotly::plotly
   - wget
   - conda-forge::pytables
   - pip
   - pip:
     - rich
+    - plotly
