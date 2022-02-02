@@ -158,9 +158,9 @@ def main():
     total_genomic_variants = annotation_summary["compound_nt_var"].nunique()
 
     #for insertions these are annotated as a change on the last ref res !! THINK THIS REGEX NEEDS TO BE USED IN SPEAR ANNOTATION TO CHECK IF REFRES AND ALTRES ARE SAME!!
-    annotation_summary['refres'] = annotation_summary["residues"].str.extract('([A-Z])-*[0-9]+-*[a-zA-Z\*\?]+')
-    annotation_summary['respos'] = annotation_summary["residues"].str.extract('[A-Z]-*([0-9]+)-*[a-zA-Z\*\?]+')
-    annotation_summary['altres'] = annotation_summary["residues"].str.extract('[A-Z]-*[0-9]+-*([a-zA-Z\*\?]+)')
+    annotation_summary['refres'] = annotation_summary["residues"].str.extract('([A-Z\*])-*[0-9]+-*[a-zA-Z\*\?]+')
+    annotation_summary['respos'] = annotation_summary["residues"].str.extract('[A-Z\*]-*([0-9]+)-*[a-zA-Z\*\?]+')
+    annotation_summary['altres'] = annotation_summary["residues"].str.extract('[A-Z\*]-*[0-9]+-*([a-zA-Z\*\?]+)')
 
     #MAKING A COUNT TABLE OF RAW NUCLEOTIDE VARIANTS - USES THE FILTERED ANNO SUMMARY SO DOES NOT INCLUDE REFRES = ALTRES (BUT SHOULD IT?)
     variants_counts_table = annotation_summary[["sample_id","REF","POS", "ALT","compound_nt_var"]].drop_duplicates(["sample_id", "compound_nt_var"])
@@ -443,7 +443,7 @@ def main():
         table_header = '''<table class="table table-responsive text-center table-hover"><tr><td>Sample ID</td><td>Product Plot</td><td>AA Mutations</td></tr>''' #style="width: auto;"
         table_html_string.append(table_header)
         for sample in track(annotation_summary["sample_id"].unique().tolist(), description="Saving per sample mutation plots..."):
-            sample_annotation_summary = annotation_summary.loc[annotation_summary["sample_id"] == sample]
+            sample_annotation_summary = annotation_summary.loc[annotation_summary["sample_id"] == sample].copy()
             sample_annotation_summary["respos"] = sample_annotation_summary["respos"].astype(int)
             merged_sample_occurences = pd.merge(sample_annotation_summary, respos_df, left_on = ["description", "respos"], right_on = ["product", "residue-position"], how = "left")
             prods_in_samples = [x for x in products if x in merged_sample_occurences["product"].unique()]
