@@ -130,7 +130,7 @@ def annotate_residues(vcf, data_dir):
     cols = ['residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
     vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
     all_cols = vcf.columns.tolist()
-    vcf.drop([col for col in all_cols if col not in ['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'AC','AN', 'ANN', 'SUM', "SPEAR" ]], axis = 1, inplace = True)
+    vcf.drop([col for col in all_cols if col not in ["original_index" , '#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'AC','AN', 'ANN', 'SUM', "SPEAR" ]], axis = 1, inplace = True)
     return vcf
 
 def main():
@@ -146,9 +146,11 @@ def main():
     header, vcf, infocols = parse_vcf(args.vcf)
     
     if len(vcf) != 0: #do not add summary if the vcf file is empty.
+        vcf = vcf.rename_axis('original_index').reset_index()
         df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] 
         df = df.replace(np.nan, '', regex=True)
         samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
+        samples["original_index"] = df["original_index"]
         header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'residue | region | domain | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
         df = annotate_residues(df.copy(), args.data_dir)
 
@@ -172,7 +174,8 @@ def main():
         cols.insert(cols.index("FILTER") + 1, "INFO")
         df = df[cols]
         #need to sanity check before concat shape
-        vcf = pd.concat([df, samples],axis=1)
+        vcf = pd.merge(left = df, right = samples, on = "original_index", how = "inner")
+        vcf.drop(columns = ["original_index"], inplace = True, axis = 1)
         write_vcf(header,vcf,args.output_filename)
     else:
         copy(args.vcf, args.output_filename) #copy the empty vcf file so that snakemake sees command completion. 
