@@ -20,7 +20,7 @@ def natural_key(string_):
     """See https://blog.codinghorror.com/sorting-for-humans-natural-sort-order/"""
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
     
-def annotate_s_residues(vcf, data_dir):
+def annotate_residues(vcf, data_dir):
     def extract_df_scores(scores_matrix, respos, altres):
         return(scores_matrix.loc[respos, altres])
 
@@ -150,7 +150,7 @@ def main():
         df = df.replace(np.nan, '', regex=True)
         samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
         header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'residue | region | domain | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
-        df = annotate_s_residues(df.copy(), args.data_dir)
+        df = annotate_residues(df.copy(), args.data_dir)
 
         cols = [e for e in df.columns.to_list() if e not in ("ANN", "SUM", "SPEAR")]
         df = df.groupby(cols, as_index = False).agg({
