@@ -37,7 +37,7 @@ rule split_vcfs:
    log: config["output_dir"] + "/intermediate_output/logs/split/{id}.split.log"
    shell:
       """
-      cat {config[output_dir]}/intermediate_output/vcf_ids.csv | parallel --jobs {threads} 'bcftools view -Ov -c 1 -s {{}} -o {config[output_dir]}/final_vcfs/{{}}.spear.vcf {input}' 2> {log}
+      bcftools view -Ov -c 1 -s {wildcards.id} -o {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf {input} 2> {log}
       """
 
 rule spear_annotate:
@@ -47,7 +47,7 @@ rule spear_annotate:
       config["output_dir"] + "/all_samples.spear.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/spear/spear.log"
    shell:
-      "summarise_snpeff.py {output} {input} {config[data_dir]} ; spear_annotate.py --output_dir {config[output_dir]}/intermediate_output/ {output} {output} {config[data_dir]} 2> {log}"
+      "summarise_snpeff.py {output} {input} {config[data_dir]} ; spear_annotate.py {output} {output} {config[data_dir]} 2> {log}"
 
 rule annotate_variants:
    input:

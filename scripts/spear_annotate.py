@@ -135,8 +135,6 @@ def annotate_residues(vcf, data_dir):
 
 def main():
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--output_dir', metavar='intermediate_output', type=str,
-        help='outdir for sample id file if this option is specified') #ADD A DEFAULT FOR THIS 
     parser.add_argument('output_filename', metavar='spear_vcfs/merged.spear.vcf', type=str,
         help='Filename for SPEAR annotated VCF') #ADD A DEFAULT FOR THIS 
     parser.add_argument('vcf', metavar='path/to/vcf', type = str,
@@ -152,12 +150,6 @@ def main():
         df = vcf.iloc[:,:vcf.columns.get_loc("FORMAT")] 
         df = df.replace(np.nan, '', regex=True)
         samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
-        
-        if args.output_dir:
-            sample_ids = [col for col in samples if col != "FORMAT"] #list of the sample names in the merged vcf - used for splitting multi sample vcfs late in pipeline.  
-            sample_ids_df = pd.DataFrame(sample_ids, columns=["colummn"])
-            sample_ids_df.to_csv(f'{args.output_dir}/vcf_ids.csv', index=False, header = False)
-
         samples["original_index"] = df["original_index"]
         header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'residue | region | domain | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
         df = annotate_residues(df.copy(), args.data_dir)
