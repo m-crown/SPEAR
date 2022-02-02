@@ -57,7 +57,7 @@ def annotate_residues(vcf, data_dir):
     pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
     vcf["respos"] = vcf["residues"].str.extract(pattern).fillna(-1).astype("int")
     vcf["refres"] = vcf["residues"].str.extract(r"([a-zA-Z\*])+[0-9]+")
-    vcf = pd.merge(vcf,spear_anno_file[["ORF", "AA_coordinate","region", "domain", "contact_type", "NAb", "barns_class", "mod_barns_class_mask_sum_gt0.75"]],left_on = ["gene_name", "respos"], right_on = ["ORF","AA_coordinate"],how="left")
+    vcf = pd.merge(vcf,spear_anno_file[["ORF", "AA_coordinate","region", "domain", "contact_type", "NAb", "barns_class", "mod_barns_class_mask_sum_gt0.75", "product"]],left_on = ["product", "respos"], right_on = ["product","AA_coordinate"],how="left")
     vcf["mod_barns_class_mask_sum_gt0.75"] = vcf["mod_barns_class_mask_sum_gt0.75"].replace("", -1).fillna(-1).astype(int)
     bloom_ace2_file["ORF"] = "S"
     vcf = pd.merge(vcf,bloom_ace2_file[["ORF", "mutation", "bind_avg"]], left_on = ["gene_name", "residues"], right_on = ["ORF", "mutation"], how = "left")
