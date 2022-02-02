@@ -65,7 +65,7 @@ def annotate_residues(vcf, data_dir):
     vds["ORF"] = "S"
     vds["mutation_residues"] = vds["wildtype"] + vds["site"].astype("str") + vds["mutation"]
     vcf = pd.merge(vcf, vds[["ORF", "mutation_residues", "mut_VDS"]], left_on = ["gene_name","residues"], right_on = ["ORF", "mutation_residues"], how = "left")
-    vcf["alt_res"] = vcf["residues"].str.extract("[A-Z][0-9]+([A-Z\?\*])")
+    vcf["alt_res"] = vcf["residues"].str.extract("[A-Z\*][0-9]+([A-Z\?\*])")
     
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) , "bloom_escape_all"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: extract_df_scores(bloom_escape_all, x["respos"], x["alt_res"]), axis=1)
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) , "serum_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: extract_df_scores(greaney_serum_escape, x["respos"], x["alt_res"]), axis=1)

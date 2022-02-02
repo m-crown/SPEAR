@@ -79,10 +79,11 @@ def main():
             vcf[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = vcf["SPEAR"].str.split("|", expand = True)
             pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
             vcf["respos"] = vcf["residues"].str.extract(pattern).fillna(-1).astype("int")
-            
+            vcf["refres"] = vcf["residues"].str.extract(r"([A-Z\*])[0-9]+[a-zA-Z\?\*]")
+            vcf["altres"] = vcf["residues"].str.extract(r"[A-Z\*][0-9]+([a-zA-Z\?\*])")
             #replace the per sample bloom calculator scores with contextual per sample scores. 
             bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
-            respos_list = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), "respos"].values.tolist()
+            respos_list = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["altres"]), "respos"].values.tolist()
             vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_RES"]] = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_contextual_bindingcalc_values(respos_list, x["respos"], bindingcalc, "res_ret_esc"), axis=1)
             vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_EF_sample"]] = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_contextual_bindingcalc_values(respos_list, x["respos"], bindingcalc, "escape_fraction"), axis=1)
             vcf["BEC_EF_sample"] = vcf["BEC_EF_sample"].fillna("")
@@ -121,7 +122,8 @@ def main():
             #now getting summary scores 
             #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
             #this regex could be improved/simplified
-            summary_score_dataframe = per_sample_output.loc[((per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) & (per_sample_output["residues"].isin([""]) == False)) | ((per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False) & (per_sample_output["residues"].isin([""]) == False))]
+            summary_score_dataframe = per_sample_output.loc[((per_sample_output["residues"].str.extract("([A-Z\*])[0-9]+[A-Z\*\?]", expand = False) != per_sample_output["residues"].str.extract("[A-Z\*][0-9]+([A-Z\*?])", expand = False)) & (per_sample_output["residues"].isin([""]) == False)) | ((per_sample_output["residues"].str.contains("[A-Z\*][0-9]+[A-Z\*\?]", regex = True) == False) & (per_sample_output["residues"].isin([""]) == False))]
+            summary_score_dataframe.reset_index(inplace = True, drop = True)
             sample_residue_variant_number = len(summary_score_dataframe)
             type_string = df_counts_to_string(consequence_type_counts, dual = False)
             region_counts = summary_score_dataframe.loc[summary_score_dataframe["region"] != "" , ["Gene_Name", "region"]]
