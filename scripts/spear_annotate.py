@@ -54,8 +54,9 @@ def annotate_s_residues(vcf, data_dir):
     vcf = vcf.explode("residues")
     vcf.reset_index(inplace = True)
     
-    pattern = re.compile(r"[a-zA-Z]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
+    pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
     vcf["respos"] = vcf["residues"].str.extract(pattern).fillna(-1).astype("int")
+    vcf["refres"] = vcf["residues"].str.extract(r"([a-zA-Z\*])+[0-9]+")
     vcf = pd.merge(vcf,spear_anno_file[["ORF", "AA_coordinate","region", "domain", "contact_type", "NAb", "barns_class", "mod_barns_class_mask_sum_gt0.75"]],left_on = ["gene_name", "respos"], right_on = ["ORF","AA_coordinate"],how="left")
     vcf["mod_barns_class_mask_sum_gt0.75"] = vcf["mod_barns_class_mask_sum_gt0.75"].replace("", -1).fillna(-1).astype(int)
     bloom_ace2_file["ORF"] = "S"
@@ -64,7 +65,7 @@ def annotate_s_residues(vcf, data_dir):
     vds["ORF"] = "S"
     vds["mutation_residues"] = vds["wildtype"] + vds["site"].astype("str") + vds["mutation"]
     vcf = pd.merge(vcf, vds[["ORF", "mutation_residues", "mut_VDS"]], left_on = ["gene_name","residues"], right_on = ["ORF", "mutation_residues"], how = "left")
-    vcf["alt_res"] = vcf["residues"].str.extract("[A-Z]+[0-9]+([A-Z]+)")
+    vcf["alt_res"] = vcf["residues"].str.extract("[A-Z][0-9]+([A-Z\?\*])")
     
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) , "bloom_escape_all"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: extract_df_scores(bloom_escape_all, x["respos"], x["alt_res"]), axis=1)
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) , "serum_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: extract_df_scores(greaney_serum_escape, x["respos"], x["alt_res"]), axis=1)
@@ -121,10 +122,11 @@ def annotate_s_residues(vcf, data_dir):
 
     vcf["cm_mab_escape"] = vcf[["mAb_class_1_escape","mAb_class_2_escape","mAb_class_3_escape","mAb_class_4_escape"]].mean(axis=1)
 
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_RES"]] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_bindingcalc_values(x["respos"], bindingcalc, "res_ret_esc"), axis=1)
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_EF"]] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_bindingcalc_values(x["respos"], bindingcalc, "escape_fraction"), axis=1)
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["alt_res"]), ["BEC_RES"]] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["alt_res"])].apply(lambda x: get_bindingcalc_values(x["respos"], bindingcalc, "res_ret_esc"), axis=1)
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["alt_res"]), ["BEC_EF"]] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["alt_res"])].apply(lambda x: get_bindingcalc_values(x["respos"], bindingcalc, "escape_fraction"), axis=1)
 
     vcf = vcf.fillna("")
+    vcf.loc[(vcf["refres"] == vcf["alt_res"]), ['region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']] = "" #remove scores from residues with same and alt and ref residue.
     cols = ['residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
     vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
     all_cols = vcf.columns.tolist()
@@ -132,7 +134,6 @@ def annotate_s_residues(vcf, data_dir):
     return vcf
 
 def main():
-    #this is a different approach to this where each residue has spear annotation rather than super concatenated representation. Will still be able to represent the csv in same way but vcf will look slightly different. 
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('output_filename', metavar='spear_vcfs/merged.spear.vcf', type=str,
         help='Filename for SPEAR annotated VCF') #ADD A DEFAULT FOR THIS 

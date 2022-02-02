@@ -77,7 +77,7 @@ def main():
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
             vcf = vcf.explode("SPEAR")
             vcf[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = vcf["SPEAR"].str.split("|", expand = True)
-            pattern = re.compile(r"[a-zA-Z]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
+            pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
             vcf["respos"] = vcf["residues"].str.extract(pattern).fillna(-1).astype("int")
             
             #replace the per sample bloom calculator scores with contextual per sample scores. 
@@ -100,7 +100,7 @@ def main():
             cols = [e for e in final_vcf.columns.to_list() if e not in ("SUM", "SPEAR")]
             final_vcf = final_vcf.groupby(cols, as_index = False).agg({"SUM": set , "SPEAR": list})
             final_vcf["SUM"] = [','.join(map(str, l)) for l in final_vcf['SUM']]
-            final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1])))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
+            final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1])))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
             for col in infocols:
                 final_vcf[col] = col + "=" + final_vcf[col]
             final_vcf['INFO'] = final_vcf[infocols].agg(';'.join, axis=1)
