@@ -1034,8 +1034,8 @@ def main():
                                 Summary heatmap of all residue positions for which there is at least one mutation across all samples. 
                                 Individual sample IDs and mutations are plotted on datapoint, for large samples sets these become visible at higher zoom levels.  
                                 Hover text will show z: selected score for sample-residue and sample ID and mutation.  
-                                For a description of these scores see <a href="https://github.com/m-crown/SPEAR#scores">Table 4</a> in the SPEAR README.  
-                                For a full screen view of the current plot see <a href="">here</a>, and for a fullscreen heatmap across all residues (easier comparison between reports), see <a href="">here</a>.
+                                For a description of these scores see <a href="https://github.com/m-crown/SPEAR#scores">Table 3</a> in the SPEAR README.  
+                                For a full screen view of the current plot see <a href="plots/mutated_residues_heatmap.html">here</a>, and for a fullscreen heatmap across all residues (easier comparison between reports), see <a href="plots/all_residues_heatmap.html">here</a>.
                             </div>
                         </div>
                     </div>
@@ -1052,19 +1052,29 @@ def main():
                             Selected baseline is always shown in the top row, table is sorted by the cm mAb escape all classes sum column by default, 
                             the drop down can be used to sort on other scores.  
                             For a description of these scores see <a href="https://github.com/m-crown/SPEAR/blob/main/docs/Table4.md#spear-score-summary">Table 4</a> in the SPEAR README.<br>
-                            For a full screen view of this table see <a href="">here</a>. Source data used to produce this table can be found in the file spear_score_summary.tsv </br>
+                            For a full screen view of this table see <a href="plots/scores_table.html">here</a>. Source data used to produce this table can be found in the file spear_score_summary.tsv </br>
                             </div>
                         </div>
                     </div> 
                 </div>       
                 ''' + table_card + '''    
 
-            <footer class="page-footer font-small teal pt-4 border-top">
-                <div class="container-fluid text-center text-md-left">
+            <footer class="page-footer font-small teal pt-4 border mt-2 mb-2">
+                <div class="container-fluid">
                     <div class="row">
-                    <div class="col-md-12 mt-md-0 mt-3">
-                        <h5 class="text-uppercase font-weight-bold">Footer text 1</h5>
-                        <p>This report was generated using SPEAR v0.4 version. <a href="https://github.com/m-crown/SPEAR">SPEAR</a> was developed by Matt Crown and Matt Bashton at <a href="https://www.northumbria.ac.uk/">Northumbria University UK</a> from work funded by <a href="https://www.cogconsortium.uk/">COG-UK</a>. Please post bugs, issue and feature requests on <a href="https://github.com/m-crown/SPEAR/issues">GitHub</a>. </p>
+                        <div class="col-4 text-left">
+                            <p> Generated On: ''' + report_date + '''</p>
+                        </div>
+                        <div class="col-4 text-center">
+                            <p> SPEAR Version 0.5.0 </p>
+                        </div>
+                        <div class="col-4 text-right">
+                            <p></p>
+                        </div>
+                    </div>                   
+                    <div class="row">
+                    <div class="col-md-12 mt-md-0 mt-3 text-center">
+                        <p><a href="https://github.com/m-crown/SPEAR">SPEAR</a> was developed by Matt Crown and Matt Bashton at <a href="https://www.northumbria.ac.uk/">Northumbria University UK</a> from work funded by <a href="https://www.cogconsortium.uk/">COG-UK</a>. Please post bugs, issue and feature requests on <a href="https://github.com/m-crown/SPEAR/issues">GitHub</a>. </p>
                     </div>
                     </div>
                 </div>
