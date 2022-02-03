@@ -430,6 +430,13 @@ def main():
 
     #MAKING THE INTERACTIVE PLOTS:
     
+    scores_cols = ["bloom_ace2", "VDS","serum_escape", "mAb_escape", "cm_mAb_escape", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
+    scores_z_max = {"bloom_ace2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape" : 1, "cm_mAb_escape" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
+    scores_z_min = {"bloom_ace2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape" : 0, "cm_mAb_escape" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}
+    scores_z_mid = {"bloom_ace2" : 0,"VDS" : 0, "serum_escape" : 0.5, "mAb_escape" : 0.5, "cm_mAb_escape" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
+    scores_title = {"bloom_ace2" : "Bloom ACE 2", "VDS" : "VDS","serum_escape" : "Serum Escape", "mAb_escape" : "mAb Escape", "cm_mAb_escape" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
+    scores_color_scales = {"bloom_ace2" : "plasma", "VDS" : "rdbu","serum_escape" : "hot_r", "mAb_escape" : "hot_r", "cm_mAb_escape" : "hot_r", "mAb_escape_class_1" : "hot_r", "mAb_escape_class_2": "hot_r", "mAb_escape_class_3": "hot_r", "mAb_escape_class_4": "hot_r", "BEC_RES" : "purd_r"}
+
     respos_df = pd.read_csv(f'{args.data_dir}/product_mapping.csv')
     orf_boxes = []
     orf_labels = []
@@ -477,31 +484,52 @@ def main():
             combo = orf_boxes + lines
             
             sample_orf_plot = go.Figure()
-            sample_orf_plot.add_trace(go.Scatter(
-                x=merged_sample_occurences["position"], 
-                y=merged_sample_occurences["axis_pos"], 
-                text = merged_sample_occurences["residues"],
-                mode = "markers+text", 
-                textposition= merged_sample_occurences["textpos"],
-                hovertemplate = merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["VDS"].fillna("").astype("str") + "</br><extra></extra>"
-                ))
+            for score in scores_cols:
+                if score == "cm_mAb_escape":
+                    visible = True
+                else:
+                    visible = False
+                sample_orf_plot.add_trace(go.Scatter(
+                    {
+                        "x" : merged_sample_occurences["position"], 
+                        "y" : merged_sample_occurences["axis_pos"], 
+                        "text" : merged_sample_occurences["residues"],
+                        "mode" : "markers+text", 
+                        'visible' : visible,
+                        "textposition" :  merged_sample_occurences["textpos"],
+                        "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["VDS"].fillna("").astype("str") + "</br><extra></extra>",
+                        "marker" : {
+                            "size" : 12,
+                            "color" : merged_sample_occurences[score],
+                            "colorbar" : dict(title = ""),
+                            "colorscale" : scores_color_scales[score],
+                            "cmid": scores_z_mid[score],
+                            "cmax": scores_z_max[score],
+                            "cmin": scores_z_min[score],
+                            "line" : {"width" : 2 , "color": 'DarkSlateGrey'}
+                        }
+                    }))
 
-            sample_orf_plot.update_traces(
-                marker={
-                    "size" : 12,
-                    "color" : merged_sample_occurences["VDS"],
-                    "colorbar" : dict(title = "VDS"),
-                    "line" : {"width" : 2 , "color": 'DarkSlateGrey'}
-                    },
-                selector=dict(mode='markers+text'))
+            buttons = []
+            trace_list = [True] * len(scores_cols)
+            count = 0
+            for score in scores_cols:
+                trace_list = [False] * len(scores_cols)
+                trace_list[count] = True
+                buttons.append(dict(
+                        label = scores_title[score],
+                        method = 'update',
+                        args = [
+                            {'visible': trace_list}]))
+                count += 1
             sample_orf_plot.update_layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',xaxis=dict(showgrid=False, showline = False, zeroline = False),yaxis=dict(showgrid=False, showline = False, zeroline = False)) #title_text='WHAT SHOULD THIS TITLE BE ? ', title_x=0.5, 
             sample_orf_plot.update_layout(
                 annotations = orf_labels,
                 shapes = combo, 
-                title= {"text" : f'{sample} Product Plot'},
+                title= {"text" : f'{sample} Product Plot', "x" : 0.5},
                 xaxis = {"range" : [0,10000], "fixedrange" : True, "showticklabels" : False, "showgrid" : False},
                 yaxis = {"range" : [-14,18], "fixedrange" : True, "showticklabels" : False, "showgrid" : False})
-
+            
             # Add dropdown
             sample_orf_plot.update_layout(
                 updatemenus=[
@@ -509,16 +537,16 @@ def main():
                         buttons=list([
                             dict(
                                 args=["mode", "markers+text"],
-                                label="Show text",
+                                label="Marker + mutation",
                                 method="restyle"),
                             dict(
                                 args=["mode", "markers"],
-                                label="Hide text",
+                                label="Marker only",
                                 method="restyle"
                             ),
                             dict(
                                 args=["mode", "text"],
-                                label="Text only",
+                                label="Mutation only",
                                 method="restyle"
                             ),
                         ]),
@@ -527,20 +555,20 @@ def main():
                         direction="down",
                         pad={"r": 10, "t": 10},
                         showactive=True,
-                        x=0.1,
+                        x=0.16,
                         xanchor="left",
-                        y=1.08,
+                        y=1.075,
                         yanchor="top"
                     ),
                     dict(
                         buttons=list([
                             dict(
                                 args=[{"shapes" : combo}],
-                                label="Show shapes",
+                                label="Show lines",
                                 method="relayout"),
                             dict(
                                 args=[{"shapes" : orf_boxes}],
-                                label="Hide shapes",
+                                label="Hide lines",
                                 method="relayout"),
                         ]),
                         active = 0,
@@ -548,115 +576,21 @@ def main():
                         direction="down",
                         pad={"r": 10, "t": 10},
                         showactive=True,
-                        x=0.2,
+                        x=0.01,
                         xanchor="left",
-                        y=1.08,
+                        y=1.075,
                         yanchor="top"
                     ),
                     dict(
-                        buttons=list([
-                            dict(
-                                args=[
-                                {"marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["VDS"],
-                                        "colorbar" : dict(title = "VDS"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}},
-                                "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["VDS"].fillna("").astype("str") + "</br><extra></extra>"}],
-                                label="VDS",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["bloom_ace2"],
-                                        "colorbar" : dict(title = "Bloom ACE2 Score"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}},
-                                "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["bloom_ace2"].fillna("").astype("str") + "</br><extra></extra>"}],
-                                label="Bloom ACE 2",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["serum_escape"],
-                                        "colorbar" : dict(title = "Serum Escape"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}},
-                                    "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["serum_escape"].fillna("").astype("str") + "</br><extra></extra>"}],
-                                label="Serum Escape",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["mAb_escape"],
-                                        "colorbar" : dict(title = "mAb Escape All Classes"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
-                                label="mAb Escape All Classes",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["cm_mAb_escape"],
-                                        "colorbar" : dict(title = "Class Masked mAb Escape All Classes"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
-                                label="Class Masked mAb Escape All Classes",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["mAb_escape_class_1"],
-                                        "colorbar" : dict(title = "mAb Escape Class 1"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
-                                label="Class Masked mAb Escape All Classes",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["mAb_escape_class_2"],
-                                        "colorbar" : dict(title = "mAb Escape Class 2"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
-                                label="mAb Escape Class 2",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["mAb_escape_class_3"],
-                                        "colorbar" : dict(title = "mAb Escape Class 3"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
-                                label="mAb Escape Class 3",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["mAb_escape_class_4"],
-                                        "colorbar" : dict(title = "mAb Escape Class 4"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
-                                label="mAb Escape Class 4",
-                                method="restyle"),
-                            dict(
-                                args = [{
-                                    "marker" : {
-                                        "size" : 12,
-                                        "color" : merged_sample_occurences["BEC_RES"],
-                                        "colorbar" : dict(title = "BEC RES"),
-                                        "line" : {"width" : 2 , "color": 'DarkSlateGrey'}}}],
-                                label="BEC RES",
-                                method="restyle"),
-                        ]),
-                        active = 0,
+                        buttons= buttons,
+                        active = scores_cols.index("cm_mAb_escape"),
                         bgcolor = "white",
                         direction="down",
                         pad={"r": 10, "t": 10},
                         showactive=True,
-                        x=0.3,
+                        x=0.16,
                         xanchor="left",
-                        y=1.08,
+                        y=1.01,
                         yanchor="top"
                     ),
                     dict(
@@ -669,13 +603,13 @@ def main():
                                 method="relayout"),
                             dict(
                                 args = [
-                                    {"xaxis" : {"range" :[7000,8400], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[3.3,14], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
+                                    {"xaxis" : {"range" :[7000,8400], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[3.3,16], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
                                 ],
                                 label="Spike Protein",
                                 method="relayout"),
                             dict(
                                 args = [
-                                    {"xaxis" : {"range" :[8658,9719], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[3.3,14], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
+                                    {"xaxis" : {"range" :[8658,9719], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[3.3,16], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
                                 ],
                                 label="Structural (non-Spike)",
                                 method="relayout"),
@@ -687,14 +621,14 @@ def main():
                                 method="relayout"),
                             dict(
                                 args = [
-                                    {"xaxis" : {"range" :[0,4393], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[-9,9], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}},
+                                    {"xaxis" : {"range" :[0,4393], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[-12,12], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}},
                                     {"annotations" : {"font" : {"size" : 50}}}
                                 ],
                                 label="pp1a",
                                 method="relayout"),
                             dict(
                                 args = [
-                                    {"xaxis" : {"range" :[4394,7109], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[-9,9], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
+                                    {"xaxis" : {"range" :[4394,7109], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}, "yaxis" : {"range" :[-12,12], "fixedrange" : True, "showticklabels" : False, "showgrid" : False}}
                                 ],
                                 label="pp1ab only",
                                 method="relayout"),
@@ -704,16 +638,17 @@ def main():
                         direction="down",
                         pad={"r": 10, "t": 10},
                         showactive=True,
-                        x=0.4,
+                        x=0.01,
                         xanchor="left",
-                        y=1.08,
+                        y=1.01,
                         yanchor="top"
                     ),
                 ]
             )
+
             sample_orf_plot.write_html(f'{args.output_dir}/plots/product_plots/{sample}_product_plot.html', include_plotlyjs = f'../plotly/plotly-2.8.3.min.js')
             sample_total_variants = merged_sample_occurences["residues"].count()
-            sample_table_row = f'<tr><td>{sample}</td><td><a href="{args.output_dir}/plots/product_plots/{sample}_product_plot.html">{sample} Product Plot</a></td><td>{sample_total_variants}</td>'
+            sample_table_row = f'<tr><td>{sample}</td><td><a href="plots/product_plots/{sample}_product_plot.html">{sample} Product Plot</a></td><td>{sample_total_variants}</td>'
             table_html_string.append(sample_table_row)
         table_html_string.append("</table>")
         table_html_string = "".join(table_html_string)
@@ -746,11 +681,6 @@ def main():
     
     anno_merge = pd.merge(respos_df, annotation_summary, left_on = ["product", "residue-position"], right_on = ["description", "respos"], how = "left")
     anno_merge.set_index("residues")
-    scores_cols = ["bloom_ace2", "VDS","serum_escape", "mAb_escape", "cm_mAb_escape", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
-    scores_z_max = {"bloom_ace2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape" : 1, "cm_mAb_escape" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
-    scores_z_min = {"bloom_ace2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape" : 0, "cm_mAb_escape" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}
-    scores_z_mid = {"bloom_ace2" : 0,"VDS" : 0, "serum_escape" : 0.5, "mAb_escape" : 0.5, "cm_mAb_escape" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
-    scores_title = {"bloom_ace2" : "Bloom ACE 2", "VDS" : "VDS","serum_escape" : "Serum Escape", "mAb_escape" : "mAb Escape", "cm_mAb_escape" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
     anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
     displayed_scores = []
     heatmap = go.Figure()
