@@ -10,6 +10,12 @@ from pathlib import Path
 import re
 from shutil import rmtree
 from summarise_snpeff import parse_vcf, write_vcf
+from rich.console import Console
+from rich.table import Table
+from rich.progress import track
+from rich.text import Text
+from rich import box
+import datetime
 
 def main():
     parser = argparse.ArgumentParser('spear')   
@@ -111,19 +117,37 @@ def main():
         help="Update option : spear, all-data or all")
 
     args = parser.parse_args()
+    start_time = datetime.datetime.now()
 
-    print(f'''
-    SPEAR: Systematic ProtEin AnnotatoR v0.3
-    Matt Crown, Matt Bashton 2021-2022
-    ########################################
-    ''')
+    console = Console()
+    #console.rule("[bold red]Chapter 2[/bold red]")
+    grid = Table.grid()
+    grid.add_column(justify = "center")
+    
+    
+    logo = [
+        Text("/\\"), 
+        Text("/  \\"),
+        Text.assemble(("/ "), ("/\\", "red"), (" \\")), 
+        Text.assemble(("/_"), ("/  \\", "red"), ("_\\")), 
+        Text.assemble(("/ ", "red"), ("/\ "), ("\\", "red")), 
+        Text.assemble(("/_", "red"), ("/  \\"), ("_\\", "red")), 
+        Text("/    \\"), 
+        Text("/_    _\\"),
+        Text.assemble(("|"), ("|", "red"),("|", "red"), ("|")), 
+        Text.assemble(("|"), ("|", "red"),("|", "red"), ("|")),  
+        Text("SPEAR: Systematic ProtEin AnnotatoR v0.5.0"),
+        Text("Matt Crown, Matt Bashton 2021-2022")]
+    
+    for item in logo:
+        grid.add_row(item)
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
     
     elif args.command not in ["alignment", "consensus", "vcf"]:
         parser.print_help()
-        print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update')")
+        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update')")
         sys.exit(1)
 
     else:
@@ -187,12 +211,13 @@ def main():
                         with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[0].id)
-                print(f'''
-                    Input samples : {len(input_samples)}
-                    Passing samples : {len(passing_samples)}
-                    %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", str(len(input_samples)))
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n, "red")))
+                table.add_row("Incorrect format", str(samples_fail_count))
                 if len(passing_samples) == 1:
                     single_sample = True
                 elif len(passing_samples) == 0:
@@ -212,11 +237,12 @@ def main():
                         passing_samples.append(sample_name)
                     else:
                         samples_fail_chrom_name.append(sample_name)
-                print(f'''
-                    Input samples : {len(input_samples)}
-                    Passing samples : {len(passing_samples)}
-                    Incorrect reference : {len(samples_fail_chrom_name)}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", str(len(input_samples)))
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row("[red]Incorrect reference[/red]", Text(str(len(samples_fail_chrom_name)), "red"))
                 #adding this in pre-emptively for when VCF pre-filtering implemented
                 if len(passing_samples) == 1:
                     single_sample = True
@@ -257,17 +283,17 @@ def main():
                         with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[1].id)
-                #need to integrate no ref count into these stats !!
-                print(f'''
-                    Input samples : {len(input_samples)}
-                    Passing samples : {len(passing_samples)}
-                    %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count + samples_fail_no_ref}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", str(len(input_samples)))
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
+                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count + samples_fail_no_ref),"red"))
                 if len(passing_samples) == 1:
                     single_sample = True
                 elif len(passing_samples) == 0:
-                    print("No samples to process, exiting.")
+                    console.print("[red]No samples to process, exiting.[/red]")
                     sys.exit(1)
         elif os.path.isfile(args.input):
             single_sample = True
@@ -295,14 +321,15 @@ def main():
                     with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
                     passing_samples = [sample_file[0].id]
-                print(f'''
-                    Input samples : 1
-                    Passing samples : {len(passing_samples)}
-                    %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", "1")
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[red]', Text(str(samples_fail_perc_n),"red"))
+                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count), "red"))
                 if len(passing_samples) == 0:
-                    print("No samples to process, exiting.")
+                    console.print("[red]No samples to process, exiting.[/red]")
                     sys.exit(1)
             elif args.command == "vcf":
                 sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
@@ -313,9 +340,9 @@ def main():
                     vcf["#CHROM"] = "NC_045512.2"
                     write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
                     passing_samples = [sample_name]
-                    print(f'Passing samples : {len(passing_samples)}')
+                    console.print(f'[green]Passing samples : {len(passing_samples)}')
                 else:
-                    print("Sample has incorrect CHROM field, exiting.")
+                    console.print("[red]Sample has incorrect CHROM field, exiting.[/red]")
                     sys.exit(1)              
             else:
                 passing_samples = []
@@ -350,12 +377,13 @@ def main():
                     with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
                     passing_samples = [sample_file[1].id]
-                print(f'''
-                    Input samples : 1
-                    Passing samples : {len(passing_samples)}
-                    %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count + samples_fail_no_ref}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", "1")
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
+                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count + samples_fail_no_ref), "red"))
                 if len(passing_samples) == 0:
                     print("No samples to process, exiting.")
                     sys.exit(1)
@@ -363,7 +391,12 @@ def main():
             print("Input is not a file or directory" )
             parser.print_help()
             sys.exit(1)
-        
+        grid.add_row("")
+        grid.add_row(table)
+        console.print(grid)
+        #console.print(table)
+
+
         if args.allowAmbiguous:
             exclude = ""
             allow_ambiguous = "--allowAmbiguous"
@@ -469,7 +502,15 @@ def main():
                     printreason = False)
 
         if status:
-            print("Analysis complete!")
+            end_time = datetime.datetime.now()
+            c = end_time - start_time
+            minutes = int(c.total_seconds() // 60)
+            seconds = c.total_seconds() % 60
+            
+            console.print(f'Analysis complete! {str(len(passing_samples))} samples analysed in {str(minutes)} mins {str(round(seconds,2))} secs. :white_check_mark:')
+            
+            c = end_time - start_time
+
             if not args.tmp:
                 rmtree(f'{args.output}/intermediate_output/')
             return 0
