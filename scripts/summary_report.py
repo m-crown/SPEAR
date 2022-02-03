@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
 
-from re import sub
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import plotly.offline as offline
-import plotly.io as io
 import argparse
 from pathlib import Path
 import numpy as np
 from shutil import copyfile
 from numpy.random import seed
-
 from rich.console import Console
 from rich.table import Table
 from rich.progress import track
-
-#need to pip install -U kaleido
 
 def add_orf_shape(x_min_pos, x_max_pos, product, orf1ab, structural, accessory,product_colours):
     shapes = []
@@ -150,6 +144,7 @@ def main():
     Path(f'{args.output_dir}/plots/product_plots').mkdir(parents=True, exist_ok=True)
     copyfile(f'{args.scripts_dir}/plotly-2.8.3.min.js', f'{args.output_dir}/plots/plotly/plotly-2.8.3.min.js')
     
+    report_date = pd.to_datetime('today').strftime('%Y-%m-%d')
 
     scores_summary = pd.read_csv(f'{args.score_summary}', sep = '\t')
     annotation_summary = pd.read_csv(f'{args.annotation_summary}', sep = '\t')
@@ -333,7 +328,11 @@ def main():
     
     displayed_scores_cols = [score for score in displayed_scores_cols if score in sample_scores.columns.tolist()]
     actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
-    sample_scores = sample_scores.replace("", np.nan).sort_values(by = "cm_mAb_escape_all_classes_sum", ascending = False )
+    if "cm_mAb_escape_all_classes_sum" in sample_scores.columns:
+        sort_col = "cm_mAb_escape_all_classes_sum"
+    else:
+        sort_col = "sample_id"
+    sample_scores = sample_scores.replace("", np.nan).sort_values(by = sort_col, ascending = False)
     sample_scores = pd.concat([baseline_scores.loc[baseline_scores["sample_id"] == args.baseline, displayed_scores_cols], sample_scores])
     sample_scores = sample_scores.reset_index(drop = True)
     #if baseline is also in sample set this can cause problems for the subtraction of a single numpy array from dataframe. Baseline will always be first index value so can fallback on this if multiple matches
@@ -390,7 +389,7 @@ def main():
         updatemenus=[
             dict(
                 buttons=buttons,
-                active = displayed_scores_cols.index("cm_mAb_escape_all_classes_sum"),
+                active = displayed_scores_cols.index(sort_col),
                 direction="down",
                 bgcolor = "white",
                 pad={"r": 10, "t": 10},
@@ -416,7 +415,7 @@ def main():
     console = Console()
     table = Table(show_header=True, header_style="bold magenta")
     for column in sample_scores.columns:
-        table.add_column(column.replace("_"," "), style="dim", width=12)
+        table.add_column(column.replace("_"," "))
     cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours,["rgb(179,205,227)", "lavender"]), False, True)
     for x, y in zip(sample_scores.values, cli_baseline_relative_sample_truths):
         row_value = []
