@@ -16,6 +16,7 @@ from rich.progress import track
 from rich.text import Text
 from rich import box
 import datetime
+import pandas as pd
 
 def main():
     parser = argparse.ArgumentParser('spear')   
@@ -46,7 +47,7 @@ def main():
         help = "Percentage N cutoff for input sequences. Default 50")
     consensus.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
-    consensus.add_argument('--baseline-scores-file' , metavar='', type = str,
+    consensus.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
     consensus.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
@@ -77,7 +78,7 @@ def main():
         help = "Percentage N cutoff for input sequences. Default 50")
     alignment.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
-    alignment.add_argument('--baseline-scores-file' , metavar='', type = str,
+    alignment.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
     alignment.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
@@ -102,7 +103,7 @@ def main():
         help = "Filter problematic sides with these codes [AB AM HA HH HO IC NA NS NL SS AD BR all]") 
     vcf.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.")
-    vcf.add_argument('--baseline-scores-file' , metavar='', type = str,
+    vcf.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
     vcf.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
@@ -126,21 +127,22 @@ def main():
     
     
     logo = [
-        Text("/\\"), 
-        Text("/  \\"),
-        Text.assemble(("/ "), ("/\\", "red"), (" \\")), 
-        Text.assemble(("/_"), ("/  \\", "red"), ("_\\")), 
-        Text.assemble(("/ ", "red"), ("/\ "), ("\\", "red")), 
-        Text.assemble(("/_", "red"), ("/  \\"), ("_\\", "red")), 
-        Text("/    \\"), 
-        Text("/_    _\\"),
-        Text.assemble(("|"), ("|", "red"),("|", "red"), ("|")), 
-        Text.assemble(("|"), ("|", "red"),("|", "red"), ("|")),  
+        Text.assemble(("/\\", "bold")), 
+        Text.assemble(("/  \\", "bold")),
+        Text.assemble(("/ ", "bold"), ("/\\", "bold red"), (" \\", "bold")), 
+        Text.assemble(("/_", "bold"), ("/  \\", "bold red"), ("_\\", "bold")), 
+        Text.assemble(("/ ", "bold red"), ("/\ ", "bold"), ("\\", "bold red")), 
+        Text.assemble(("/_", "bold red"), ("/  \\", "bold"), ("_\\", "bold red")), 
+        Text.assemble(("/    \\", "bold")), 
+        Text.assemble(("/_    _\\", "bold")),
+        Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
+        Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
         Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v0.5.0", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2022", "bold red"))]
     
     for item in logo:
         grid.add_row(item)
+    console.print(grid)
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
@@ -391,10 +393,6 @@ def main():
             print("Input is not a file or directory" )
             parser.print_help()
             sys.exit(1)
-        grid.add_row("")
-        grid.add_row(table)
-        console.print(grid)
-        #console.print(table)
 
 
         if args.allowAmbiguous:
@@ -452,10 +450,71 @@ def main():
         else:
             report = True
 
-        if args.baseline_scores_file:
-            baseline_scores = args.baseline_scores
+        if args.baseline_scores:
+            if os.path.isfile(args.baseline_scores):
+                baseline_scores = args.baseline_scores
+                baseline_df = pd.read_csv(f'{args.baseline_scores}', sep = '\t')
+            else:
+                console.print("Error, user specified baseline scores file not found. Exiting.")
+                sys.exit(1)
         else:
             baseline_scores = f'{SPEAR_PATH}/data/baseline_scores.tsv'
+            baseline_df = pd.read_csv(f'{args.baseline_scores}', sep = '\t')
+
+        scores_cols = [
+            "sample_id",	
+            "total_variants",
+            "total_residue_variants",
+            "consequence_type_variants",
+            "region_residues",
+            "domain_residues",
+            "ACE2_contact_counts",
+            "ACE2_contact_score",
+            "trimer_contact_counts",
+            "trimer_contact_score",
+            "barns_class_variants",
+            "bloom_ACE2_sum",
+            "bloom_ACE2_max",
+            "bloom_ACE2_min",
+            "VDS_sum",
+            "VDS_max",
+            "VDS_min",
+            "serum_escape_sum",
+            "serum_escape_max",
+            "serum_escape_min",
+            "mAb_escape_all_classes_sum",
+            "mAb_escape_all_classes_max",
+            "mAb_escape_all_classes_min",
+            "cm_mAb_escape_all_classes_sum",
+            "cm_mAb_escape_all_classes_max",
+            "cm_mAb_escape_all_classes_min",
+            "mAb_escape_class_1_sum",
+            "mAb_escape_class_1_max",
+            "mAb_escape_class_1_min",
+            "mAb_escape_class_2_sum",
+            "mAb_escape_class_2_max",
+            "mAb_escape_class_2_min",
+            "mAb_escape_class_3_sum",
+            "mAb_escape_class_3_max",
+            "mAb_escape_class_3_min",
+            "mAb_escape_class_4_sum",
+            "mAb_escape_class_4_max",
+            "mAb_escape_class_4_min",
+            "BEC_EF_sample"]
+
+        if baseline_df.columns.tolist() != scores_cols:
+            console.print("Error, baseline scores file format incorrect, are you missing a field from spear_scores_summary.tsv ? Exiting.")
+            sys.exit(1)
+
+
+        if baseline_df["sample_id"].isin([args.baseline]).any():
+            baseline = args.baseline
+        else:
+            console.print("Error, user specified baseline sample not found in baseline file. Exiting.")
+            sys.exit(1)
+
+        
+        
         if single_sample:
             input_sample_num = 1
         else:
@@ -485,7 +544,7 @@ def main():
             "report": report,
             "images_dir" : f'{SPEAR_PATH}/images',
             "scripts_dir" : f'{SPEAR_PATH}/bin',
-            "baseline" : args.baseline,
+            "baseline" : baseline,
             "baseline_scores": baseline_scores,
             "input_sample_num" : input_sample_num,
             "qc_sample_num" : qc_sample_num,
@@ -500,6 +559,8 @@ def main():
                     printdag = args.dag, 
                     cores = args.threads,
                     printreason = False)
+
+        console.print(table)
 
         if status:
             end_time = datetime.datetime.now()
