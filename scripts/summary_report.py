@@ -496,7 +496,7 @@ def main():
                         "mode" : "markers+text", 
                         'visible' : visible,
                         "textposition" :  merged_sample_occurences["textpos"],
-                        "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences["VDS"].fillna("").astype("str") + "</br><extra></extra>",
+                        "hovertemplate" : merged_sample_occurences["residues"] + "<br>" + merged_sample_occurences[score].fillna("").astype("str") + "</br><extra></extra>",
                         "marker" : {
                             "size" : 12,
                             "color" : merged_sample_occurences[score],
@@ -700,6 +700,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"respos"].astype("Int64").astype("str").values.tolist(),
                         'text' : heatmap_text,
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "colorscale" : "rdbu",
                         "name" : "VDS",
@@ -714,6 +715,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"residue-position"].astype("Int64").astype("str").values.tolist(),
                         'text' : heatmap_all_text,
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "colorscale" : "rdbu",
                         "name" : "VDS",
@@ -730,6 +732,7 @@ def main():
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                         "colorscale" : "plasma", 
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False, 
                     }))
                 heatmap_all.add_trace(go.Heatmap(
@@ -740,6 +743,7 @@ def main():
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                         "colorscale" : "plasma",
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                     }))
             elif score == "cm_mAb_escape":                
@@ -750,6 +754,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "colorscale" : "hot_r",
                         "name" : "cm_mAb_escape", 
@@ -764,6 +769,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "colorscale" : "hot_r",
                         "name" : "cm_mAb_escape",
@@ -779,6 +785,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "name" : "BEC_RES",
                         'colorscale' : "purd_r",
@@ -790,6 +797,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "name" : "BEC_RES",
                         'colorscale' : "purd_r",
@@ -802,6 +810,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "colorscale" : "hot_r",
                         "name" : score, 
@@ -816,6 +825,7 @@ def main():
                         'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                         'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                         'texttemplate' : "%{text}",
+                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "colorscale" : "hot_r", 
                         "zmin" : scores_z_min[score],
@@ -827,9 +837,13 @@ def main():
         active = 0 #for buttons set to first button
         heatmap.update_traces(visible = True,
                     selector=dict(name=displayed_scores[0])) #set to first non "sample_id" score col i.e. 1  
+        heatmap_all.update_traces(visible = True,
+                    selector=dict(name=displayed_scores[0])) #set to first non "sample_id" score col i.e. 1  
     else:
         active = displayed_scores.index("cm_mAb_escape")
         heatmap.update_traces(visible = True,
+                    selector=dict(name="cm_mAb_escape"))
+        heatmap_all.update_traces(visible = True,
                     selector=dict(name="cm_mAb_escape"))
     layout = {"title" : dict(text = "Class Masked mAb Escape", x = 0.5), 
         "xaxis" : {"title": "Sample" , "showticklabels" : False, "showgrid" : False},
