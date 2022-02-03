@@ -13,7 +13,7 @@ rule produce_report:
       summary = config["output_dir"] + "/spear_score_summary.tsv",
       all_samples = config["output_dir"] + "/spear_annotation_summary.tsv"
    output:
-      config["output_dir"] + "/report/"
+      config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
    shell:
       """summary_report.py {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} 2> {log}"""
