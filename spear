@@ -136,8 +136,8 @@ def main():
         Text("/_    _\\"),
         Text.assemble(("|"), ("|", "red"),("|", "red"), ("|")), 
         Text.assemble(("|"), ("|", "red"),("|", "red"), ("|")),  
-        Text("SPEAR: Systematic ProtEin AnnotatoR v0.5.0"),
-        Text("Matt Crown, Matt Bashton 2021-2022")]
+        Text("[red]SPEAR: Systematic ProtEin AnnotatoR v0.5.0[/red]"),
+        Text("[red]Matt Crown, Matt Bashton 2021-2022[/red]")]
     
     for item in logo:
         grid.add_row(item)
