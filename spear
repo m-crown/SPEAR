@@ -216,7 +216,7 @@ def main():
                 table.add_column("Count")
                 table.add_row("Input samples", str(len(input_samples)))
                 table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
-                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n, "red")))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
                 table.add_row("Incorrect format", str(samples_fail_count))
                 if len(passing_samples) == 1:
                     single_sample = True
