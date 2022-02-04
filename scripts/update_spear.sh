@@ -96,7 +96,7 @@ elif [[ $COMMAND == "all" ]]; then
     wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentropy_occupancy_dmsdata.csv -O ${CONDA_PREFIX}/data/vibentropy_occupancy_dmsdata.csv
 
     # Install SPEAR files to data/ and bin/
-    cp ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
+    cp -r ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
     cp ${CONDA_PREFIX}/repo/scripts/* ${CONDA_PREFIX}/bin
     chmod +x ${CONDA_PREFIX}/bin/*.sh
     chmod +x ${CONDA_PREFIX}/bin/*.py
