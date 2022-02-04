@@ -65,7 +65,7 @@ wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentro
 
 # Install SPEAR files
 echo " - Installing SPEAR"
-cp data/* ${CONDA_PREFIX}/data
+cp -r data/* ${CONDA_PREFIX}/data
 chmod +x scripts/*.sh
 chmod +x scripts/*.py
 cp scripts/* ${CONDA_PREFIX}/bin

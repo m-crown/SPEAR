@@ -10,6 +10,13 @@ from pathlib import Path
 import re
 from shutil import rmtree
 from summarise_snpeff import parse_vcf, write_vcf
+from rich.console import Console
+from rich.table import Table
+from rich.progress import track
+from rich.text import Text
+from rich import box
+import datetime
+import pandas as pd
 
 def main():
     parser = argparse.ArgumentParser('spear')   
@@ -19,11 +26,14 @@ def main():
     alignment = subparsers.add_parser('alignment', help='Run SPEAR on alignment in FASTA format (skip alignment).')  
     vcf = subparsers.add_parser('vcf', help='Run SPEAR on existing VCF file(s) - skip alignment and SNP/indel identification and ambiguous SNP filtering.') 
     update = subparsers.add_parser('update', help='Update [spear,data,all]') 
+    demo = subparsers.add_parser('demo', help='Run SPEAR demo on lineage VCFs') 
 
     consensus.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
     consensus.add_argument('--dag', default=False, action='store_true',
         help = "Display DAG and exit")
+    consensus.add_argument('--no-report', default=False, action='store_true',
+        help = "Do not produce HTML report")
     consensus.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")  
     consensus.add_argument('--extension', metavar = '', type = str,
@@ -38,6 +48,12 @@ def main():
         help = "Percentage N cutoff for input sequences. Default 50")
     consensus.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
+    consensus.add_argument('--baseline_scores' , metavar='', type = str,
+        help = "Custom baseline scores file for use in summary report")
+    consensus.add_argument('--baseline' , metavar='', type = str, default = "BA.1",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
+    consensus.add_argument('--no-product-plot', default=False, action='store_true',
+        help = "Do not produce individual sample product plots (for fastest operation)")   
     consensus.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     consensus.add_argument('output', metavar='output', type=str,
@@ -46,7 +62,9 @@ def main():
     alignment.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
     alignment.add_argument('--dag', default=False, action='store_true',
-        help = "Display DAG and exit")  
+        help = "Display DAG and exit")
+    alignment.add_argument('--no-report', default=False, action='store_true',
+        help = "Do not produce HTML report")     
     alignment.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")        
     alignment.add_argument('--extension', metavar = '', type = str,
@@ -61,6 +79,12 @@ def main():
         help = "Percentage N cutoff for input sequences. Default 50")
     alignment.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
+    alignment.add_argument('--baseline_scores' , metavar='', type = str,
+        help = "Custom baseline scores file for use in summary report")
+    alignment.add_argument('--baseline' , metavar='', type = str, default = "BA.1",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
+    alignment.add_argument('--no-product-plot', default=False, action='store_true',
+        help = "Do not produce individual sample product plots (for fastest operation)")        
     alignment.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     alignment.add_argument('output', metavar='output', type=str,
@@ -73,11 +97,19 @@ def main():
     vcf.add_argument('--tmp', default=False, action='store_true',
         help = "Preserve intermediate output files for debugging.")        
     vcf.add_argument('--dag', default=False, action='store_true',
-        help = "Display DAG and exit")        
+        help = "Display DAG and exit")
+    vcf.add_argument('--no-report', default=False, action='store_true',
+        help = "Do not produce HTML report")         
     vcf.add_argument('--mask-problem-sites', metavar = 'AB AM HA', nargs='+', 
         help = "Filter problematic sides with these codes [AB AM HA HH HO IC NA NS NL SS AD BR all]") 
     vcf.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.")
+    vcf.add_argument('--baseline_scores' , metavar='', type = str,
+        help = "Custom baseline scores file for use in summary report")
+    vcf.add_argument('--baseline' , metavar='', type = str, default = "BA.1",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
+    vcf.add_argument('--no-product-plot', default=False, action='store_true',
+        help = "Do not produce individual sample product plots (for fastest operation)")   
     vcf.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     vcf.add_argument('output', metavar='output', type=str,
@@ -85,21 +117,60 @@ def main():
     
     update.add_argument('option', type = str,
         help="Update option : spear, all-data or all")
+    
 
     args = parser.parse_args()
+    start_time = datetime.datetime.now()
 
-    print(f'''
-    SPEAR: Systematic ProtEin AnnotatoR v0.3
-    Matt Crown, Matt Bashton 2021-2022
-    ########################################
-    ''')
+    console = Console()
+    grid = Table.grid()
+    grid.add_column(justify = "center")
+    
+    
+    logo = [
+        Text.assemble(("/\\", "bold")), 
+        Text.assemble(("/  \\", "bold")),
+        Text.assemble(("/ ", "bold"), ("/\\", "bold red"), (" \\", "bold")), 
+        Text.assemble(("/_", "bold"), ("/  \\", "bold red"), ("_\\", "bold")), 
+        Text.assemble(("/ ", "bold red"), ("/\ ", "bold"), ("\\", "bold red")), 
+        Text.assemble(("/_", "bold red"), ("/  \\", "bold"), ("_\\", "bold red")), 
+        Text.assemble(("/    \\", "bold")), 
+        Text.assemble(("/_    _\\", "bold")),
+        Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
+        Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v0.5.0", "bold red")),
+        Text.assemble(("Matt Crown, Matt Bashton 2021-2022", "bold red"))]
+    
+    for item in logo:
+        grid.add_row(item)
+    console.print(grid)
+
+    if args.command == "demo":
+        args.output = "demo_out"
+        args.command = "vcf"
+        args.mask_problem_sites = None
+        args.no_report = None
+        args.baseline_scores = None
+        args.baseline = "BA.1"
+        args.no_product_plot = None
+        args.debug = True
+        args.tmp = False
+        args.dag = None
+        args.threads = 1
+        SPEAR_PATH = os.environ.get('CONDA_PREFIX')
+        args.input = f'{SPEAR_PATH}/data/example_vcfs'
+        args.extension = ".vcf"
+        vcf_in = True
+        args.allowAmbiguous = False
+        args.window = False
+        allow_ambiguous = False
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
-    
-    elif args.command not in ["alignment", "consensus", "vcf"]:
+
+    elif args.command not in ["alignment", "consensus", "vcf", "demo"]:
         parser.print_help()
-        print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update')")
+        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update', 'demo')")
         sys.exit(1)
 
     else:
@@ -157,18 +228,19 @@ def main():
                         samples_fail_perc_n += 1
                     else:
                         Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                        sample_file[0].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].id)
-                        sample_file[0].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].name)
-                        sample_file[0].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].description)
+                        sample_file[0].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].id)
+                        sample_file[0].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].name)
+                        sample_file[0].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].description)
                         with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[0].id)
-                print(f'''
-                    Input samples : {len(input_samples)}
-                    Passing samples : {len(passing_samples)}
-                    %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", str(len(input_samples)))
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
+                table.add_row("Incorrect format", str(samples_fail_count))
                 if len(passing_samples) == 1:
                     single_sample = True
                 elif len(passing_samples) == 0:
@@ -188,11 +260,12 @@ def main():
                         passing_samples.append(sample_name)
                     else:
                         samples_fail_chrom_name.append(sample_name)
-                print(f'''
-                    Input samples : {len(input_samples)}
-                    Passing samples : {len(passing_samples)}
-                    Incorrect reference : {len(samples_fail_chrom_name)}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", str(len(input_samples)))
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row("[red]Incorrect reference[/red]", Text(str(len(samples_fail_chrom_name)), "red"))
                 #adding this in pre-emptively for when VCF pre-filtering implemented
                 if len(passing_samples) == 1:
                     single_sample = True
@@ -227,23 +300,23 @@ def main():
                         samples_fail_no_ref += 1
                     else:
                         Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                        sample_file[1].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].id)
-                        sample_file[1].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].name)
-                        sample_file[1].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].description)
+                        sample_file[1].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].id)
+                        sample_file[1].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].name)
+                        sample_file[1].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].description)
                         with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[1].id)
-                #need to integrate no ref count into these stats !!
-                print(f'''
-                    Input samples : {len(input_samples)}
-                    Passing samples : {len(passing_samples)}
-                    %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count + samples_fail_no_ref}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", str(len(input_samples)))
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
+                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count + samples_fail_no_ref),"red"))
                 if len(passing_samples) == 1:
                     single_sample = True
                 elif len(passing_samples) == 0:
-                    print("No samples to process, exiting.")
+                    console.print("[red]No samples to process, exiting.[/red]")
                     sys.exit(1)
         elif os.path.isfile(args.input):
             single_sample = True
@@ -265,20 +338,21 @@ def main():
                     samples_fail_perc_n += 1   
                 else:
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                    sample_file[0].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].id)
-                    sample_file[0].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].name)
-                    sample_file[0].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].description)
+                    sample_file[0].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].id)
+                    sample_file[0].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].name)
+                    sample_file[0].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].description)
                     with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
                     passing_samples = [sample_file[0].id]
-                print(f'''
-                    Input samples : 1
-                    Passing samples : {len(passing_samples)}
-                    %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", "1")
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[red]', Text(str(samples_fail_perc_n),"red"))
+                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count), "red"))
                 if len(passing_samples) == 0:
-                    print("No samples to process, exiting.")
+                    console.print("[red]No samples to process, exiting.[/red]")
                     sys.exit(1)
             elif args.command == "vcf":
                 sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
@@ -289,9 +363,10 @@ def main():
                     vcf["#CHROM"] = "NC_045512.2"
                     write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
                     passing_samples = [sample_name]
-                    print(f'Passing samples : {len(passing_samples)}')
+                    console.print(f'[green]Passing samples : {len(passing_samples)}')
+                    table = ""
                 else:
-                    print("Sample has incorrect CHROM field, exiting.")
+                    console.print("[red]Sample has incorrect CHROM field, exiting.[/red]")
                     sys.exit(1)              
             else:
                 passing_samples = []
@@ -320,18 +395,19 @@ def main():
                     samples_fail_no_ref += 1
                 else:
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                    sample_file[1].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].id)
-                    sample_file[1].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].name)
-                    sample_file[1].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].description)
+                    sample_file[1].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].id)
+                    sample_file[1].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].name)
+                    sample_file[1].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].description)
                     with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
                     passing_samples = [sample_file[1].id]
-                print(f'''
-                    Input samples : 1
-                    Passing samples : {len(passing_samples)}
-                    %N > {args.cutoff} : {samples_fail_perc_n}
-                    Incorrect format : {samples_fail_count + samples_fail_no_ref}
-                    ''')
+                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+                table.add_column("Samples")
+                table.add_column("Count")
+                table.add_row("Input samples", "1")
+                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
+                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count + samples_fail_no_ref), "red"))
                 if len(passing_samples) == 0:
                     print("No samples to process, exiting.")
                     sys.exit(1)
@@ -339,7 +415,8 @@ def main():
             print("Input is not a file or directory" )
             parser.print_help()
             sys.exit(1)
-        
+
+
         if args.allowAmbiguous:
             exclude = ""
             allow_ambiguous = "--allowAmbiguous"
@@ -390,6 +467,84 @@ def main():
             snakefile = f'{SPEAR_PATH}/bin/spear_single.smk'
         else:
             snakefile = f'{SPEAR_PATH}/bin/spear_multi.smk'
+        if args.no_report == True:
+            report = False
+        else:
+            report = True
+
+        if args.baseline_scores:
+            if os.path.isfile(args.baseline_scores):
+                baseline_scores = args.baseline_scores
+                baseline_df = pd.read_csv(baseline_scores, sep = '\t')
+            else:
+                console.print("Error, user specified baseline scores file not found. Exiting.")
+                sys.exit(1)
+        else:
+            baseline_scores = f'{SPEAR_PATH}/data/baseline_scores.tsv'
+            baseline_df = pd.read_csv(baseline_scores, sep = '\t')
+
+        scores_cols = [
+            "sample_id",	
+            "total_variants",
+            "total_residue_variants",
+            "consequence_type_variants",
+            "region_residues",
+            "domain_residues",
+            "ACE2_contact_counts",
+            "ACE2_contact_score",
+            "trimer_contact_counts",
+            "trimer_contact_score",
+            "barns_class_variants",
+            "bloom_ACE2_sum",
+            "bloom_ACE2_max",
+            "bloom_ACE2_min",
+            "VDS_sum",
+            "VDS_max",
+            "VDS_min",
+            "serum_escape_sum",
+            "serum_escape_max",
+            "serum_escape_min",
+            "mAb_escape_all_classes_sum",
+            "mAb_escape_all_classes_max",
+            "mAb_escape_all_classes_min",
+            "cm_mAb_escape_all_classes_sum",
+            "cm_mAb_escape_all_classes_max",
+            "cm_mAb_escape_all_classes_min",
+            "mAb_escape_class_1_sum",
+            "mAb_escape_class_1_max",
+            "mAb_escape_class_1_min",
+            "mAb_escape_class_2_sum",
+            "mAb_escape_class_2_max",
+            "mAb_escape_class_2_min",
+            "mAb_escape_class_3_sum",
+            "mAb_escape_class_3_max",
+            "mAb_escape_class_3_min",
+            "mAb_escape_class_4_sum",
+            "mAb_escape_class_4_max",
+            "mAb_escape_class_4_min",
+            "BEC_EF_sample"]
+
+        if baseline_df.columns.tolist() != scores_cols:
+            console.print("Error, baseline scores file format incorrect, are you missing a field from spear_scores_summary.tsv ? Exiting.")
+            sys.exit(1)
+
+
+        if baseline_df["sample_id"].isin([args.baseline]).any():
+            baseline = args.baseline
+        else:
+            console.print("Error, user specified baseline sample not found in baseline file. Exiting.")
+            sys.exit(1)
+        
+        if single_sample:
+            input_sample_num = 1
+        else:
+            input_sample_num = len(input_samples)
+        qc_sample_num = len(passing_samples)
+
+        if args.no_product_plot:
+            product_plot = ""
+        else:
+            product_plot = "--product_plots"
 
         config = {
             "input_dir" : indir,
@@ -405,7 +560,17 @@ def main():
             "extension" : extension,
             "vcf" : vcf_in,
             "single_sample" : single_sample,
-            "allow_ambiguous" : allow_ambiguous}
+            "allow_ambiguous" : allow_ambiguous,
+            "report": report,
+            "images_dir" : f'{SPEAR_PATH}/images',
+            "scripts_dir" : f'{SPEAR_PATH}/bin',
+            "baseline" : baseline,
+            "baseline_scores": baseline_scores,
+            "input_sample_num" : input_sample_num,
+            "qc_sample_num" : qc_sample_num,
+            "product_plots" : product_plot}
+
+        console.print(table)
 
         status = snakemake.snakemake(
                     snakefile, 
@@ -418,7 +583,15 @@ def main():
                     printreason = False)
 
         if status:
-            print("Analysis complete!")
+            end_time = datetime.datetime.now()
+            c = end_time - start_time
+            minutes = int(c.total_seconds() // 60)
+            seconds = c.total_seconds() % 60
+            
+            console.print(f'Analysis complete! {str(len(passing_samples))} samples analysed in {str(minutes)} mins {str(round(seconds,2))} secs. :white_check_mark:')
+            
+            c = end_time - start_time
+
             if not args.tmp:
                 rmtree(f'{args.output}/intermediate_output/')
             return 0

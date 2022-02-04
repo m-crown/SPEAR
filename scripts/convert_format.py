@@ -55,7 +55,7 @@ def main():
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerow(sample_summary_cols)
     
-    scores_columns = ["sample_id","total_variants","total_residue_variants", "consequence_type_variants", "region_residues", "domain_residues", "ACE2_contact_counts","ACE2_contact_score","trimer_contact_counts", "trimer_contact_score", "barns_class_variants", "bloom_ACE2_sum", "bloom_ACE2_max", "bloom_ACE2_min" , "VDS_sum","VDS_max","VDS_min", "serum_escape_sum","serum_escape_max","serum_escape_min", "mAb_escape_all_classes_sum","mAb_escape_all_classes_max","mAb_escape_all_classes_min","cm_mAb_escape_all_classes_sum","cm_mAb_escape_all_classes_max","cm_mAb_escape_all_classes_min", "mAb_escape_class_1_sum", "mAb_escape_class_1_max", "mAb_escape_class_1_min", "mAb_escape_class_2_sum","mAb_escape_class_2_max","mAb_escape_class_2_min", "mAb_escape_class_3_sum","mAb_escape_class_3_max","mAb_escape_class_3_min", "mAb_escape_class_4_sum","mAb_escape_class_4_max","mAb_escape_class_4_min", "BEC_RES_sum","BEC_RES_max","BEC_RES_min", "BEC_EF_sample"]
+    scores_columns = ["sample_id","total_variants","total_residue_variants", "consequence_type_variants", "region_residues", "domain_residues", "ACE2_contact_counts","ACE2_contact_score","trimer_contact_counts", "trimer_contact_score", "barns_class_variants", "bloom_ACE2_sum", "bloom_ACE2_max", "bloom_ACE2_min" , "VDS_sum","VDS_max","VDS_min", "serum_escape_sum","serum_escape_max","serum_escape_min", "mAb_escape_all_classes_sum","mAb_escape_all_classes_max","mAb_escape_all_classes_min","cm_mAb_escape_all_classes_sum","cm_mAb_escape_all_classes_max","cm_mAb_escape_all_classes_min", "mAb_escape_class_1_sum", "mAb_escape_class_1_max", "mAb_escape_class_1_min", "mAb_escape_class_2_sum","mAb_escape_class_2_max","mAb_escape_class_2_min", "mAb_escape_class_3_sum","mAb_escape_class_3_max","mAb_escape_class_3_min", "mAb_escape_class_4_sum","mAb_escape_class_4_max","mAb_escape_class_4_min", "BEC_EF_sample"]
     with open(f'{args.output_dir}/spear_score_summary.tsv', 'w') as f_output:
         tsv_output = csv.writer(f_output, delimiter='\t')
         tsv_output.writerow(scores_columns)
@@ -77,12 +77,13 @@ def main():
             vcf["SPEAR"] = vcf["SPEAR"].str.split(",", expand = False)
             vcf = vcf.explode("SPEAR")
             vcf[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ace2", "VDS", "serum_escape", "mAb_escape", "cm_mAb_escape","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = vcf["SPEAR"].str.split("|", expand = True)
-            pattern = re.compile(r"[a-zA-Z]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
+            pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
             vcf["respos"] = vcf["residues"].str.extract(pattern).fillna(-1).astype("int")
-            
+            vcf["refres"] = vcf["residues"].str.extract(r"([A-Z\*])[0-9]+[a-zA-Z\?\*]")
+            vcf["altres"] = vcf["residues"].str.extract(r"[A-Z\*][0-9]+([a-zA-Z\?\*])")
             #replace the per sample bloom calculator scores with contextual per sample scores. 
             bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
-            respos_list = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), "respos"].values.tolist()
+            respos_list = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["altres"]), "respos"].values.tolist()
             vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_RES"]] = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_contextual_bindingcalc_values(respos_list, x["respos"], bindingcalc, "res_ret_esc"), axis=1)
             vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531), ["BEC_EF_sample"]] = vcf.loc[(vcf["Gene_Name"] == "S") & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: get_contextual_bindingcalc_values(respos_list, x["respos"], bindingcalc, "escape_fraction"), axis=1)
             vcf["BEC_EF_sample"] = vcf["BEC_EF_sample"].fillna("")
@@ -100,7 +101,7 @@ def main():
             cols = [e for e in final_vcf.columns.to_list() if e not in ("SUM", "SPEAR")]
             final_vcf = final_vcf.groupby(cols, as_index = False).agg({"SUM": set , "SPEAR": list})
             final_vcf["SUM"] = [','.join(map(str, l)) for l in final_vcf['SUM']]
-            final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1])))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
+            final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1])))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
             for col in infocols:
                 final_vcf[col] = col + "=" + final_vcf[col]
             final_vcf['INFO'] = final_vcf[infocols].agg(';'.join, axis=1)
@@ -120,7 +121,9 @@ def main():
 
             #now getting summary scores 
             #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
-            summary_score_dataframe = per_sample_output.loc[((per_sample_output["residues"].str.extract("([A-Z])[0-9]+[A-Z]", expand = False) != per_sample_output["residues"].str.extract("[A-Z][0-9]+([A-Z])", expand = False)) & (per_sample_output["residues"].isin([""]) == False)) | ((per_sample_output["residues"].str.contains("[A-Z][0-9]+[A-Z]", regex = True) == False) & (per_sample_output["residues"].isin([""]) == False))]
+            #this regex could be improved/simplified
+            summary_score_dataframe = per_sample_output.loc[((per_sample_output["residues"].str.extract("([A-Z\*])[0-9]+[A-Z\*\?]", expand = False) != per_sample_output["residues"].str.extract("[A-Z\*][0-9]+([A-Z\*?])", expand = False)) & (per_sample_output["residues"].isin([""]) == False)) | ((per_sample_output["residues"].str.contains("[A-Z\*][0-9]+[A-Z\*\?]", regex = True) == False) & (per_sample_output["residues"].isin([""]) == False))]
+            summary_score_dataframe.reset_index(inplace = True, drop = True)
             sample_residue_variant_number = len(summary_score_dataframe)
             type_string = df_counts_to_string(consequence_type_counts, dual = False)
             region_counts = summary_score_dataframe.loc[summary_score_dataframe["region"] != "" , ["Gene_Name", "region"]]
@@ -164,7 +167,7 @@ def main():
             if summary_score_dataframe["bloom_ace2"].isin([""]).all():
                 bloom_ace2_sum = ""
                 bloom_ace2_max = ""
-                bloom_ace2_mix = ""
+                bloom_ace2_min = ""
             else:
                 bloom_ace2_sum = summary_score_dataframe["bloom_ace2"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
                 bloom_ace2_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["bloom_ace2"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["bloom_ace2"].replace("", np.nan).astype(float).max())])
@@ -248,16 +251,8 @@ def main():
                 bec_ef_sample_score = ""
             else:
                 bec_ef_sample_score = summary_score_dataframe["BEC_EF_sample"].replace(r'^\s*$', np.nan, regex=True).astype("float").mean()
-            if summary_score_dataframe["BEC_RES"].isin([""]).all():
-                bec_res_score_sum = ""
-                bec_res_score_max = ""
-                bec_res_score_min = ""
-            else:
-                bec_res_score_sum = summary_score_dataframe["BEC_RES"].replace(r'^\s*$', np.nan, regex=True).astype("float").sum()
-                bec_res_score_max = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["BEC_RES"].replace("", np.nan).astype(float).idxmax(), "residues"]),str(summary_score_dataframe["BEC_RES"].replace("", np.nan).astype(float).max())])
-                bec_res_score_min = ":".join([str(summary_score_dataframe.loc[summary_score_dataframe["BEC_RES"].replace("", np.nan).astype(float).idxmin(), "residues"]),str(summary_score_dataframe["BEC_RES"].replace("", np.nan).astype(float).min())])
 
-            scores_list = [sample_name,total_variants,sample_residue_variant_number, type_string, region_string, domain_string,ace2_contacts_sum, ace2_contacts_score, trimer_contacts_sum,trimer_contacts_score, barns_string,bloom_ace2_sum, bloom_ace2_max, bloom_ace2_min, vds_sum, vds_max, vds_min, serum_escape_sum,serum_escape_max,serum_escape_min, mab_escape_all_sum,mab_escape_all_max,mab_escape_all_min,cm_mab_escape_all_sum, cm_mab_escape_all_max, cm_mab_escape_all_min, mab_escape_class_1_sum,mab_escape_class_1_max,mab_escape_class_1_min, mab_escape_class_2_sum,mab_escape_class_2_max,mab_escape_class_2_min, mab_escape_class_3_sum,mab_escape_class_3_max,mab_escape_class_3_min, mab_escape_class_4_sum,mab_escape_class_4_max,mab_escape_class_4_min, bec_res_score_sum,bec_res_score_max,bec_res_score_min, bec_ef_sample_score]
+            scores_list = [sample_name,total_variants,sample_residue_variant_number, type_string, region_string, domain_string,ace2_contacts_sum, ace2_contacts_score, trimer_contacts_sum,trimer_contacts_score, barns_string,bloom_ace2_sum, bloom_ace2_max, bloom_ace2_min, vds_sum, vds_max, vds_min, serum_escape_sum,serum_escape_max,serum_escape_min, mab_escape_all_sum,mab_escape_all_max,mab_escape_all_min,cm_mab_escape_all_sum, cm_mab_escape_all_max, cm_mab_escape_all_min, mab_escape_class_1_sum,mab_escape_class_1_max,mab_escape_class_1_min, mab_escape_class_2_sum,mab_escape_class_2_max,mab_escape_class_2_min, mab_escape_class_3_sum,mab_escape_class_3_max,mab_escape_class_3_min, mab_escape_class_4_sum,mab_escape_class_4_max,mab_escape_class_4_min, bec_ef_sample_score]
             scores_df = pd.DataFrame([scores_list], columns=scores_columns)
             scores_df.to_csv(f'{args.output_dir}/spear_score_summary.tsv', sep = '\t', mode='a', header=False, index = False)
 

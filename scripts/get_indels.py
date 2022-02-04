@@ -147,7 +147,8 @@ def main():
             snps.loc[index[0],["REF"]] = ''.join([item for sublist in snps.loc[[ind for ind in index],["REF"]].values.tolist() for item in sublist])
             snps.loc[index[0],["ALT"]] = ''.join([item for sublist in snps.loc[[ind for ind in index],["ALT"]].values.tolist() for item in sublist])
             snps = snps.drop(index[1:])
-                        
+
+        snps = snps.loc[snps["POS"].astype("int").isin(indels["POS"].astype("int").values.tolist()) == False]              
         fatovcf = pd.concat([indels,snps])
         fatovcf["POS"] = fatovcf["POS"].astype(int)
         fatovcf = fatovcf.sort_values(by = ["POS"], ascending = True)
