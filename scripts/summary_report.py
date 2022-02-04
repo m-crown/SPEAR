@@ -1006,7 +1006,7 @@ def main():
                             Selected baseline is always shown in the top row, table is sorted by the cm mAb escape all classes sum column by default, 
                             the drop down can be used to sort on other scores.  
                             For a description of these scores see <a href="https://github.com/m-crown/SPEAR/blob/main/docs/Table4.md#spear-score-summary">Table 4</a> in the SPEAR README.<br>
-                            For a full screen view of this table see <a href="plots/scores_table.html">here</a>. Source data used to produce this table can be found in the file spear_score_summary.tsv </br>
+                            For a full screen view of this table see <a href="plots/scores_table.html">here</a>. Source data used to produce this table can be found in the file <code>spear_score_summary.tsv</code> </br>
                             </div>
                         </div>
                     </div> 
