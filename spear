@@ -207,9 +207,9 @@ def main():
                         samples_fail_perc_n += 1
                     else:
                         Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                        sample_file[0].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].id)
-                        sample_file[0].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].name)
-                        sample_file[0].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].description)
+                        sample_file[0].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].id)
+                        sample_file[0].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].name)
+                        sample_file[0].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].description)
                         with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[0].id)
@@ -279,9 +279,9 @@ def main():
                         samples_fail_no_ref += 1
                     else:
                         Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                        sample_file[1].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].id)
-                        sample_file[1].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].name)
-                        sample_file[1].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].description)
+                        sample_file[1].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].id)
+                        sample_file[1].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].name)
+                        sample_file[1].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].description)
                         with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[1].id)
@@ -317,9 +317,9 @@ def main():
                     samples_fail_perc_n += 1   
                 else:
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                    sample_file[0].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].id)
-                    sample_file[0].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].name)
-                    sample_file[0].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[0].description)
+                    sample_file[0].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].id)
+                    sample_file[0].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].name)
+                    sample_file[0].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].description)
                     with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
                     passing_samples = [sample_file[0].id]
@@ -343,6 +343,7 @@ def main():
                     write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
                     passing_samples = [sample_name]
                     console.print(f'[green]Passing samples : {len(passing_samples)}')
+                    table = ""
                 else:
                     console.print("[red]Sample has incorrect CHROM field, exiting.[/red]")
                     sys.exit(1)              
@@ -373,9 +374,9 @@ def main():
                     samples_fail_no_ref += 1
                 else:
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                    sample_file[1].id = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].id)
-                    sample_file[1].name = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].name)
-                    sample_file[1].description = re.sub('[^a-zA-Z0-9]', '_', sample_file[1].description)
+                    sample_file[1].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].id)
+                    sample_file[1].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].name)
+                    sample_file[1].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].description)
                     with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
                     passing_samples = [sample_file[1].id]
@@ -453,13 +454,13 @@ def main():
         if args.baseline_scores:
             if os.path.isfile(args.baseline_scores):
                 baseline_scores = args.baseline_scores
-                baseline_df = pd.read_csv(f'{args.baseline_scores}', sep = '\t')
+                baseline_df = pd.read_csv(baseline_scores, sep = '\t')
             else:
                 console.print("Error, user specified baseline scores file not found. Exiting.")
                 sys.exit(1)
         else:
             baseline_scores = f'{SPEAR_PATH}/data/baseline_scores.tsv'
-            baseline_df = pd.read_csv(f'{args.baseline_scores}', sep = '\t')
+            baseline_df = pd.read_csv(baseline_scores, sep = '\t')
 
         scores_cols = [
             "sample_id",	
@@ -512,8 +513,6 @@ def main():
         else:
             console.print("Error, user specified baseline sample not found in baseline file. Exiting.")
             sys.exit(1)
-
-        
         
         if single_sample:
             input_sample_num = 1
@@ -550,6 +549,8 @@ def main():
             "qc_sample_num" : qc_sample_num,
             "product_plots" : product_plot}
 
+        console.print(table)
+
         status = snakemake.snakemake(
                     snakefile, 
                     printshellcmds=False,
@@ -559,8 +560,6 @@ def main():
                     printdag = args.dag, 
                     cores = args.threads,
                     printreason = False)
-
-        console.print(table)
 
         if status:
             end_time = datetime.datetime.now()
