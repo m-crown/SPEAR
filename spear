@@ -117,10 +117,6 @@ def main():
     
     update.add_argument('option', type = str,
         help="Update option : spear, all-data or all")
-
-    demo.add_argument('output', metavar='output', type=str,
-        help='Output directory')
-    #ADD SPEAR DEMO 
     
 
     args = parser.parse_args()
@@ -150,6 +146,7 @@ def main():
     console.print(grid)
 
     if args.command == "demo":
+        args.output = "demo_out"
         args.command = "vcf"
         args.mask_problem_sites = None
         args.no_report = None
