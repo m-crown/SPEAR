@@ -26,6 +26,7 @@ def main():
     alignment = subparsers.add_parser('alignment', help='Run SPEAR on alignment in FASTA format (skip alignment).')  
     vcf = subparsers.add_parser('vcf', help='Run SPEAR on existing VCF file(s) - skip alignment and SNP/indel identification and ambiguous SNP filtering.') 
     update = subparsers.add_parser('update', help='Update [spear,data,all]') 
+    demo = subparsers.add_parser('demo', help='Run SPEAR demo on lineage VCFs') 
 
     consensus.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
@@ -49,7 +50,7 @@ def main():
         help = "Maximum number of flanking N's around deletion, default 2")
     consensus.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    consensus.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
+    consensus.add_argument('--baseline' , metavar='', type = str, default = "BA.1",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
     consensus.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")   
@@ -80,7 +81,7 @@ def main():
         help = "Maximum number of flanking N's around deletion, default 2")
     alignment.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    alignment.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
+    alignment.add_argument('--baseline' , metavar='', type = str, default = "BA.1",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
     alignment.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")        
@@ -105,7 +106,7 @@ def main():
         help = "Max number of threads for snakemake job execution.")
     vcf.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    vcf.add_argument('--baseline' , metavar='', type = str, default = "Omicron",
+    vcf.add_argument('--baseline' , metavar='', type = str, default = "BA.1",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default Omicron")
     vcf.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")   
@@ -117,11 +118,15 @@ def main():
     update.add_argument('option', type = str,
         help="Update option : spear, all-data or all")
 
+    demo.add_argument('output', metavar='output', type=str,
+        help='Output directory')
+    #ADD SPEAR DEMO 
+    
+
     args = parser.parse_args()
     start_time = datetime.datetime.now()
 
     console = Console()
-    #console.rule("[bold red]Chapter 2[/bold red]")
     grid = Table.grid()
     grid.add_column(justify = "center")
     
@@ -144,12 +149,31 @@ def main():
         grid.add_row(item)
     console.print(grid)
 
+    if args.command == "demo":
+        args.command = "vcf"
+        args.mask_problem_sites = None
+        args.no_report = None
+        args.baseline_scores = None
+        args.baseline = "BA.1"
+        args.no_product_plot = None
+        args.debug = True
+        args.tmp = False
+        args.dag = None
+        args.threads = 1
+        SPEAR_PATH = os.environ.get('CONDA_PREFIX')
+        args.input = f'{SPEAR_PATH}/data/example_vcfs'
+        args.extension = ".vcf"
+        vcf_in = True
+        args.allowAmbiguous = False
+        args.window = False
+        allow_ambiguous = False
+
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
-    
-    elif args.command not in ["alignment", "consensus", "vcf"]:
+
+    elif args.command not in ["alignment", "consensus", "vcf", "demo"]:
         parser.print_help()
-        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update')")
+        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update', 'demo')")
         sys.exit(1)
 
     else:
