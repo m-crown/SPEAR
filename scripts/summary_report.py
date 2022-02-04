@@ -353,9 +353,20 @@ def main():
     sample_scores.index.name = "index"
     baseline_relative_sample_colours_df.set_index(sample_scores["sample_id"], drop = False, inplace = True)
     sample_scores[actual_scores_cols] = sample_scores[actual_scores_cols].round(2).fillna("").astype("str")
-
+    
+    labels = {"sample_id" : "Sample ID", 
+    "VDS_sum" : "Vibrational Difference Score",
+    "bloom_ACE2_sum" : "Bloom ACE2",
+    "serum_escape_sum" : "Serum Escape",
+     "mAb_escape_all_classes_sum" : "mAb Escape",
+      "cm_mAb_escape_all_classes_sum" : "Class Masked mAb Escape",
+       "mAb_escape_class_1_sum" : "mAb Escape Class 1",
+        "mAb_escape_class_2_sum": "mAb Escape Class 2",
+        "mAb_escape_class_3_sum": "mAb Escape Class 3",
+          "mAb_escape_class_4_sum": "mAb Escape Class 4",
+          "BEC_EF_sample" : "BEC Escape Factor"}
     scores_table = go.Figure(data=[go.Table(
-        header=dict(values= [col.replace("_", " ") for col in displayed_scores_cols],
+        header=dict(values= [labels[col] for col in displayed_scores_cols],
                     fill_color='paleturquoise',
                     align='center'),
         cells=dict(values= [sample_scores[x] for x in displayed_scores_cols],
@@ -378,7 +389,7 @@ def main():
         sorted_scores = pd.concat([baseline_scores, samples_scores])
         sorted_colours = pd.concat([baseline_colours, samples_colours])
         buttons.append(dict(
-                label = score,
+                label = labels[score],
                 method = 'restyle',
                 args = [
                     {"cells": {
@@ -413,9 +424,9 @@ def main():
     scores_table.write_html(f'{args.output_dir}/plots/scores_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
 
     console = Console()
-    table = Table(show_header=True, header_style="bold magenta")
+    table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary")
     for column in sample_scores.columns:
-        table.add_column(column.replace("_"," "))
+        table.add_column(labels[column])
     cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours,["rgb(179,205,227)", "lavender"]), False, True)
     for x, y in zip(sample_scores.values, cli_baseline_relative_sample_truths):
         row_value = []
@@ -427,15 +438,15 @@ def main():
         table.add_row(*row_value)
 
 
-    #MAKING THE INTERACTIVE PLOTS:
-    
+    #MAKING THE INTERACTIVE PLOTS: 
     scores_cols = ["bloom_ace2", "VDS","serum_escape", "mAb_escape", "cm_mAb_escape", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
     scores_z_max = {"bloom_ace2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape" : 1, "cm_mAb_escape" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
     scores_z_min = {"bloom_ace2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape" : 0, "cm_mAb_escape" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}
     scores_z_mid = {"bloom_ace2" : 0,"VDS" : 0, "serum_escape" : 0.5, "mAb_escape" : 0.5, "cm_mAb_escape" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
-    scores_title = {"bloom_ace2" : "Bloom ACE 2", "VDS" : "VDS","serum_escape" : "Serum Escape", "mAb_escape" : "mAb Escape", "cm_mAb_escape" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
+    scores_title = {"bloom_ace2" : "Bloom ACE2", "VDS" : "Vibrational Difference Score","serum_escape" : "Serum Escape", "mAb_escape" : "mAb Escape", "cm_mAb_escape" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
     scores_color_scales = {"bloom_ace2" : "plasma", "VDS" : "rdbu","serum_escape" : "hot_r", "mAb_escape" : "hot_r", "cm_mAb_escape" : "hot_r", "mAb_escape_class_1" : "hot_r", "mAb_escape_class_2": "hot_r", "mAb_escape_class_3": "hot_r", "mAb_escape_class_4": "hot_r", "BEC_RES" : "purd_r"}
 
+    
     respos_df = pd.read_csv(f'{args.data_dir}/product_mapping.csv')
     orf_boxes = []
     orf_labels = []
@@ -991,7 +1002,7 @@ def main():
                                 ''' + scores_table_plt + '''
                             </div>
                             <div class = "card-footer">
-                            Summarised sores per sample, cells with values higher than selected baseline are highlighted. 
+                            Summarised scores per sample (sum across sample), cells with values higher than selected baseline are highlighted. 
                             Selected baseline is always shown in the top row, table is sorted by the cm mAb escape all classes sum column by default, 
                             the drop down can be used to sort on other scores.  
                             For a description of these scores see <a href="https://github.com/m-crown/SPEAR/blob/main/docs/Table4.md#spear-score-summary">Table 4</a> in the SPEAR README.<br>
