@@ -163,12 +163,14 @@ def main():
     variants_counts_table.columns = ["count"]
     variants_counts_table = variants_counts_table.sort_values("count", axis = 0 , ascending = False)
     variants_counts_table = variants_counts_table.reset_index()
+    variants_counts_table["percentage_samples"] = (variants_counts_table["count"] / int(args.qc_samples)) * 100
+    variants_counts_table["percentage_samples"] = variants_counts_table["percentage_samples"].round(2)
      
     variants_table = go.Figure(data=[go.Table(
-        header=dict(values= ["POS","REF", "ALT", "count"],
+        header=dict(values= ["POS","REF", "ALT", "count", "% Samples"],
                     fill_color='paleturquoise',
                     align='left'),
-        cells=dict(values=[variants_counts_table["REF"], variants_counts_table["POS"], variants_counts_table["ALT"], variants_counts_table["count"]],
+        cells=dict(values=[variants_counts_table["REF"], variants_counts_table["POS"], variants_counts_table["ALT"], variants_counts_table["count"], variants_counts_table["percentage_samples"]],
                    fill_color='lavender',
                    align='left'))
     ])
@@ -266,11 +268,14 @@ def main():
     residues_counts_table_respos["description"] = residues_counts_table_respos["description"].astype("category")
     residues_counts_table_respos["description"] = residues_counts_table_respos["description"].cat.set_categories(products)
     residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["count", "description", "respos"], ascending = False) #default
+    residues_counts_table_respos["percentage_samples"] = (residues_counts_table_respos["count"] / int(args.qc_samples)) * 100
+    residues_counts_table_respos["percentage_samples"] = residues_counts_table_respos["percentage_samples"].round(2)
+
     residues_table = go.Figure(data=[go.Table(
-        header=dict(values=["Product", "Residue", "Count"],
+        header=dict(values=["Product", "Residue", "Count", "% Samples"],
                     fill_color='paleturquoise',
                     align='left'),
-        cells=dict(values=[residues_counts_table_respos["description"], residues_counts_table_respos["residues"], residues_counts_table_respos["count"]],
+        cells=dict(values=[residues_counts_table_respos["description"], residues_counts_table_respos["residues"], residues_counts_table_respos["count"], residues_counts_table_respos["percentage_samples"]],
                    fill_color='lavender',
                    align='left'))
     ])  
