@@ -1047,7 +1047,6 @@ def main():
     </html>'''
     
     copyfile(f'{args.images_dir}/SPEAR_smallest.png', f'{args.output_dir}/images/SPEAR_smallest.png')
-    copyfile(f'{args.images_dir}/GitHub-Mark-Light-64px.png', f'{args.output_dir}/images/GitHub-Mark-Light-32px.png')
     f = open(f'{args.output_dir}/report.html','w')
     f.write(html_string)
     f.close()
