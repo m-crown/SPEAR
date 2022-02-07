@@ -8,7 +8,7 @@
 
 SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of all protein products, in particular, Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape. The aim of SPEAR is to provide a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores at point of sequencing. Functional annotation and effect scoring are derived from protein structure, theoretical simulation, and omics' experiments. 
 
-SPEAR is capable of running on single or multiple input files and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR will annotate and score 1,000 pre-aligned input sequences in ~17 min using a single CPU core and in ~8mins with 4 cores.
+SPEAR is capable of running on single or multiple input files and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR will annotate and score 1,000 pre-aligned input sequences in ~16 min using a single CPU core and in ~9mins with 4 cores.
 
 The SPEAR scoring system identifies both the potential immune escape and reduced ACE2 binding consequences of variants in the Omicron RBD, as well as highlighting the potential increased stability of the open conformation of the Spike protein within Omicron, a more in-depth discussion of these matters can be found in our [preprint](https://doi.org/10.1101/2021.12.14.472622) Teruel _et al_[1].
 
