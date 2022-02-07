@@ -47,7 +47,6 @@ if [[ ${OS} = "linux" ]]; then
 elif [[ ${OS} = "macOS" ]]; then
     wget -q http://hgdownload.cse.ucsc.edu/admin/exe/macOSX.x86_64/faToVcf -O  ${CONDA_PREFIX}/bin/faToVcf
     chmod +x  ${CONDA_PREFIX}/bin/faToVcf
-    cp faToVcf ${CONDA_PREFIX}/bin
     wget -q https://github.com/brentp/vcfanno/releases/download/v0.3.3/vcfanno_osx -O  ${CONDA_PREFIX}/bin/vcfanno
     chmod +x  ${CONDA_PREFIX}/bin/vcfanno
 fi

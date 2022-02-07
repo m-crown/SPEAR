@@ -30,7 +30,7 @@ elif [[ $COMMAND == "all-data" ]]; then
     cd ${CONDA_PREFIX}/repo
     git -C data pull
     cd ${BASE}
-     # Install SPEAR files to data/
+    # Install SPEAR files to data/
     cp ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
 
     # Download data from GitHub
