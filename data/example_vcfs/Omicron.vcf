@@ -1,6 +1,6 @@
 ##fileformat=VCFv4.2
-##reference=testing_MB/muscle/BA_1.muscle.aln:MN908947.3
-##source=faToVcf testing_MB/muscle/BA_1.muscle.aln testing_MB/fatovcf/BA_1.vcf
+##reference=Omicron.muscle.aln:NC_045512.2
+##source=Omicron.muscle.aln Omicron.vcf
 ##contig=<ID=NC_045512.2,length=29903,md5=d11d06b5d1eb1d85c69e341c3c026e08,URL=https://github.com/artic-network/artic-ncov2019/blob/master/primer_schemes/nCoV-2019/V3/nCoV-2019.reference.fasta>
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">

@@ -1,6 +1,6 @@
 ##fileformat=VCFv4.2
-##reference=output2/intermediate_output/muscle/BA_1.muscle.aln:NC_045512.2
-##source=faToVcf output2/intermediate_output/muscle/BA_1.muscle.aln output2/intermediate_output/fatovcf/BA_1.vcf
+##reference=BA.1.1.muscle.aln:NC_045512.2
+##source=BA.1.1.muscle.aln BA.1.1.vcf
 ##contig=<ID=NC_045512.2,length=29903,md5=837a7a2974dd01bd66ab6a4acf830b68,URL=https://github.com/m-crown/SPEAR/blob/main/data/reference.fasta>
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
