@@ -157,7 +157,7 @@ A user supplied sample can be used as baseline by specifying both a `spear_score
 
 ### HTML report
 
-This is an interactive report, with sortable tables of variants, residues, scores, and interactive heatmaps of scores for the Spike protein. An example report can be found [here](https://m-crown.github.io/SPEAR-Reports/spear_reports/example_vcfs/report.html).
+This is an interactive report, with sortable tables of variants, residues, scores, and interactive heatmaps of scores for the Spike protein. An example report can be found [here](https://m-crown.github.io/SPEAR-Reports/spear_reports/example_vcfs/report.html). ORF plots for each individual samples showing mutations placed on to ORFs/products are also found at the bottom of this report. 
 
 ### Column headings for annotation files
 These columns are within both the per sample files and `spear_annotation_summary.tsv`:
