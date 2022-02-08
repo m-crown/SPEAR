@@ -42,8 +42,8 @@ def main():
         help = "Filter problematic sides with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]")     
     consensus.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.") 
-    consensus.add_argument('--allowAmbiguous', default=False, action='store_true',
-        help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
+    #consensus.add_argument('--allowAmbiguous', default=False, action='store_true',
+    #    help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
     consensus.add_argument('--cutoff', metavar = '', type = int , default=50,
         help = "Percentage N cutoff for input sequences. Default 50")
     consensus.add_argument('--window' , metavar='', type = int, default = 2,
@@ -73,8 +73,8 @@ def main():
         help = "Filter problematic sites with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]") 
     alignment.add_argument('--threads' , metavar='', type = int, default = 1,
         help = "Max number of threads for snakemake job execution.")  
-    alignment.add_argument('--allowAmbiguous', default=False, action='store_true',
-        help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
+    #alignment.add_argument('--allowAmbiguous', default=False, action='store_true',
+    #    help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
     alignment.add_argument('--cutoff', metavar = '', type = int , default=50,
         help = "Percentage N cutoff for input sequences. Default 50")
     alignment.add_argument('--window' , metavar='', type = int, default = 2,
@@ -417,12 +417,12 @@ def main():
             sys.exit(1)
 
 
-        if args.allowAmbiguous:
-            exclude = ""
-            allow_ambiguous = "--allowAmbiguous"
-        else:
-            exclude = "-ambiguousToN"
-            allow_ambiguous = ""
+        # if args.allowAmbiguous:
+        #     exclude = ""
+        #     allow_ambiguous = "--allowAmbiguous"
+        # else:
+        exclude = "-ambiguousToN"
+        allow_ambiguous = ""
         problem_sites = args.mask_problem_sites
 
         problem_exc = { 
@@ -434,7 +434,7 @@ def main():
             "IC" : "interspecific_contamination", 
             "NA" : "nanopore_adapter", 
             "NS": "narrow_src", 
-            "NL": "neighbour_linked" , 
+            "NL": "neighbour_linked", 
             "SS": "single_src", 
             "AD": "amplicon_drop_or_primer_artefact", 
             "BR": "back_to_ref"}
