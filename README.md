@@ -142,6 +142,8 @@ A user supplied sample can be used as baseline by specifying both a `spear_score
 
 `--baseline_scores spear_score_summary.tsv --baseline sample_id`
 
+Baseline lineages VCFs, their composition and creation are discussed in [SPEAR-Reports](https://github.com/m-crown/SPEAR-Reports#spear-baseline).
+
 ### Summary and multiple sample files
 * `all_samples.spear.vcf` - a multi sample VCF file with all annotations encoded in VCF format, header describes SPEAR fields.
 * `spear_annotation_summary.tsv` - a tab delimited file for all samples with SPEAR annotation and scores per variant, one row per variant.
