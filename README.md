@@ -84,7 +84,6 @@ options:
   --mask-problem-sites AB AM HA [AB AM HA ...]
                         Filter problematic sides with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]
   --threads             Max number of threads for snakemake job execution.
-  --allowAmbiguous      Toggle whether to exclude ambiguous bases in SNPs and insertions
   --cutoff              Percentage N cutoff for input sequences. Default 50
   --window              Maximum number of flanking N's around deletion, default 2
   --baseline_scores     Custom baseline scores file for use in summary report
