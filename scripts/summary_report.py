@@ -188,7 +188,7 @@ def main():
                 method = 'restyle',
                 args = [
                     {"cells": {
-                        "values": [variants_counts_table["REF"], variants_counts_table["POS"], variants_counts_table["ALT"], variants_counts_table["count"]],
+                        "values": [variants_counts_table["REF"], variants_counts_table["POS"], variants_counts_table["ALT"], variants_counts_table["count"], variants_counts_table["percentage_samples"]],
                         "fill" : dict(color = 'lavender'),
                         "align":'left'
                     }}]))
@@ -293,7 +293,7 @@ def main():
                 method = 'restyle',
                 args = [
                     {"cells": {
-                        "values": [residues_counts_table_respos["description"], residues_counts_table_respos["residues"], residues_counts_table_respos["count"]],
+                        "values": [residues_counts_table_respos["description"], residues_counts_table_respos["residues"], residues_counts_table_respos["count"], residues_counts_table_respos["percentage_samples"]],
                         "fill" : dict(color = 'lavender'),
                         "align":'left'
                     }}]))
