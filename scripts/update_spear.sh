@@ -16,7 +16,7 @@ if [[ $COMMAND == "spear" ]]; then
     cd ${BASE}
 
     # Install SPEAR files to data/ and bin/
-    cp ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
+    cp -r ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
     cp ${CONDA_PREFIX}/repo/scripts/* ${CONDA_PREFIX}/bin
     cp ${CONDA_PREFIX}/repo/images/* ${CONDA_PREFIX}/images
     chmod +x ${CONDA_PREFIX}/bin/*.sh
@@ -31,7 +31,7 @@ elif [[ $COMMAND == "all-data" ]]; then
     git -C data pull
     cd ${BASE}
     # Install SPEAR files to data/
-    cp ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
+    cp -r ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
 
     # Download data from GitHub
     wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf
