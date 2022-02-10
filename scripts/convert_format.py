@@ -101,7 +101,7 @@ def main():
             cols = [e for e in final_vcf.columns.to_list() if e not in ("SUM", "SPEAR")]
             final_vcf = final_vcf.groupby(cols, as_index = False).agg({"SUM": set , "SPEAR": list})
             final_vcf["SUM"] = [','.join(map(str, l)) for l in final_vcf['SUM']]
-            final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1])))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
+            final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1] if re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1] else "")))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
             for col in infocols:
                 final_vcf[col] = col + "=" + final_vcf[col]
             final_vcf['INFO'] = final_vcf[infocols].agg(';'.join, axis=1)

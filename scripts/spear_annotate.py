@@ -162,7 +162,7 @@ def main():
 
         df["ANN"] = [','.join(map(str, l)) for l in df['ANN']]
         df["SUM"] = [','.join(map(str, l)) for l in df['SUM']]
-        df["SPEAR"] = [','.join(map(str, l)) for l in df["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1])))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
+        df["SPEAR"] = [','.join(map(str, l)) for l in df["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1] if re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1] else "")))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
         infocols.append("SPEAR")
         for col in infocols:
             df[col] = col + "=" + df[col]
