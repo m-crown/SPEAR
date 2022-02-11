@@ -7,7 +7,7 @@ channels:
 
 dependencies:
   - bioconda::snakemake-minimal>=6.12
-  - bioconda::muscle
+  - bioconda::muscle=3.8
   - bioconda::bcftools>=1.14
   - conda-forge::pip>=21
   - python>=3.10
