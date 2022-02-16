@@ -12,7 +12,7 @@ rule produce_report:
    input:
       summary = config["output_dir"] + "/spear_score_summary.tsv",
       all_samples = config["output_dir"] + "/spear_annotation_summary.tsv",
-      n_perc = config["output_dir"] + "/intermediate_output/indels/n_perc.csv" if config["vcf"] == False else config["output_dir"] + "/spear_score_summary.tsv"
+      n_perc = config["output_dir"] + "/qc.csv" if config["vcf"] == False else config["output_dir"] + "/spear_score_summary.tsv"
    output:
       config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
@@ -62,6 +62,15 @@ if config["vcf"] != True:
          """
          java -Xmx2g -jar $CONDA_PREFIX/snpEff/snpEff.jar -noShiftHgvs -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 {input} > {output} 2> {log}
          """
+
+rule merge_qc:
+   input:
+      expand(config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv", id=config["samples"])
+   output:
+      qc_file = config["output_dir"] + "/qc.csv"
+   log: config["output_dir"] + "/intermediate_output/logs/qc/qc.log"
+   shell:
+      "mv {input} {config[output_dir]}/qc.csv"
 
 rule get_indels:
    input:

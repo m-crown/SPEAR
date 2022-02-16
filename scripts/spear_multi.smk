@@ -12,7 +12,7 @@ rule produce_report:
    input:
       summary = config["output_dir"] + "/spear_score_summary.tsv",
       all_samples = config["output_dir"] + "/spear_annotation_summary.tsv",
-      n_perc = config["output_dir"] + "/intermediate_output/indels/n_perc.csv" if not config["vcf"] else config["output_dir"] + "/spear_score_summary.tsv"
+      n_perc = config["output_dir"] + "/qc.csv" if config["vcf"] == False else config["output_dir"] + "/spear_score_summary.tsv"
    output:
       config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
@@ -81,6 +81,15 @@ if config["filter"] != True:
       shell:
          "bcftools merge --no-index -m none -o {output} {input} 2> {log}"
 
+rule merge_qc:
+   input:
+      expand(config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv", id=config["samples"])
+   output:
+      qc_file = config["output_dir"] + "/qc.csv"
+   log: config["output_dir"] + "/intermediate_output/logs/qc/qc.log"
+   shell:
+      "cat {input} > {config[output_dir]}/qc.csv"
+
 rule get_indels:
    input:
       vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
@@ -90,7 +99,7 @@ rule get_indels:
       sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
    log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
    shell:
-      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.muscle_aln} NC_045512.2 {output.snps_indels} 2> {log} ; cat {config[output_dir]}/intermediate_output/indels/*.nperc.csv > {config[output_dir]}/intermediate_output/indels/n_perc.csv  2> {log}"
+      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.muscle_aln} NC_045512.2 {output.snps_indels} 2> {log}"
 
 rule filter_problem_sites:
    input: 
