@@ -618,6 +618,7 @@ def main():
 
             if not args.tmp:
                 rmtree(f'{args.output}/intermediate_output/')
+                rmtree(f'{args.output}/input_files/')
             return 0
         return 1
 
