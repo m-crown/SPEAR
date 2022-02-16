@@ -11,6 +11,7 @@ from numpy.random import seed
 from rich.console import Console
 from rich.table import Table
 from rich.progress import track
+import os
 
 def add_orf_shape(x_min_pos, x_max_pos, product, orf1ab, structural, accessory,product_colours):
     shapes = []
@@ -112,10 +113,12 @@ def main():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--product_plots', default=False, action='store_true',
         help = "Output per sample ORF plots.")
+    parser.add_argument('--n_perc', metavar='n_perc.csv', type=str,
+        help='Filename for %N and S gene dropout')
     parser.add_argument('score_summary', metavar='spear_score_summary.tsv', type=str,
         help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS
     parser.add_argument('annotation_summary', metavar='spear_annotation_summary.tsv', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS 
+        help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS
     parser.add_argument('baseline_scores', metavar='baseline.tsv', type=str,
         help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS 
     parser.add_argument('input_samples', metavar='1000', type=str,
@@ -132,6 +135,12 @@ def main():
         help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS
     parser.add_argument('baseline', metavar='Omicron', type=str,
         help='lineage for baseline') #ADD A DEFAULT FOR THIS
+    parser.add_argument('global_n', metavar='0.50', type=float,
+        help='global n max to flag') #ADD A DEFAULT FOR THIS
+    parser.add_argument('s_n', metavar='0.50', type=float,
+        help='spike n max to flag') #ADD A DEFAULT FOR THIS
+    parser.add_argument('s_contig', metavar='300', type=float,
+        help='min n contig to flag in spike') #ADD A DEFAULT FOR THIS
     args = parser.parse_args()
 
     #needs to take as input the conda bin location where plotly js is stored!
@@ -355,22 +364,48 @@ def main():
     sample_id_colours = np.array([['lavender'] * np.shape(baseline_relative_sample_colours)[0]]).T
     baseline_relative_sample_colours = np.append(sample_id_colours, baseline_relative_sample_colours, axis = 1)
     baseline_relative_sample_colours_df = pd.DataFrame(baseline_relative_sample_colours, columns = displayed_scores_cols)
-    sample_scores.set_index("sample_id", drop = False, inplace = True)
-    sample_scores.index.name = "index"
+    
     baseline_relative_sample_colours_df.set_index(sample_scores["sample_id"], drop = False, inplace = True)
     sample_scores[actual_scores_cols] = sample_scores[actual_scores_cols].round(2).fillna("").astype("str")
     
-    labels = {"sample_id" : "Sample ID", 
-    "VDS_sum" : "Vibrational Difference Score",
-    "bloom_ACE2_sum" : "Bloom ACE2",
-    "serum_escape_sum" : "Serum Escape",
-     "mAb_escape_all_classes_sum" : "mAb Escape",
-      "cm_mAb_escape_all_classes_sum" : "Class Masked mAb Escape",
-       "mAb_escape_class_1_sum" : "mAb Escape Class 1",
+    labels = {
+        "sample_id" : "Sample ID", 
+        "VDS_sum" : "Vibrational Difference Score",
+        "bloom_ACE2_sum" : "Bloom ACE2",
+        "serum_escape_sum" : "Serum Escape",
+        "mAb_escape_all_classes_sum" : "mAb Escape",
+        "cm_mAb_escape_all_classes_sum" : "Class Masked mAb Escape",
+        "mAb_escape_class_1_sum" : "mAb Escape Class 1",
         "mAb_escape_class_2_sum": "mAb Escape Class 2",
         "mAb_escape_class_3_sum": "mAb Escape Class 3",
-          "mAb_escape_class_4_sum": "mAb Escape Class 4",
-          "BEC_EF_sample" : "BEC Escape Factor"}
+        "mAb_escape_class_4_sum": "mAb Escape Class 4",
+        "BEC_EF_sample" : "BEC Escape Factor",
+        "displayed_dropout" : "Quality Warnings"}
+
+    #now add in the S gene dropout and Global N percentage columns 
+    #will have to add a colour column to the np color array too baseline_relative_sample_colours_df, add a column to displayed_scores_cols too
+    if os.path.basename(args.n_perc) == "spear_score_summary.tsv":
+        sample_scores["displayed_dropout"] = ""
+    else:
+        n_info = pd.read_csv(args.n_perc, names=["sample_id", "global_n", "s_n", "s_n_contig"])
+        n_info.loc[n_info["s_n_contig"] >= args.s_contig, "s_n_contig_display"] = "!"
+        n_info.loc[n_info["s_n"] >= args.s_n, "s_n_display"] = "#"
+        n_info.loc[n_info["global_n"] >= args.global_n, "global_n_display"] = "*"
+        n_info[["s_n_contig_display", "s_n_display", "global_n_display"]] = n_info[["s_n_contig_display", "s_n_display", "global_n_display"]].fillna("")
+        n_info["displayed_dropout"] = n_info["s_n_contig_display"] +  n_info["s_n_display"] + n_info["global_n_display"]
+        sample_scores_baseline = sample_scores.iloc[0]
+        sample_scores_baseline["displayed_dropout"] = ""
+        sample_scores_samples = sample_scores.iloc[1:]
+        sample_scores_samples = pd.merge(left = sample_scores_samples, right = n_info[["sample_id", "displayed_dropout"]], on = "sample_id", how = "left").fillna("")
+        sample_scores = pd.concat([sample_scores_baseline.to_frame().T, sample_scores_samples])
+    sample_scores.set_index("sample_id", drop = False, inplace = True)
+    sample_scores.index.name = "index"
+
+    n_info_colours = np.where(sample_scores["displayed_dropout"] != "", "rgb(250,180,174)", "rgb(179,205,227)")
+    n_info_colours[0] = "lavender"
+    displayed_scores_cols.append("displayed_dropout")
+    baseline_relative_sample_colours_df["displayed_dropout"] = n_info_colours
+    baseline_relative_sample_colours = np.concatenate([baseline_relative_sample_colours, np.reshape(n_info_colours, (-1,1))], axis = 1)
     scores_table = go.Figure(data=[go.Table(
         header=dict(values= [labels[col] for col in displayed_scores_cols],
                     fill_color='paleturquoise',
@@ -390,7 +425,7 @@ def main():
         baseline_colours = baseline_relative_sample_colours_df.iloc[[0]]
         samples_scores = sample_scores.iloc[1:, :]
         samples_colours = baseline_relative_sample_colours_df.iloc[1:, :]
-        samples_scores = samples_scores.replace("", np.nan).sort_values(by = [score], ascending = asc ).replace(np.nan, "")
+        samples_scores = samples_scores.replace("", np.nan).sort_values(by = score, ascending = asc ).replace(np.nan, "")
         samples_colours = samples_colours.reindex(samples_scores.index)
         sorted_scores = pd.concat([baseline_scores, samples_scores])
         sorted_colours = pd.concat([baseline_colours, samples_colours])
@@ -433,7 +468,7 @@ def main():
     table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary")
     for column in sample_scores.columns:
         table.add_column(labels[column])
-    cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours,["rgb(179,205,227)", "lavender"]), False, True)
+    cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours_df,["rgb(179,205,227)", "lavender"]), False, True)
     for x, y in zip(sample_scores.values, cli_baseline_relative_sample_truths):
         row_value = []
         for (a, b) in zip(x,y):
