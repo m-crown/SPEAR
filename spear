@@ -569,7 +569,7 @@ def main():
         else:
             product_plot = "--product_plots"
 
-        if args.command in ["consensus", "align"]:
+        if args.command in ["consensus", "alignment"]:
             if not args.global_n:
                 args.global_n = (args.cutoff/100) * 0.5
         args.s_contig = int(args.s_contig)
