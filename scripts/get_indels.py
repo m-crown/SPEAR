@@ -96,8 +96,8 @@ def calculate_n_coverage(ref, sample, sample_name, outpath):
         refdiff -= ref_indels
         s_end = 25385 + refdiff
     sample_s = sample.seq[s_start: s_end]
-    global_n_perc = sample.seq.count("N") / (sample.seq.count("A") + sample.seq.count("G") + sample.seq.count("C") + sample.seq.count("T"))
-    s_n_perc = sample_s.count("N") / (sample_s.count("A") + sample_s.count("G") + sample_s.count("C") + sample_s.count("T"))
+    global_n_perc = sample.seq.count("N") / len(sample.seq))
+    s_n_perc = sample_s.count("N") / len(sample_s))
     contig_S_n_len = len(max(re.compile("N+").findall(str(sample_s)),default=""))
     sample_rbd = sample.seq[s_start + (319 * 3): s_start + (541*3)]
     rbd_n_nts = sample_rbd.count("N")

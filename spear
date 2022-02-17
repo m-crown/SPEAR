@@ -52,8 +52,8 @@ def main():
         help = "Minimum percentage of N in S gene to flag as poor coverage. Default 5%.")
     consensus.add_argument('--s_contig', metavar = '', type = float, default = 150,
         help = "Minimum length of contig to flag sample as potential S gene dropout. Default 150nt")
-    consensus.add_argument('--rbd_contig', metavar = '', type = float, default = 18,
-        help = "Minimum length of contig to flag sample as poor RBD coverage. Default 18nt")
+    consensus.add_argument('--rbd_n', metavar = '', type = float, default = 12,
+        help = "Number of N's in sample spike RBD to flag as poor. Default 12nt")
     consensus.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
     consensus.add_argument('--baseline_scores' , metavar='', type = str,
@@ -91,8 +91,8 @@ def main():
         help = "Minimum percentage of N in S gene to flag as poor coverage. Default 5%.")
     alignment.add_argument('--s_contig', metavar = '', type = float, default = 150,
         help = "Minimum length of contig to flag sample as potential S gene dropout. Default 150nt")
-    alignment.add_argument('--rbd_contig', metavar = '', type = float, default = 18,
-        help = "Minimum length of contig to flag sample as poor RBD coverage. Default 18nt")
+    alignment.add_argument('--rbd_n', metavar = '', type = float, default = 12,
+        help = "Number of N's in sample spike RBD to flag as poor. Default 12nt")
     alignment.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
     alignment.add_argument('--baseline_scores' , metavar='', type = str,
@@ -183,7 +183,7 @@ def main():
         args.global_n = 1.0
         args.s_n = 1.0
         args.s_contig = 29903
-        args.rbd_contig = 5000
+        args.rbd_n = 5000
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
@@ -206,7 +206,7 @@ def main():
             args.global_n = 1.0
             args.s_n = 1.0
             args.s_contig = 29903
-            args.rbd_contig = 5000
+            args.rbd_n = 5000
         else:
             vcf_in = False
 
@@ -599,7 +599,7 @@ def main():
             "global_n" : args.global_n,
             "s_n" : args.s_n , 
             "s_contig" : args.s_contig,
-            "rbd_contig" : args.rbd_contig}
+            "rbd_n" : args.rbd_n}
 
         console.print(table)
 
