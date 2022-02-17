@@ -137,10 +137,12 @@ def main():
         help='lineage for baseline') #ADD A DEFAULT FOR THIS
     parser.add_argument('global_n', metavar='0.50', type=float,
         help='global n max to flag') #ADD A DEFAULT FOR THIS
-    parser.add_argument('s_n', metavar='0.50', type=float,
+    parser.add_argument('s_n', metavar='0.05', type=float,
         help='spike n max to flag') #ADD A DEFAULT FOR THIS
-    parser.add_argument('s_contig', metavar='300', type=float,
+    parser.add_argument('s_contig', metavar='150', type=float,
         help='min n contig to flag in spike') #ADD A DEFAULT FOR THIS
+    parser.add_argument('rbd_contig', metavar='18', type=float,
+        help='min n contig to flag in rbd') #ADD A DEFAULT FOR THIS
     args = parser.parse_args()
 
     #needs to take as input the conda bin location where plotly js is stored!
@@ -387,12 +389,13 @@ def main():
     if os.path.basename(args.n_perc) == "spear_score_summary.tsv":
         sample_scores["displayed_dropout"] = ""
     else:
-        n_info = pd.read_csv(args.n_perc, names=["sample_id", "global_n", "s_n", "s_n_contig"])
+        n_info = pd.read_csv(args.n_perc, names=["sample_id", "global_n", "s_n", "s_n_contig", "rbd_n_contig"])
         n_info.loc[n_info["s_n_contig"] >= args.s_contig, "s_n_contig_display"] = "!"
+        n_info.loc[n_info["rbd_n_contig"] >= args.rbd_contig, "rbd_n_contig_display"] = "^"
         n_info.loc[n_info["s_n"] >= args.s_n, "s_n_display"] = "#"
         n_info.loc[n_info["global_n"] >= args.global_n, "global_n_display"] = "*"
-        n_info[["s_n_contig_display", "s_n_display", "global_n_display"]] = n_info[["s_n_contig_display", "s_n_display", "global_n_display"]].fillna("")
-        n_info["displayed_dropout"] = n_info["s_n_contig_display"] +  n_info["s_n_display"] + n_info["global_n_display"]
+        n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_contig_display"]] = n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_contig_display"]].fillna("")
+        n_info["displayed_dropout"] = n_info["s_n_contig_display"] + n_info["rbd_n_contig_display"] + n_info["s_n_display"] + n_info["global_n_display"]
         sample_scores_baseline = sample_scores.iloc[0]
         sample_scores_baseline["displayed_dropout"] = ""
         sample_scores_samples = sample_scores.iloc[1:]

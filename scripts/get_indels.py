@@ -99,10 +99,11 @@ def calculate_n_coverage(ref, sample, sample_name, outpath):
     global_n_perc = sample.seq.count("N") / (sample.seq.count("A") + sample.seq.count("G") + sample.seq.count("C") + sample.seq.count("T"))
     s_n_perc = sample_s.count("N") / (sample_s.count("A") + sample_s.count("G") + sample_s.count("C") + sample_s.count("T"))
     contig_S_n_len = len(max(re.compile("N+").findall(str(sample_s)),default=""))
-    ncov = {"sample" : sample_name , "global_n" : global_n_perc, "s_n" : s_n_perc, "longest_continuous_s_n": contig_S_n_len}
+    sample_rbd = sample.seq[s_start + (319 * 3): s_start + (541*3)]
+    contig_rbd_n_len = len(max(re.compile("N+").findall(str(sample_rbd)),default=""))
+    ncov = {"sample" : sample_name , "global_n" : global_n_perc, "s_n" : s_n_perc, "longest_continuous_s_n": contig_S_n_len, "longest_continuous_rbd_n" : contig_rbd_n_len}
     n_cov_info = pd.DataFrame([ncov])
     n_cov_info.to_csv(outpath, index = False, header = False)
-
 
 def main():
     parser = argparse.ArgumentParser(description='')

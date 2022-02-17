@@ -48,10 +48,12 @@ def main():
         help = "Percentage N cutoff for input sequences. Default 50")
     consensus.add_argument('--global_n', metavar = '', type = float,
         help = "Minimum percentage of N in sample to flag as poor coverage. Default half of cutoff.")
-    consensus.add_argument('--s_n', metavar = '', type = float, default = 0.07,
-        help = "Minimum percentage of N in S gene to flag as poor coverage. Default 7%.")
-    consensus.add_argument('--s_contig', metavar = '', type = float, default = 300,
-        help = "Minimum length of contig to flag sample as potential S gene dropout. Default 300bp")
+    consensus.add_argument('--s_n', metavar = '', type = float, default = 0.05,
+        help = "Minimum percentage of N in S gene to flag as poor coverage. Default 5%.")
+    consensus.add_argument('--s_contig', metavar = '', type = float, default = 150,
+        help = "Minimum length of contig to flag sample as potential S gene dropout. Default 150nt")
+    consensus.add_argument('--rbd_contig', metavar = '', type = float, default = 18,
+        help = "Minimum length of contig to flag sample as poor RBD coverage. Default 18nt")
     consensus.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
     consensus.add_argument('--baseline_scores' , metavar='', type = str,
@@ -85,10 +87,12 @@ def main():
         help = "Percentage N cutoff for input sequences. Default 50")
     alignment.add_argument('--global_n', metavar = '', type = float,
         help = "Minimum percentage of N in sample to flag as poor coverage. Default half of cutoff.")
-    alignment.add_argument('--s_n', metavar = '', type = float, default = 0.07,
-        help = "Minimum percentage of N in S gene to flag as poor coverage. Default 7%.")
-    alignment.add_argument('--s_contig', metavar = '', type = float, default = 300,
-        help = "Minimum length of contig to flag sample as potential S gene dropout. Default 300bp")
+    alignment.add_argument('--s_n', metavar = '', type = float, default = 0.05,
+        help = "Minimum percentage of N in S gene to flag as poor coverage. Default 5%.")
+    alignment.add_argument('--s_contig', metavar = '', type = float, default = 150,
+        help = "Minimum length of contig to flag sample as potential S gene dropout. Default 150nt")
+    alignment.add_argument('--rbd_contig', metavar = '', type = float, default = 18,
+        help = "Minimum length of contig to flag sample as poor RBD coverage. Default 18nt")
     alignment.add_argument('--window' , metavar='', type = int, default = 2,
         help = "Maximum number of flanking N's around deletion, default 2")
     alignment.add_argument('--baseline_scores' , metavar='', type = str,
@@ -121,7 +125,7 @@ def main():
     vcf.add_argument('--baseline' , metavar='', type = str, default = "BA.1",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.1. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
     vcf.add_argument('--no-product-plot', default=False, action='store_true',
-        help = "Do not produce individual sample product plots (for fastest operation)")       
+        help = "Do not produce individual sample product plots (for fastest operation)")
     vcf.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     vcf.add_argument('output', metavar='output', type=str,
@@ -176,9 +180,10 @@ def main():
         args.allowAmbiguous = False
         args.window = False
         allow_ambiguous = False
-        args.global_n = 0.25
-        args.s_n = 0.07
-        args.s_contig = 300
+        args.global_n = 1.0
+        args.s_n = 1.0
+        args.s_contig = 29903
+        args.rbd_contig = 5000
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
@@ -198,9 +203,10 @@ def main():
             args.allowAmbiguous = False
             args.window = False
             allow_ambiguous = False
-            args.global_n = 100
-            args.s_n = 100
-            args.s_contig = 29983
+            args.global_n = 1.0
+            args.s_n = 1.0
+            args.s_contig = 29903
+            args.rbd_contig = 5000
         else:
             vcf_in = False
 
@@ -592,7 +598,8 @@ def main():
             "product_plots" : product_plot,
             "global_n" : args.global_n,
             "s_n" : args.s_n , 
-            "s_contig" : args.s_contig}
+            "s_contig" : args.s_contig,
+            "rbd_contig" : args.rbd_contig}
 
         console.print(table)
 
