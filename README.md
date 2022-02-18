@@ -123,7 +123,6 @@ Make sure you VCF file uses [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1
 ### Default filtering
 By default SPEAR will filter out the variants occurring in "genomic scraggly ends" the very most 5' 1-55 nucleotides and final 3' end of the genome 29,804-29,903. Input consensus FASTA will also be filtered to exclude samples that are more than 50% N before they are aligned to the reference.  Percentage N filtering can be tuned with `--cutoff`.  Further filtering options are discussed in [Advanced filtering options](https://github.com/m-crown/SPEAR#advanced-filtering-options) below.
 
-
 ## Output
 
 All spear output is nested into the output directory specified at run time.
@@ -144,11 +143,15 @@ A user supplied sample can be used as baseline by specifying both a `spear_score
 
 Baseline lineages VCFs, their composition and creation are discussed in [SPEAR-Reports](https://github.com/m-crown/SPEAR-Reports#spear-baseline).
 
+### Quality Control (QC)
+SPEAR will quality check and flag issues within any consensus or alignment inputs for: global N percentage (>25%), Spike N percentage (>5%), Spike dropout (contig of N >150nt), and Receptor Binding Domain (RBD) quality (>12nt N content). Dropout detection is critical as missing mutations in Spike can’t be scored. These QC warnings are displayed in the final column of the terminal output and Per Sample Score Summary table: `!` - Spike N contig (default 150nt) ; `^` - Spike RBD N content (default 12nt) ; `*` - Global N percentage (default > half N percentage cutoff) ; `#` - Spike N percentage (default > 5%). **The end user should always check the quality of input data and underlying variant calls, as whilst steps are taken to alert the user to issues with input sequences these don't replace robust sequencing QC.**
+
 ### Summary and multiple sample files
 * `all_samples.spear.vcf` - a multi sample VCF file with all annotations encoded in VCF format, header describes SPEAR fields.
 * `spear_annotation_summary.tsv` - a tab delimited file for all samples with SPEAR annotation and scores per variant, one row per variant.
 * `spear_score_summary.tsv` - a tab delimited file with total scores for each sample, one sample per row.
 * `spear_variant_summary.csv` - a comma delimited file, one row per sample listing all variants and their consequence type. 
+* `qc.csv` - a comma delimited file with QC data, columns: `sample_id`, `global_n` (global N%), `s_n` (Spike N%), `s_n_contig` (longest Spike contig of N), `rbd_n` (RBD N nt count).
 * `report/` - this directory will contain an HTML `report.html` supporting files are also required within this directory tree.
 * `report/plots/` - this directory contains all standalone plots also found in the above report.
 
