@@ -81,6 +81,30 @@ def get_indels(reference, sample, window, allow_ambiguous):
     vcf = pd.DataFrame.from_records([sub.split("\t") for sub in vcf[1:]], columns = vcf[0].split(sep="\t"))
     return vcf
 
+def calculate_n_coverage(ref, sample, sample_name, outpath):
+    #first need to work out where S gene begins and ends in the sample (may be different due to insertions compared to ref length)
+    pre_s = str(ref.seq[:21562])
+    pre_s_ref_indels = pre_s.count("-")
+    ref_s = str(ref.seq[21563 + pre_s_ref_indels : 25385]) #position of s gene in 0-index
+    ref_indels = ref_s.count("-")
+    refdiff = ref_indels
+    s_start = 21563 + pre_s_ref_indels
+    s_end = 25385 + ref_indels
+    while refdiff != 0:
+        ref_s = str(ref.seq[s_start : s_end])
+        ref_indels = ref_s.count("-")
+        refdiff -= ref_indels
+        s_end = 25385 + refdiff
+    sample_s = sample.seq[s_start: s_end]
+    global_n_perc = sample.seq.count("N") / len(sample.seq)
+    s_n_perc = sample_s.count("N") / len(sample_s)
+    contig_S_n_len = len(max(re.compile("N+").findall(str(sample_s)),default=""))
+    sample_rbd = sample.seq[s_start + (319 * 3): s_start + (541*3)]
+    rbd_n_nts = sample_rbd.count("N")
+    ncov = {"sample" : sample_name , "global_n" : global_n_perc, "s_n" : s_n_perc, "longest_continuous_s_n": contig_S_n_len, "rbd_n_nts" : rbd_n_nts}
+    n_cov_info = pd.DataFrame([ncov])
+    n_cov_info.to_csv(outpath, index = False, header = False)
+    #22520 - 23186
 def main():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('alignment', metavar='sample.muscle.aln', type=str,
@@ -95,6 +119,8 @@ def main():
         help="flanking N filter for indels, set to 0 for off")
     parser.add_argument('--tsv', metavar="sample.indels.tsv", type = str,
         help="output file path for indels in tsv format")
+    parser.add_argument('--nperc', metavar="sample.nperc.csv", type = str,
+        help="output file path for n-percentage csv")   
     parser.add_argument('--allowAmbiguous', default=False, action='store_true',
         help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
     args = parser.parse_args()
@@ -113,6 +139,7 @@ def main():
 
     sample = mask_trimmed_sequence(sample)
     indels = get_indels(reference, sample, args.window, args.allowAmbiguous)
+    calculate_n_coverage(reference,sample, sample.id, args.nperc)
     if args.tsv:
         indels.to_csv(args.tsv, mode='w', index = False, sep = "\t")
     if args.vcf:

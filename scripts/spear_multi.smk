@@ -11,12 +11,13 @@ else:
 rule produce_report:
    input:
       summary = config["output_dir"] + "/spear_score_summary.tsv",
-      all_samples = config["output_dir"] + "/spear_annotation_summary.tsv"
+      all_samples = config["output_dir"] + "/spear_annotation_summary.tsv",
+      n_perc = config["output_dir"] + "/qc.csv" if config["vcf"] == False else config["output_dir"] + "/spear_score_summary.tsv"
    output:
       config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
    shell:
-      """summary_report.py {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} 2> {log}"""
+      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {config[global_n]} {config[s_n]} {config[s_contig]} {config[rbd_n]} 2> {log}"""
 
 rule summarise_vcfs:
    input:
@@ -80,16 +81,25 @@ if config["filter"] != True:
       shell:
          "bcftools merge --no-index -m none -o {output} {input} 2> {log}"
 
+rule merge_qc:
+   input:
+      expand(config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv", id=config["samples"])
+   output:
+      qc_file = config["output_dir"] + "/qc.csv"
+   log: config["output_dir"] + "/intermediate_output/logs/qc/qc.log"
+   shell:
+      '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  cat {input} >> {config[output_dir]}/qc.csv'''
+
 rule get_indels:
    input:
       vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
       muscle_aln = config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
    output:
       snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
-      snps_indels_tsv = config["output_dir"] + "/intermediate_output/indels/{id}.indels.tsv"
+      sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
    log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
    shell:
-      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --tsv {output.snps_indels_tsv} {input.muscle_aln} NC_045512.2 {output.snps_indels} 2> {log}"
+      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.muscle_aln} NC_045512.2 {output.snps_indels} 2> {log}"
 
 rule filter_problem_sites:
    input: 
