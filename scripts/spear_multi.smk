@@ -88,7 +88,7 @@ rule merge_qc:
       qc_file = config["output_dir"] + "/qc.csv"
    log: config["output_dir"] + "/intermediate_output/logs/qc/qc.log"
    shell:
-      "cat {input} > {config[output_dir]}/qc.csv"
+      '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  cat {input} >> {config[output_dir]}/qc.csv'''
 
 rule get_indels:
    input:
