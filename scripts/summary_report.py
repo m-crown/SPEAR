@@ -468,7 +468,7 @@ def main():
     scores_table.write_html(f'{args.output_dir}/plots/scores_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
 
     console = Console()
-    table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary")
+    table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary", caption = "Quality warnings: ! - Spike N contig (default 150nt)  ;  ^ - Spike RBD N content (default 12nt)  ;  * - Global N percentage (default > half N percentage cutoff) ;  # - Spike N percentage (default > 5%)", caption_justify = "center")
     for column in sample_scores.columns:
         table.add_column(labels[column])
     cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours_df,["rgb(179,205,227)", "lavender"]), False, True)
@@ -1048,9 +1048,8 @@ def main():
                             <div class = "card-footer">
                             Summarised scores per sample (sum across sample), cells with values higher than selected baseline are highlighted. 
                             Selected baseline is always shown in the top row, table is sorted by the cm mAb escape all classes sum column by default, 
-                            the drop down can be used to sort on other scores.  
-                            For a description of these scores see <a href="https://github.com/m-crown/SPEAR/blob/main/docs/Table4.md#spear-score-summary">Table 4</a> in the SPEAR README.<br>
-                            For a full screen view of this table see <a href="plots/scores_table.html">here</a>. Source data used to produce this table can be found in the file <code>spear_score_summary.tsv</code> </br>
+                            the drop down can be used to sort on other scores. For a description of these scores see <a href="https://github.com/m-crown/SPEAR/blob/main/docs/Table4.md#spear-score-summary">Table 4</a> in the SPEAR README. For a full screen view of this table see <a href="plots/scores_table.html">here</a>. Source data used to produce this table can be found in the file <code>spear_score_summary.tsv</code><br>
+                            Quality warnings: ! - Spike N contig (default 150nt)  ;  ^ - Spike RBD N content (default 12nt)  ;  * - Global N percentage (default > half N percentage cutoff) ;  # - Spike N percentage (default > 5%)</br>
                             </div>
                         </div>
                     </div> 
@@ -1064,7 +1063,7 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 0.5.0 </p>
+                            <p> SPEAR Version 0.6.0 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
