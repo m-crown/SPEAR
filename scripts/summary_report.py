@@ -389,7 +389,7 @@ def main():
     if os.path.basename(args.n_perc) == "spear_score_summary.tsv":
         sample_scores["displayed_dropout"] = ""
     else:
-        n_info = pd.read_csv(args.n_perc, names=["sample_id", "global_n", "s_n", "s_n_contig", "rbd_n"])
+        n_info = pd.read_csv(args.n_perc)
         n_info.loc[n_info["s_n_contig"] >= args.s_contig, "s_n_contig_display"] = "!"
         n_info.loc[n_info["rbd_n"] >= args.rbd_n, "rbd_n_display"] = "^"
         n_info.loc[n_info["s_n"] >= args.s_n, "s_n_display"] = "#"
