@@ -41,7 +41,7 @@ Once installed SPEAR can be updated with the `spear update` command, where:
 * `spear update data` - updates SPEAR data and external 3rd party datasets.
 * `spear update all` - updates everything and reinstalls the conda env as well as SPEAR.
 
-SPEAR has been tested on Mac OS 10.5, 11.x, 12.x, RHEL clones 7/8 and Ubuntu 21.10, and should work on other Linux distributions.
+SPEAR has been tested on Intel Mac OS 10.5, 11.x, 12.x, RHEL clones 7/8 and Ubuntu 21.10, and should work on other Linux distributions.
 
 ## Usage
 
