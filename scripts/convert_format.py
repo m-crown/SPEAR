@@ -88,7 +88,15 @@ def main():
         help = "Specify files come from filtered directory")
 
     args = parser.parse_args()
-    
+    if args.vcf_input == "True":
+        args.vcf_input = True
+    else:
+        args.vcf_input = False
+    if args.is_filtered == "True":
+        args.is_filtered = True
+    else: 
+        args.is_filtered = False
+        
     Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
     if args.is_vcf_input:
         if args.is_filtered:
