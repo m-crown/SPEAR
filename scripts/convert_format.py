@@ -82,21 +82,21 @@ def main():
         help='Data dir for binding calculator data files')
     parser.add_argument('input_header', metavar='merged.vcf', type=str,
         help='Merged VCF file for header retrieval')    
-    parser.add_argument('--is_vcf_input', default=False, action='store_true',
+    parser.add_argument('--is_vcf_input', default="False", type=str,
         help = "Set input file type to VCF")
-    parser.add_argument('--is_filtered', default=False, action='store_true',
+    parser.add_argument('--is_filtered', default="False", type=str,
         help = "Specify files come from filtered directory")
 
     args = parser.parse_args()
-    if args.vcf_input == "True":
-        args.vcf_input = True
-    else:
-        args.vcf_input = False
-    if args.is_filtered == "True":
-        args.is_filtered = True
-    else: 
-        args.is_filtered = False
-        
+    # if args.vcf_input == "True":
+    #     args.vcf_input = True
+    # else:
+    #     args.vcf_input = False
+    # if args.is_filtered == "True":
+    #     args.is_filtered = True
+    # else: 
+    #     args.is_filtered = False
+
     Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
     if args.is_vcf_input:
         if args.is_filtered:
