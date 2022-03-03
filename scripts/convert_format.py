@@ -179,17 +179,20 @@ def main():
     for sample in final_vcf["sample_id"].unique():
         sample_header = merged_header.copy().apply(lambda x : sample_header_format(x, sample, args.is_vcf_input, args.is_filtered, infiles))
         #sample_header.to_csv(f'output/{sample}.vcf', index = False)
-        np.savetxt(f'{args.output_dir}/per_sample_annotation/{sample}.vcf', sample_header.values, fmt = "%s")
+        np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
         sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
         sample_vcf["sample_id"] = "NC_045512.2"
         sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
         #append to header created above
-        sample_vcf.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.vcf', sep = "\t" ,  mode = 'a', index = False)
+        sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
 
     cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
     input_file = input_file[cols]
     input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
-    input_file[["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "product", "protein_id", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample"]].to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = "\t", index = False)
+    input_file[[col for col in input_file.columns if col not in ["refres", "altres", "respos"]]].to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = "\t", index = False)
+    for sample in input_file["sample_id"].unique():
+        sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
+        sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
     #now getting summary scores 
     #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
     summary = input_file.loc[((input_file["refres"] != input_file["altres"]) & (input_file["residues"].isin([""]) == False)) | ((input_file["residues"].str.contains("[A-Z\*][0-9]+[A-Z\*\?]", regex = True) == False) & (input_file["residues"].isin([""]) == False))]
