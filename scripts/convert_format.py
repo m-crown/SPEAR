@@ -138,7 +138,7 @@ def main():
 
     input_file["SPEAR"] = input_file["SPEAR"].str.split(",", expand = False)
     input_file = input_file.explode("SPEAR")
-    input_file[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample"]] = input_file["SPEAR"].str.split("|", expand = True)
+    input_file[["residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = input_file["SPEAR"].str.split("|", expand = True)
     pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions.
     input_file["respos"] = input_file["residues"].str.extract(pattern).fillna(-1).astype("int")
     input_file["refres"] = input_file["residues"].str.extract(r"([a-zA-Z\*]+)[0-9]+[a-zA-Z\?\*]+")
@@ -152,7 +152,7 @@ def main():
     sample_ef = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x,x, bindingcalc, "escape_fraction")}).reset_index()
 
     sample_ef.columns = ["sample_id", "BEC_EF_sample"]
-    input_file = input_file[[col for col in input_file.columns if col != "BEC_EF_sample"]].merge(sample_ef, on = "sample_id")
+    input_file = input_file.merge(sample_ef, on = "sample_id")
     input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
 
     final_samples = input_file.copy()
@@ -169,8 +169,6 @@ def main():
     final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1] if re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1] else "")))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
     infocols = ["AC", "AN", "ANN", "SUM", "SPEAR"]
     for col in infocols:
-        print(col)
-        print(final_vcf[col])
         final_vcf[col] = col + "=" + final_vcf[col]
 
     final_vcf['INFO'] = final_vcf[infocols].agg(';'.join, axis=1)
