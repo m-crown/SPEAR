@@ -483,12 +483,12 @@ def main():
 
 
     #MAKING THE INTERACTIVE PLOTS: 
-    scores_cols = ["bloom_ACE2", "VDS","serum_escape", "mAb_escape", "cm_mAb_escape", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
-    scores_z_max = {"bloom_ACE2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape" : 1, "cm_mAb_escape" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
-    scores_z_min = {"bloom_ACE2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape" : 0, "cm_mAb_escape" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}
-    scores_z_mid = {"bloom_ACE2" : 0,"VDS" : 0, "serum_escape" : 0.5, "mAb_escape" : 0.5, "cm_mAb_escape" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
+    scores_cols = ["bloom_ACE2", "VDS","serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
+    scores_z_max = {"bloom_ACE2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape_all_classes" : 1, "cm_mAb_escape_all_classes" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
+    scores_z_min = {"bloom_ACE2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape_all_classes" : 0, "cm_mAb_escape_all_classes" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}
+    scores_z_mid = {"bloom_ACE2" : 0,"VDS" : 0, "serum_escape" : 0.5, "mAb_escape_all_classes" : 0.5, "cm_mAb_escape_all_classes" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
     scores_title = {"bloom_ACE2" : "Bloom ACE2", "VDS" : "Vibrational Difference Score","serum_escape" : "Serum Escape", "mAb_escape" : "mAb Escape", "cm_mAb_escape" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
-    scores_color_scales = {"bloom_ACE2" : "plasma", "VDS" : "rdbu","serum_escape" : "hot_r", "mAb_escape" : "hot_r", "cm_mAb_escape" : "hot_r", "mAb_escape_class_1" : "hot_r", "mAb_escape_class_2": "hot_r", "mAb_escape_class_3": "hot_r", "mAb_escape_class_4": "hot_r", "BEC_RES" : "purd_r"}
+    scores_color_scales = {"bloom_ACE2" : "plasma", "VDS" : "rdbu","serum_escape" : "hot_r", "mAb_escape_all_classes" : "hot_r", "cm_mAb_escape_all_classes" : "hot_r", "mAb_escape_class_1" : "hot_r", "mAb_escape_class_2": "hot_r", "mAb_escape_class_3": "hot_r", "mAb_escape_class_4": "hot_r", "BEC_RES" : "purd_r"}
 
     
     respos_df = pd.read_csv(f'{args.data_dir}/product_mapping.csv')
@@ -539,7 +539,7 @@ def main():
             
             sample_orf_plot = go.Figure()
             for score in scores_cols:
-                if score == "cm_mAb_escape":
+                if score == "cm_mAb_escape_all_classes":
                     visible = True
                 else:
                     visible = False
@@ -637,7 +637,7 @@ def main():
                     ),
                     dict(
                         buttons= buttons,
-                        active = scores_cols.index("cm_mAb_escape"),
+                        active = scores_cols.index("cm_mAb_escape_all_classes"),
                         bgcolor = "white",
                         direction="down",
                         pad={"r": 10, "t": 10},
@@ -801,7 +801,7 @@ def main():
                         'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                     }))
-            elif score == "cm_mAb_escape":                
+            elif score == "cm_mAb_escape_all_classes":                
                 heatmap.add_trace(go.Heatmap(
                     {
                         'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
@@ -812,7 +812,7 @@ def main():
                         'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "colorscale" : "hot_r",
-                        "name" : "cm_mAb_escape", 
+                        "name" : "cm_mAb_escape_all_classes", 
                         "zmin" : scores_z_min[score],
                         "zmax" : scores_z_max[score],
                         "zmid" : scores_z_mid[score]
@@ -827,7 +827,7 @@ def main():
                         'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
                         'visible' : False,
                         "colorscale" : "hot_r",
-                        "name" : "cm_mAb_escape",
+                        "name" : "cm_mAb_escape_all_classes",
                         "zmin" : scores_z_min[score],
                         "zmax" : scores_z_max[score],
                         "zmid" : scores_z_mid[score]
@@ -888,18 +888,18 @@ def main():
                         "zmid" : scores_z_mid[score]
                         }))
 
-    if "cm_mAb_escape" not in displayed_scores:
+    if "cm_mAb_escape_all_classes" not in displayed_scores:
         active = 0 #for buttons set to first button
         heatmap.update_traces(visible = True,
                     selector=dict(name=displayed_scores[0])) #set to first non "sample_id" score col i.e. 1  
         heatmap_all.update_traces(visible = True,
                     selector=dict(name=displayed_scores[0])) #set to first non "sample_id" score col i.e. 1  
     else:
-        active = displayed_scores.index("cm_mAb_escape")
+        active = displayed_scores.index("cm_mAb_escape_all_classes")
         heatmap.update_traces(visible = True,
-                    selector=dict(name="cm_mAb_escape"))
+                    selector=dict(name="cm_mAb_escape_all_classes"))
         heatmap_all.update_traces(visible = True,
-                    selector=dict(name="cm_mAb_escape"))
+                    selector=dict(name="cm_mAb_escape_all_classes"))
     layout = {"title" : dict(text = "Class Masked mAb Escape", x = 0.5), 
         "xaxis" : {"title": "Sample" , "showticklabels" : False, "showgrid" : False},
         "yaxis" : {"title": "Residue Position" ,"tickformat": '.0f', "showgrid" : False}}
