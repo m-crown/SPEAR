@@ -268,6 +268,7 @@ def main():
 
     scores_df = reduce(lambda left,right: pd.merge(left,right,on="sample_id", how = "outer"), score_df_list)
     scores_df = scores_df.sort_values(by = ["sample_id"], ascending = True).fillna("")
+    scores_df.rename(columns={'mAb_escape_sum':'mAb_escape_all_classes_sum', 'mAb_escape_min':'mAb_escape_all_classes_min', 'mAb_escape_max':'mAb_escape_all_classes_max', 'cm_mAb_escape_sum':'cm_mAb_escape_all_classes_sum', 'cm_mAb_escape_min':'cm_mAb_escape_all_classes_min', 'cm_mAb_escape_max':'cm_mAb_escape_all_classes_max'}, inplace=True)
     scores_df.to_csv(f'{args.output_dir}/spear_score_summary.tsv' , sep = "\t", index = False)
 
 
