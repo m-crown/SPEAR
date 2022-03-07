@@ -205,7 +205,7 @@ def main():
         region_counts = summary.loc[summary["region"] != "" , ["sample_id", "description", "region"]]
         region_counts["region"] = region_counts["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)
         if region_counts["region"].isin([""]).all():
-            domain_counts["region_residues"] = ""
+            region_counts["region_residues"] = ""
         else:
             region_counts = region_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "region"])
             region_counts["region_residues"] = region_counts["description"] + ":" + region_counts["region"] + ":" + region_counts["count"].astype(str)
