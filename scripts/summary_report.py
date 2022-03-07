@@ -342,7 +342,7 @@ def main():
     sample_scores = sample_scores.replace("", np.nan).dropna(axis=1, how = "all") #remove empty cols from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
     displayed_scores_cols = [score for score in displayed_scores_cols if score in sample_scores.columns.tolist()]
     actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
-    if sample_scores[actual_scores_cols].isna().all().all() == False:
+    if sample_scores[[score for score in actual_scores_cols if score != "displayed_dropout"]].isna().all().all() == False:
         if "cm_mAb_escape_all_classes_sum" in sample_scores.columns:
             sort_col = "cm_mAb_escape_all_classes_sum"
         else:
@@ -961,8 +961,10 @@ def main():
 
         heatmap.write_html(f'{args.output_dir}/plots/mutated_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
         heatmap_all.write_html(f'{args.output_dir}/plots/all_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        heatmap_message = f'For a full screen view of the current plot see <a href="plots/mutated_residues_heatmap.html">here</a>, and for a fullscreen heatmap across all residues (easier comparison between reports), see <a href="plots/all_residues_heatmap.html">here</a>.'
     else:
         heatmap_html = "<p>No variants were detected in scoring regions of spike</p>"
+        heatmap_message  = ""
     #maybe a blobbogram of median min max and a baseline line? could have a dropdown on the horizontal bar plot to change the data vis style. 
     
     #################### HTML FORMATTING #####################
@@ -1039,7 +1041,7 @@ def main():
                                 Individual sample IDs and mutations are plotted on datapoint, for large samples sets these become visible at higher zoom levels.  
                                 Hover text will show z: selected score for sample-residue and sample ID and mutation.  
                                 For a description of these scores see <a href="https://github.com/m-crown/SPEAR#scores">Table 3</a> in the SPEAR README.  
-                                For a full screen view of the current plot see <a href="plots/mutated_residues_heatmap.html">here</a>, and for a fullscreen heatmap across all residues (easier comparison between reports), see <a href="plots/all_residues_heatmap.html">here</a>.
+                                ''' + heatmap_message + '''
                             </div>
                         </div>
                     </div>
