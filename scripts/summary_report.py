@@ -736,7 +736,7 @@ def main():
     anno_merge.set_index("residues")
     anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
     displayed_scores = []
-    if anno_merge[scores_cols].isna().all() == False:
+    if anno_merge[scores_cols].isna().all().all():
         heatmap = go.Figure()
         heatmap_all = go.Figure()
         for score in scores_cols:

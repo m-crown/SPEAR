@@ -143,12 +143,13 @@ def main():
 
         bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
         rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531)]
-        sample_ef = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x,x, bindingcalc, "escape_fraction")}).reset_index()
-
-        sample_ef.columns = ["sample_id", "BEC_EF_sample"]
-        input_file = input_file.merge(sample_ef, on = "sample_id")
-        input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
-
+        if len(rbd_residues) > 0: 
+            sample_ef = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x,x, bindingcalc, "escape_fraction")}).reset_index()
+            sample_ef.columns = ["sample_id", "BEC_EF_sample"]
+            input_file = input_file.merge(sample_ef, on = "sample_id")
+            input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
+        else: 
+            input_file["BEC_EF_sample"] = ""
         final_samples = input_file.copy()
         cols = ['residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2', 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
         final_samples["SPEAR"] = final_samples[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
