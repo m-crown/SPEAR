@@ -335,151 +335,154 @@ def main():
     residues_table_plt = offline.plot(residues_table,output_type='div', include_plotlyjs = False , config = {'displaylogo': False})
     
     #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE 
-
     scores_cols = baseline_scores.columns.tolist()
     non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues','ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barns_class_variants','bloom_ACE2_max', 'bloom_ACE2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_RES_sum']
     displayed_scores_cols = [score for score in scores_cols if score not in non_displayed_scores]
     sample_scores = scores_summary[displayed_scores_cols]
     sample_scores = sample_scores.replace("", np.nan).dropna(axis=1, how = "all") #remove empty cols from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
-    
-    displayed_scores_cols = [score for score in displayed_scores_cols if score in sample_scores.columns.tolist()]
-    actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
-    if "cm_mAb_escape_all_classes_sum" in sample_scores.columns:
-        sort_col = "cm_mAb_escape_all_classes_sum"
-    else:
-        sort_col = "sample_id"
-    sample_scores = sample_scores.replace("", np.nan).sort_values(by = sort_col, ascending = False)
-    sample_scores = pd.concat([baseline_scores.loc[baseline_scores["sample_id"] == args.baseline, displayed_scores_cols], sample_scores])
-    sample_scores = sample_scores.reset_index(drop = True)
-    #if baseline is also in sample set this can cause problems for the subtraction of a single numpy array from dataframe. Baseline will always be first index value so can fallback on this if multiple matches
-    if len(sample_scores.loc[sample_scores["sample_id"] == args.baseline, "sample_id"]) > 1:
-        baseline_relative_sample_scores = sample_scores[actual_scores_cols] - sample_scores.loc[0, actual_scores_cols].fillna(0).values.squeeze()
-    else:    
-        baseline_relative_sample_scores = sample_scores[actual_scores_cols] - sample_scores.loc[sample_scores["sample_id"] == args.baseline, actual_scores_cols].fillna(0).values.squeeze()
-    
-    baseline_relative_sample_scores = baseline_relative_sample_scores.round(4)
-    sample_scores = sample_scores[sample_scores.index.isin(baseline_relative_sample_scores.index)].reset_index(drop = True)
-    baseline_relative_sample_truths = np.greater(baseline_relative_sample_scores.fillna(-1).to_numpy(), 0) #all others should be coloured if greater than baseline
-    baseline_relative_sample_colours = np.where(baseline_relative_sample_truths == True, "rgb(250,180,174)", "rgb(179,205,227)")
-    baseline_relative_sample_colours[0,:] = np.array(['lavender'] * np.shape(baseline_relative_sample_colours)[1])
-
-    sample_id_colours = np.array([['lavender'] * np.shape(baseline_relative_sample_colours)[0]]).T
-    baseline_relative_sample_colours = np.append(sample_id_colours, baseline_relative_sample_colours, axis = 1)
-    baseline_relative_sample_colours_df = pd.DataFrame(baseline_relative_sample_colours, columns = displayed_scores_cols)
-    
-    baseline_relative_sample_colours_df.set_index(sample_scores["sample_id"], drop = False, inplace = True)
-    sample_scores[actual_scores_cols] = sample_scores[actual_scores_cols].round(2).fillna("").astype("str")
-    
-    labels = {
-        "sample_id" : "Sample ID", 
-        "VDS_sum" : "Vibrational Difference Score",
-        "bloom_ACE2_sum" : "Bloom ACE2",
-        "serum_escape_sum" : "Serum Escape",
-        "mAb_escape_all_classes_sum" : "mAb Escape",
-        "cm_mAb_escape_all_classes_sum" : "Class Masked mAb Escape",
-        "mAb_escape_class_1_sum" : "mAb Escape Class 1",
-        "mAb_escape_class_2_sum": "mAb Escape Class 2",
-        "mAb_escape_class_3_sum": "mAb Escape Class 3",
-        "mAb_escape_class_4_sum": "mAb Escape Class 4",
-        "BEC_EF_sample" : "BEC Escape Factor",
-        "displayed_dropout" : "Quality Warnings"}
-
-    #now add in the S gene dropout and Global N percentage columns 
-    #will have to add a colour column to the np color array too baseline_relative_sample_colours_df, add a column to displayed_scores_cols too
-    if os.path.basename(args.n_perc) == "spear_score_summary.tsv":
-        sample_scores["displayed_dropout"] = ""
-    else:
-        n_info = pd.read_csv(args.n_perc)
-        n_info.loc[n_info["s_n_contig"] >= args.s_contig, "s_n_contig_display"] = "!"
-        n_info.loc[n_info["rbd_n"] >= args.rbd_n, "rbd_n_display"] = "^"
-        n_info.loc[n_info["s_n"] >= args.s_n, "s_n_display"] = "#"
-        n_info.loc[n_info["global_n"] >= args.global_n, "global_n_display"] = "*"
-        n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]] = n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]].fillna("")
-        n_info["displayed_dropout"] = n_info["s_n_contig_display"] + n_info["rbd_n_display"] + n_info["s_n_display"] + n_info["global_n_display"]
-        sample_scores_baseline = sample_scores.iloc[0]
-        sample_scores_baseline["displayed_dropout"] = ""
-        sample_scores_samples = sample_scores.iloc[1:]
-        sample_scores_samples = pd.merge(left = sample_scores_samples, right = n_info[["sample_id", "displayed_dropout"]], on = "sample_id", how = "left").fillna("")
-        sample_scores = pd.concat([sample_scores_baseline.to_frame().T, sample_scores_samples])
-    sample_scores.set_index("sample_id", drop = False, inplace = True)
-    sample_scores.index.name = "index"
-
-    n_info_colours = np.where(sample_scores["displayed_dropout"] != "", "rgb(250,180,174)", "rgb(179,205,227)")
-    n_info_colours[0] = "lavender"
-    displayed_scores_cols.append("displayed_dropout")
-    baseline_relative_sample_colours_df["displayed_dropout"] = n_info_colours
-    baseline_relative_sample_colours = np.concatenate([baseline_relative_sample_colours, np.reshape(n_info_colours, (-1,1))], axis = 1)
-    scores_table = go.Figure(data=[go.Table(
-        header=dict(values= [labels[col] for col in displayed_scores_cols],
-                    fill_color='paleturquoise',
-                    align='center'),
-        cells=dict(values= [sample_scores[x] for x in displayed_scores_cols],
-                fill_color=[baseline_relative_sample_colours_df[x] for x in displayed_scores_cols],
-                align='center'))
-                ])
-        
-    buttons = []
-    for score in displayed_scores_cols:
-        if score == "sample_id":
-            asc = True
+    if sample_scores[scores_cols].isna().all().all():
+        displayed_scores_cols = [score for score in displayed_scores_cols if score in sample_scores.columns.tolist()]
+        actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
+        if "cm_mAb_escape_all_classes_sum" in sample_scores.columns:
+            sort_col = "cm_mAb_escape_all_classes_sum"
         else:
-            asc = False
-        baseline_scores = sample_scores.iloc[[0]]
-        baseline_colours = baseline_relative_sample_colours_df.iloc[[0]]
-        samples_scores = sample_scores.iloc[1:, :]
-        samples_colours = baseline_relative_sample_colours_df.iloc[1:, :]
-        samples_scores = samples_scores.replace("", np.nan).sort_values(by = score, ascending = asc ).replace(np.nan, "")
-        samples_colours = samples_colours.reindex(samples_scores.index)
-        sorted_scores = pd.concat([baseline_scores, samples_scores])
-        sorted_colours = pd.concat([baseline_colours, samples_colours])
-        buttons.append(dict(
-                label = labels[score],
-                method = 'restyle',
-                args = [
-                    {"cells": {
-                        "values": [sorted_scores[x] for x in displayed_scores_cols], 
-                        "fill": dict(color = [sorted_colours[x] for x in displayed_scores_cols])}}]))
+            sort_col = "sample_id"
+        sample_scores = sample_scores.replace("", np.nan).sort_values(by = sort_col, ascending = False)
+        sample_scores = pd.concat([baseline_scores.loc[baseline_scores["sample_id"] == args.baseline, displayed_scores_cols], sample_scores])
+        sample_scores = sample_scores.reset_index(drop = True)
+        #if baseline is also in sample set this can cause problems for the subtraction of a single numpy array from dataframe. Baseline will always be first index value so can fallback on this if multiple matches
+        if len(sample_scores.loc[sample_scores["sample_id"] == args.baseline, "sample_id"]) > 1:
+            baseline_relative_sample_scores = sample_scores[actual_scores_cols] - sample_scores.loc[0, actual_scores_cols].fillna(0).values.squeeze()
+        else:    
+            baseline_relative_sample_scores = sample_scores[actual_scores_cols] - sample_scores.loc[sample_scores["sample_id"] == args.baseline, actual_scores_cols].fillna(0).values.squeeze()
+        
+        baseline_relative_sample_scores = baseline_relative_sample_scores.round(4)
+        sample_scores = sample_scores[sample_scores.index.isin(baseline_relative_sample_scores.index)].reset_index(drop = True)
+        baseline_relative_sample_truths = np.greater(baseline_relative_sample_scores.fillna(-1).to_numpy(), 0) #all others should be coloured if greater than baseline
+        baseline_relative_sample_colours = np.where(baseline_relative_sample_truths == True, "rgb(250,180,174)", "rgb(179,205,227)")
+        baseline_relative_sample_colours[0,:] = np.array(['lavender'] * np.shape(baseline_relative_sample_colours)[1])
 
-    scores_table.update_layout(
-        updatemenus=[
-            dict(
-                buttons=buttons,
-                active = displayed_scores_cols.index(sort_col),
-                direction="down",
-                bgcolor = "white",
-                pad={"r": 10, "t": 10},
-                showactive=True,
-                x = 0.025,
-                y = 1.15,
-                xanchor="left",
-                yanchor="top")
-                ])
-    
-    scores_table.update_layout(
-        annotations=[
-            dict(
-                text="Sort:", showarrow=False,
-                x=0, y=1.1, yref="paper", align="left")
-            ]
-        )
+        sample_id_colours = np.array([['lavender'] * np.shape(baseline_relative_sample_colours)[0]]).T
+        baseline_relative_sample_colours = np.append(sample_id_colours, baseline_relative_sample_colours, axis = 1)
+        baseline_relative_sample_colours_df = pd.DataFrame(baseline_relative_sample_colours, columns = displayed_scores_cols)
+        
+        baseline_relative_sample_colours_df.set_index(sample_scores["sample_id"], drop = False, inplace = True)
+        sample_scores[actual_scores_cols] = sample_scores[actual_scores_cols].round(2).fillna("").astype("str")
+        
+        labels = {
+            "sample_id" : "Sample ID", 
+            "VDS_sum" : "Vibrational Difference Score",
+            "bloom_ACE2_sum" : "Bloom ACE2",
+            "serum_escape_sum" : "Serum Escape",
+            "mAb_escape_all_classes_sum" : "mAb Escape",
+            "cm_mAb_escape_all_classes_sum" : "Class Masked mAb Escape",
+            "mAb_escape_class_1_sum" : "mAb Escape Class 1",
+            "mAb_escape_class_2_sum": "mAb Escape Class 2",
+            "mAb_escape_class_3_sum": "mAb Escape Class 3",
+            "mAb_escape_class_4_sum": "mAb Escape Class 4",
+            "BEC_EF_sample" : "BEC Escape Factor",
+            "displayed_dropout" : "Quality Warnings"}
 
-    scores_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5), "autosize" : True})
-    scores_table_plt = offline.plot(scores_table, output_type='div', include_plotlyjs = False , config = {'displaylogo': False})
-    scores_table.write_html(f'{args.output_dir}/plots/scores_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        #now add in the S gene dropout and Global N percentage columns 
+        #will have to add a colour column to the np color array too baseline_relative_sample_colours_df, add a column to displayed_scores_cols too
+        if os.path.basename(args.n_perc) == "spear_score_summary.tsv":
+            sample_scores["displayed_dropout"] = ""
+        else:
+            n_info = pd.read_csv(args.n_perc)
+            n_info.loc[n_info["s_n_contig"] >= args.s_contig, "s_n_contig_display"] = "!"
+            n_info.loc[n_info["rbd_n"] >= args.rbd_n, "rbd_n_display"] = "^"
+            n_info.loc[n_info["s_n"] >= args.s_n, "s_n_display"] = "#"
+            n_info.loc[n_info["global_n"] >= args.global_n, "global_n_display"] = "*"
+            n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]] = n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]].fillna("")
+            n_info["displayed_dropout"] = n_info["s_n_contig_display"] + n_info["rbd_n_display"] + n_info["s_n_display"] + n_info["global_n_display"]
+            sample_scores_baseline = sample_scores.iloc[0]
+            sample_scores_baseline["displayed_dropout"] = ""
+            sample_scores_samples = sample_scores.iloc[1:]
+            sample_scores_samples = pd.merge(left = sample_scores_samples, right = n_info[["sample_id", "displayed_dropout"]], on = "sample_id", how = "left").fillna("")
+            sample_scores = pd.concat([sample_scores_baseline.to_frame().T, sample_scores_samples])
+        sample_scores.set_index("sample_id", drop = False, inplace = True)
+        sample_scores.index.name = "index"
 
-    console = Console()
-    table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary", caption = "Quality warnings: ! - Spike N contig (default 150nt)  ;  ^ - Spike RBD N content (default 12nt)  ;  * - Global N percentage (default > half N percentage cutoff) ;  # - Spike N percentage (default > 5%)", caption_justify = "center")
-    for column in sample_scores.columns:
-        table.add_column(labels[column])
-    cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours_df,["rgb(179,205,227)", "lavender"]), False, True)
-    for x, y in zip(sample_scores.values, cli_baseline_relative_sample_truths):
-        row_value = []
-        for (a, b) in zip(x,y):
-            colour = "#FF0000" if b else "#2CBDC9"
-            value = a if a == a else ""
-            bold = "bold" if b else "default"
-            row_value.append((f'[{bold} {colour}]{value}'))
-        table.add_row(*row_value)
+        n_info_colours = np.where(sample_scores["displayed_dropout"] != "", "rgb(250,180,174)", "rgb(179,205,227)")
+        n_info_colours[0] = "lavender"
+        displayed_scores_cols.append("displayed_dropout")
+        baseline_relative_sample_colours_df["displayed_dropout"] = n_info_colours
+        baseline_relative_sample_colours = np.concatenate([baseline_relative_sample_colours, np.reshape(n_info_colours, (-1,1))], axis = 1)
+        scores_table = go.Figure(data=[go.Table(
+            header=dict(values= [labels[col] for col in displayed_scores_cols],
+                        fill_color='paleturquoise',
+                        align='center'),
+            cells=dict(values= [sample_scores[x] for x in displayed_scores_cols],
+                    fill_color=[baseline_relative_sample_colours_df[x] for x in displayed_scores_cols],
+                    align='center'))
+                    ])
+            
+        buttons = []
+        for score in displayed_scores_cols:
+            if score == "sample_id":
+                asc = True
+            else:
+                asc = False
+            baseline_scores = sample_scores.iloc[[0]]
+            baseline_colours = baseline_relative_sample_colours_df.iloc[[0]]
+            samples_scores = sample_scores.iloc[1:, :]
+            samples_colours = baseline_relative_sample_colours_df.iloc[1:, :]
+            samples_scores = samples_scores.replace("", np.nan).sort_values(by = score, ascending = asc ).replace(np.nan, "")
+            samples_colours = samples_colours.reindex(samples_scores.index)
+            sorted_scores = pd.concat([baseline_scores, samples_scores])
+            sorted_colours = pd.concat([baseline_colours, samples_colours])
+            buttons.append(dict(
+                    label = labels[score],
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [sorted_scores[x] for x in displayed_scores_cols], 
+                            "fill": dict(color = [sorted_colours[x] for x in displayed_scores_cols])}}]))
+
+        scores_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = displayed_scores_cols.index(sort_col),
+                    direction="down",
+                    bgcolor = "white",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.025,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+        
+        scores_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+
+        scores_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5), "autosize" : True})
+        scores_table_plt = offline.plot(scores_table, output_type='div', include_plotlyjs = False , config = {'displaylogo': False})
+        scores_table.write_html(f'{args.output_dir}/plots/scores_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+
+        console = Console()
+        table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary", caption = "Quality warnings: ! - Spike N contig (default 150nt)  ;  ^ - Spike RBD N content (default 12nt)  ;  * - Global N percentage (default > half N percentage cutoff) ;  # - Spike N percentage (default > 5%)", caption_justify = "center")
+        for column in sample_scores.columns:
+            table.add_column(labels[column])
+        cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours_df,["rgb(179,205,227)", "lavender"]), False, True)
+        for x, y in zip(sample_scores.values, cli_baseline_relative_sample_truths):
+            row_value = []
+            for (a, b) in zip(x,y):
+                colour = "#FF0000" if b else "#2CBDC9"
+                value = a if a == a else ""
+                bold = "bold" if b else "default"
+                row_value.append((f'[{bold} {colour}]{value}'))
+            table.add_row(*row_value)
+    else:
+        table = "No scoring residues detected in any samples."
+        scores_table_plt = "No scoring residues detected in any samples."
+        
 
 
     #MAKING THE INTERACTIVE PLOTS: 
@@ -729,6 +732,7 @@ def main():
         '''
     else:
         table_card = ""
+        
 
     #heatmap ________
     
