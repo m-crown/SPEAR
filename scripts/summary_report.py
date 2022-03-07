@@ -157,6 +157,8 @@ def main():
     
     report_date = pd.to_datetime('today').strftime('%Y-%m-%d')
 
+    console = Console()
+
     scores_summary = pd.read_csv(f'{args.score_summary}', sep = '\t')
     annotation_summary = pd.read_csv(f'{args.annotation_summary}', sep = '\t')
     annotation_summary["compound_nt_var"] = annotation_summary["description"] + annotation_summary["REF"] + annotation_summary["POS"].astype("str") + annotation_summary["ALT"]
@@ -466,7 +468,6 @@ def main():
         scores_table_plt = offline.plot(scores_table, output_type='div', include_plotlyjs = False , config = {'displaylogo': False})
         scores_table.write_html(f'{args.output_dir}/plots/scores_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
 
-        console = Console()
         table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary", caption = "Quality warnings: ! - Spike N contig (default 150nt)  ;  ^ - Spike RBD N content (default 12nt)  ;  * - Global N percentage (default > half N percentage cutoff) ;  # - Spike N percentage (default > 5%)", caption_justify = "center")
         for column in sample_scores.columns:
             table.add_column(labels[column])
