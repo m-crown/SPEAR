@@ -143,13 +143,15 @@ def main():
 
         bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
         rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531)]
-        if len(rbd_residues) > 0: 
+        if len(rbd_residues) > 0:
+            print("HERE") 
             sample_ef = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x,x, bindingcalc, "escape_fraction")}).reset_index()
             sample_ef.columns = ["sample_id", "BEC_EF_sample"]
             input_file = input_file.merge(sample_ef, on = "sample_id")
             input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
         else: 
             input_file["BEC_EF_sample"] = ""
+
         final_samples = input_file.copy()
         cols = ['residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2', 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
         final_samples["SPEAR"] = final_samples[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
@@ -202,17 +204,23 @@ def main():
 
         region_counts = summary.loc[summary["region"] != "" , ["sample_id", "description", "region"]]
         region_counts["region"] = region_counts["region"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)
-        region_counts = region_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "region"])
-        region_counts["region_residues"] = region_counts["description"] + ":" + region_counts["region"] + ":" + region_counts["count"].astype(str)
-        region_counts = region_counts[["sample_id" ,"region_residues"]].groupby("sample_id").agg({"region_residues" : lambda x : list(x)})
-        region_counts["region_residues"] = region_counts["region_residues"].str.join(",")
+        if region_counts["region"].isin([""]).all():
+            domain_counts["region_residues"] = ""
+        else:
+            region_counts = region_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "region"])
+            region_counts["region_residues"] = region_counts["description"] + ":" + region_counts["region"] + ":" + region_counts["count"].astype(str)
+            region_counts = region_counts[["sample_id" ,"region_residues"]].groupby("sample_id").agg({"region_residues" : lambda x : list(x)})
+            region_counts["region_residues"] = region_counts["region_residues"].str.join(",")
 
         domain_counts = summary.loc[summary["domain"] != "" , ["sample_id", "description", "domain"]]
         domain_counts["domain"] = domain_counts["domain"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)
-        domain_counts = domain_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "domain"])
-        domain_counts["domain_residues"] = domain_counts["description"] + ":" + domain_counts["domain"] + ":" + domain_counts["count"].astype(str)
-        domain_counts = domain_counts[["sample_id" ,"domain_residues"]].groupby("sample_id").agg({"domain_residues" : lambda x : list(x)})
-        domain_counts["domain_residues"] = domain_counts["domain_residues"].str.join(",")
+        if domain_counts["domain"].isin([""]).all():
+            domain_counts["domain_residues"] = ""
+        else:
+            domain_counts = domain_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "domain"])
+            domain_counts["domain_residues"] = domain_counts["description"] + ":" + domain_counts["domain"] + ":" + domain_counts["count"].astype(str)
+            domain_counts = domain_counts[["sample_id" ,"domain_residues"]].groupby("sample_id").agg({"domain_residues" : lambda x : list(x)})
+            domain_counts["domain_residues"] = domain_counts["domain_residues"].str.join(",")
 
         contacts = summary[["sample_id", "description","contact_type"]].copy()
         contacts["contact_type"] = contacts["contact_type"].str.split(" ")
@@ -243,16 +251,19 @@ def main():
         trimer_contacts_sum.columns = ["sample_id", "trimer_contact_counts"]
 
         barns = summary[["sample_id", "description","barns_class"]].copy()
-        barns.loc[barns["barns_class"].isin([""]) == False]
-        barns["barns_class"] = barns["barns_class"].str.split(",")
-        barns = barns.explode(["barns_class"])
-        barns["barns_class"] = barns["barns_class"].str.split("+")
-        barns_counts = barns.explode(["barns_class"]).replace(r'^\s*$', np.nan, regex=True).dropna()
-        barns_counts["barns_class_name"] = "class_" + barns_counts['barns_class']
-        barns_counts_grouped = barns_counts[["sample_id", "barns_class_name", "barns_class"]].groupby(["sample_id", "barns_class_name"]).count().reset_index().sort_values(["sample_id", "barns_class"], ascending = [True, False])
-        barns_counts_grouped["barns_class_variants"] = barns_counts_grouped["barns_class_name"] + ":" + barns_counts_grouped["barns_class"].astype("str")
-        barns_counts_grouped = barns_counts_grouped[["sample_id", "barns_class_variants"]].groupby("sample_id").agg({"barns_class_variants" : lambda x : list(x)})
-        barns_counts_grouped["barns_class_variants"] = barns_counts_grouped["barns_class_variants"].str.join(",")
+
+        if barns["barns_class"].isin([""]).all():
+            barns["barns_class_variants"] = ""
+        else: 
+            barns["barns_class"] = barns["barns_class"].str.split(",")
+            barns = barns.explode(["barns_class"])
+            barns["barns_class"] = barns["barns_class"].str.split("+")
+            barns_counts = barns.explode(["barns_class"]).replace(r'^\s*$', np.nan, regex=True).dropna()
+            barns_counts["barns_class_name"] = "class_" + barns_counts['barns_class']
+            barns_counts_grouped = barns_counts[["sample_id", "barns_class_name", "barns_class"]].groupby(["sample_id", "barns_class_name"]).count().reset_index().sort_values(["sample_id", "barns_class"], ascending = [True, False])
+            barns_counts_grouped["barns_class_variants"] = barns_counts_grouped["barns_class_name"] + ":" + barns_counts_grouped["barns_class"].astype("str")
+            barns_counts_grouped = barns_counts_grouped[["sample_id", "barns_class_variants"]].groupby("sample_id").agg({"barns_class_variants" : lambda x : list(x)})
+            barns_counts_grouped["barns_class_variants"] = barns_counts_grouped["barns_class_variants"].str.join(",")
 
         scores = ["bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1", "mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4","BEC_EF_sample"]
         score_df_list = [total_variants, sample_residue_variant_number, type_string, region_counts,domain_counts, ace2_contacts_sum,ace2_contacts_score,trimer_contacts_sum,trimer_contacts_score, barns_counts_grouped]
