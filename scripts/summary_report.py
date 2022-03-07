@@ -489,7 +489,6 @@ def main():
     scores_z_mid = {"bloom_ACE2" : 0,"VDS" : 0, "serum_escape" : 0.5, "mAb_escape_all_classes" : 0.5, "cm_mAb_escape_all_classes" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
     scores_title = {"bloom_ACE2" : "Bloom ACE2", "VDS" : "Vibrational Difference Score","serum_escape" : "Serum Escape", "mAb_escape_all_classes" : "mAb Escape", "cm_mAb_escape_all_classes" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
     scores_color_scales = {"bloom_ACE2" : "plasma", "VDS" : "rdbu","serum_escape" : "hot_r", "mAb_escape_all_classes" : "hot_r", "cm_mAb_escape_all_classes" : "hot_r", "mAb_escape_class_1" : "hot_r", "mAb_escape_class_2": "hot_r", "mAb_escape_class_3": "hot_r", "mAb_escape_class_4": "hot_r", "BEC_RES" : "purd_r"}
-
     
     respos_df = pd.read_csv(f'{args.data_dir}/product_mapping.csv')
     orf_boxes = []
@@ -737,226 +736,229 @@ def main():
     anno_merge.set_index("residues")
     anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
     displayed_scores = []
-    heatmap = go.Figure()
-    heatmap_all = go.Figure()
-    for score in scores_cols:
-        if anno_merge[score].isna().all() == False:
-            displayed_scores.append(score)
-            #color bar titles could have a dictionary mapping their underscored titles to a better title, then have an overall plot title ? 
-            if score == "VDS":
-                heatmap_text = anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"text_var"].values.tolist()
-                heatmap_text = [text if text not in [np.nan, "nan"] else "No mutation" for text in heatmap_text]
-                heatmap_all_text = anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"text_var"].values.tolist()
-                heatmap_all_text = [text if text not in [np.nan, "nan"] else "No mutation" for text in heatmap_all_text]
-                heatmap.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"respos"].astype("Int64").astype("str").values.tolist(),
-                        'text' : heatmap_text,
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                        "colorscale" : "rdbu",
-                        "name" : "VDS",
-                        "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score],
-                        "zmid" : scores_z_mid[score]
-                    }))
-                heatmap_all.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"residue-position"].astype("Int64").astype("str").values.tolist(),
-                        'text' : heatmap_all_text,
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                        "colorscale" : "rdbu",
-                        "name" : "VDS",
-                        "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score],
-                        "zmid" : scores_z_mid[score]
-                    }))
-            elif score == "bloom_ACE2":
-                heatmap.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
-                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
-                        "colorscale" : "plasma", 
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False, 
-                    }))
-                heatmap_all.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
-                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
-                        "colorscale" : "plasma",
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                    }))
-            elif score == "cm_mAb_escape_all_classes":                
-                heatmap.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
-                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                        "colorscale" : "hot_r",
-                        "name" : "cm_mAb_escape_all_classes", 
-                        "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score],
-                        "zmid" : scores_z_mid[score]
+    if anno_merge[score].isna().all() == False:
+        heatmap = go.Figure()
+        heatmap_all = go.Figure()
+        for score in scores_cols:
+            if anno_merge[score].isna().all() == False:
+                displayed_scores.append(score)
+                #color bar titles could have a dictionary mapping their underscored titles to a better title, then have an overall plot title ? 
+                if score == "VDS":
+                    heatmap_text = anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"text_var"].values.tolist()
+                    heatmap_text = [text if text not in [np.nan, "nan"] else "No mutation" for text in heatmap_text]
+                    heatmap_all_text = anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"text_var"].values.tolist()
+                    heatmap_all_text = [text if text not in [np.nan, "nan"] else "No mutation" for text in heatmap_all_text]
+                    heatmap.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"respos"].astype("Int64").astype("str").values.tolist(),
+                            'text' : heatmap_text,
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                            "colorscale" : "rdbu",
+                            "name" : "VDS",
+                            "zmin" : scores_z_min[score],
+                            "zmax" : scores_z_max[score],
+                            "zmid" : scores_z_mid[score]
                         }))
-                heatmap_all.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
-                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                        "colorscale" : "hot_r",
-                        "name" : "cm_mAb_escape_all_classes",
-                        "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score],
-                        "zmid" : scores_z_mid[score]
+                    heatmap_all.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"residue-position"].astype("Int64").astype("str").values.tolist(),
+                            'text' : heatmap_all_text,
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                            "colorscale" : "rdbu",
+                            "name" : "VDS",
+                            "zmin" : scores_z_min[score],
+                            "zmax" : scores_z_max[score],
+                            "zmid" : scores_z_mid[score]
                         }))
-            elif score == "BEC_RES":                
-                heatmap.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
-                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                        "name" : "BEC_RES",
-                        'colorscale' : "purd_r",
+                elif score == "bloom_ACE2":
+                    heatmap.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
+                            "colorscale" : "plasma", 
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False, 
                         }))
-                heatmap_all.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
-                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                        "name" : "BEC_RES",
-                        'colorscale' : "purd_r",
+                    heatmap_all.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
+                            "colorscale" : "plasma",
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
                         }))
-            else:
-                heatmap.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
-                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                        "colorscale" : "hot_r",
-                        "name" : score, 
-                        "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score],
-                        "zmid" : scores_z_mid[score]
-                        }))
-                heatmap_all.add_trace(go.Heatmap(
-                    {
-                        'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
-                        'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
-                        'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
-                        'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
-                        'texttemplate' : "%{text}",
-                        'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
-                        'visible' : False,
-                        "colorscale" : "hot_r", 
-                        "zmin" : scores_z_min[score],
-                        "zmax" : scores_z_max[score],
-                        "zmid" : scores_z_mid[score]
-                        }))
+                elif score == "cm_mAb_escape_all_classes":                
+                    heatmap.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                            "colorscale" : "hot_r",
+                            "name" : "cm_mAb_escape_all_classes", 
+                            "zmin" : scores_z_min[score],
+                            "zmax" : scores_z_max[score],
+                            "zmid" : scores_z_mid[score]
+                            }))
+                    heatmap_all.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                            "colorscale" : "hot_r",
+                            "name" : "cm_mAb_escape_all_classes",
+                            "zmin" : scores_z_min[score],
+                            "zmax" : scores_z_max[score],
+                            "zmid" : scores_z_mid[score]
+                            }))
+                elif score == "BEC_RES":                
+                    heatmap.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                            "name" : "BEC_RES",
+                            'colorscale' : "purd_r",
+                            }))
+                    heatmap_all.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                            "name" : "BEC_RES",
+                            'colorscale' : "purd_r",
+                            }))
+                else:
+                    heatmap.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                            "colorscale" : "hot_r",
+                            "name" : score, 
+                            "zmin" : scores_z_min[score],
+                            "zmax" : scores_z_max[score],
+                            "zmid" : scores_z_mid[score]
+                            }))
+                    heatmap_all.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                            "colorscale" : "hot_r", 
+                            "zmin" : scores_z_min[score],
+                            "zmax" : scores_z_max[score],
+                            "zmid" : scores_z_mid[score]
+                            }))
 
-    if "cm_mAb_escape_all_classes" not in displayed_scores:
-        active = 0 #for buttons set to first button
-        heatmap.update_traces(visible = True,
-                    selector=dict(name=displayed_scores[0])) #set to first non "sample_id" score col i.e. 1  
-        heatmap_all.update_traces(visible = True,
-                    selector=dict(name=displayed_scores[0])) #set to first non "sample_id" score col i.e. 1  
+        if "cm_mAb_escape_all_classes" not in displayed_scores:
+            active = 0 #for buttons set to first button
+            heatmap.update_traces(visible = True,
+                        selector=dict(name=displayed_scores[0])) #set to first non "sample_id" score col i.e. 1  
+            heatmap_all.update_traces(visible = True,
+                        selector=dict(name=displayed_scores[0])) #set to first non "sample_id" score col i.e. 1  
+        else:
+            active = displayed_scores.index("cm_mAb_escape_all_classes")
+            heatmap.update_traces(visible = True,
+                        selector=dict(name="cm_mAb_escape_all_classes"))
+            heatmap_all.update_traces(visible = True,
+                        selector=dict(name="cm_mAb_escape_all_classes"))
+        layout = {"title" : dict(text = "Class Masked mAb Escape", x = 0.5), 
+            "xaxis" : {"title": "Sample" , "showticklabels" : False, "showgrid" : False},
+            "yaxis" : {"title": "Residue Position" ,"tickformat": '.0f', "showgrid" : False}}
+        heatmap.update_layout(layout)
+
+        heatmap_all.update_layout(layout)
+        
+        trace_list = [True] * len(displayed_scores)
+        count = 0
+        buttons = []
+
+        for score in displayed_scores:
+            trace_list = [False] * len(displayed_scores)
+            trace_list[count] = True
+            buttons.append(dict(
+                            label = scores_title[score],
+                            method = 'update',
+                            args = [
+                                {'visible': trace_list},
+                                {'title': dict(text = scores_title[score], x = 0.5)},
+                                {'yaxes_type' : 'category'}]))
+            count += 1
+        heatmap.update_layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor = "rgb(246,246,246)")  
+        heatmap_all.update_layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor = "rgb(246,246,246)")
+        heatmap.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = active,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.01,
+                    y = 1.3,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+        heatmap_all.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = active,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.01,
+                    y = 1.3,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        heatmap_html = offline.plot(heatmap,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+
+        heatmap.write_html(f'{args.output_dir}/plots/mutated_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        heatmap_all.write_html(f'{args.output_dir}/plots/all_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
     else:
-        active = displayed_scores.index("cm_mAb_escape_all_classes")
-        heatmap.update_traces(visible = True,
-                    selector=dict(name="cm_mAb_escape_all_classes"))
-        heatmap_all.update_traces(visible = True,
-                    selector=dict(name="cm_mAb_escape_all_classes"))
-    layout = {"title" : dict(text = "Class Masked mAb Escape", x = 0.5), 
-        "xaxis" : {"title": "Sample" , "showticklabels" : False, "showgrid" : False},
-        "yaxis" : {"title": "Residue Position" ,"tickformat": '.0f', "showgrid" : False}}
-    heatmap.update_layout(layout)
-
-    heatmap_all.update_layout(layout)
-    
-    trace_list = [True] * len(displayed_scores)
-    count = 0
-    buttons = []
-
-    for score in displayed_scores:
-        trace_list = [False] * len(displayed_scores)
-        trace_list[count] = True
-        buttons.append(dict(
-                        label = scores_title[score],
-                        method = 'update',
-                        args = [
-                            {'visible': trace_list},
-                            {'title': dict(text = scores_title[score], x = 0.5)},
-                            {'yaxes_type' : 'category'}]))
-        count += 1
-    heatmap.update_layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor = "rgb(246,246,246)")  
-    heatmap_all.update_layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor = "rgb(246,246,246)")
-    heatmap.update_layout(
-        updatemenus=[
-            dict(
-                buttons=buttons,
-                active = active,
-                bgcolor = "white",
-                direction="down",
-                pad={"r": 10, "t": 10},
-                showactive=True,
-                x = 0.01,
-                y = 1.3,
-                xanchor="left",
-                yanchor="top")
-                ])
-    heatmap_all.update_layout(
-        updatemenus=[
-            dict(
-                buttons=buttons,
-                active = active,
-                bgcolor = "white",
-                direction="down",
-                pad={"r": 10, "t": 10},
-                showactive=True,
-                x = 0.01,
-                y = 1.3,
-                xanchor="left",
-                yanchor="top")
-                ])
-
-    heatmap_html = offline.plot(heatmap,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
-
-    heatmap.write_html(f'{args.output_dir}/plots/mutated_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
-    heatmap_all.write_html(f'{args.output_dir}/plots/all_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        heatmap_html = "<p>No variants were detected in scoring regions of spike</p>"
     #maybe a blobbogram of median min max and a baseline line? could have a dropdown on the horizontal bar plot to change the data vis style. 
     
     #################### HTML FORMATTING #####################
