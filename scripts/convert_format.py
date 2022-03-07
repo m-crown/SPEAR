@@ -253,7 +253,8 @@ def main():
         barns = summary[["sample_id", "description","barns_class"]].copy()
 
         if barns["barns_class"].isin([""]).all():
-            barns["barns_class_variants"] = ""
+            barns_counts_grouped = barns["sample_id"]
+            barns_counts_grouped["barns_class_variants"] = ""
         else: 
             barns["barns_class"] = barns["barns_class"].str.split(",")
             barns = barns.explode(["barns_class"])
