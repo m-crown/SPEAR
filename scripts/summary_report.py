@@ -340,9 +340,9 @@ def main():
     displayed_scores_cols = [score for score in scores_cols if score not in non_displayed_scores]
     sample_scores = scores_summary[displayed_scores_cols]
     sample_scores = sample_scores.replace("", np.nan).dropna(axis=1, how = "all") #remove empty cols from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
-    if sample_scores[scores_cols].isna().all().all():
-        displayed_scores_cols = [score for score in displayed_scores_cols if score in sample_scores.columns.tolist()]
-        actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
+    displayed_scores_cols = [score for score in displayed_scores_cols if score in sample_scores.columns.tolist()]
+    actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
+    if sample_scores[actual_scores_cols].isna().all().all() == False:
         if "cm_mAb_escape_all_classes_sum" in sample_scores.columns:
             sort_col = "cm_mAb_escape_all_classes_sum"
         else:
@@ -482,7 +482,7 @@ def main():
     else:
         table = "No scoring residues detected in any samples."
         scores_table_plt = "No scoring residues detected in any samples."
-        
+
 
 
     #MAKING THE INTERACTIVE PLOTS: 
@@ -740,7 +740,7 @@ def main():
     anno_merge.set_index("residues")
     anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
     displayed_scores = []
-    if anno_merge[scores_cols].isna().all().all():
+    if anno_merge[scores_cols].isna().all().all() == False:
         heatmap = go.Figure()
         heatmap_all = go.Figure()
         for score in scores_cols:

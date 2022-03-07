@@ -144,7 +144,6 @@ def main():
         bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
         rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531)]
         if len(rbd_residues) > 0:
-            print("HERE") 
             sample_ef = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x,x, bindingcalc, "escape_fraction")}).reset_index()
             sample_ef.columns = ["sample_id", "BEC_EF_sample"]
             input_file = input_file.merge(sample_ef, on = "sample_id")
