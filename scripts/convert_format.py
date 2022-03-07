@@ -163,7 +163,7 @@ def main():
         final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1] if re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1] else "")))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
         infocols = ["AC", "AN", "ANN", "SUM", "SPEAR"]
         for col in infocols:
-            final_vcf[col] = col + "=" + final_vcf[col]
+            final_vcf[col] = col + "=" + final_vcf[col].fillna("").astype("str")
 
         final_vcf['INFO'] = final_vcf[infocols].agg(';'.join, axis=1)
         final_vcf.drop(infocols, axis = 1, inplace = True)
@@ -216,13 +216,16 @@ def main():
         contacts = summary[["sample_id", "description","contact_type"]].copy()
         contacts["contact_type"] = contacts["contact_type"].str.split(" ")
         contacts = contacts.explode("contact_type")
-        contacts[["contact" , "contact_type"]] = contacts["contact_type"].replace("", np.nan).str.split(":", expand = True)
-
-        contacts = contacts.reset_index(drop = True)
-        contacts["contact_type"] = contacts["contact_type"].str.split("+")
-        contacts = contacts.explode(["contact_type"])
-        contacts["contact_type"] = contacts["contact_type"].str.extract(r'^([a-z-A-Z]+)_*', expand = False)
-        contacts["score"] = contacts["contact_type"].replace({"h-bond": 2, "contact": 1, "salt-bridge": 3})
+        if contacts["contact_type"].isin([""]).all():
+            contacts[["contact", "contact_type"]] = np.nan
+            contacts["score"] = 0
+        else:
+            contacts[["contact" , "contact_type"]] = contacts["contact_type"].replace("", np.nan).str.split(":", expand = True)
+            contacts = contacts.reset_index(drop = True)
+            contacts["contact_type"] = contacts["contact_type"].str.split("+")
+            contacts = contacts.explode(["contact_type"])
+            contacts["contact_type"] = contacts["contact_type"].str.extract(r'^([a-z-A-Z]+)_*', expand = False)
+            contacts["score"] = contacts["contact_type"].replace({"h-bond": 2, "contact": 1, "salt-bridge": 3})
 
         #these dataframes can be used for more than just ACE2 and trimer contact scores in future
         contacts_scores = contacts[["sample_id", "description", "contact_type", "contact", "score"]].groupby(["sample_id","description", "contact_type", "contact"]).sum().reset_index()
