@@ -127,7 +127,7 @@ def annotate_residues(vcf, data_dir):
 
     vcf = vcf.fillna("")
     vcf.loc[(vcf["refres"] == vcf["alt_res"]) | (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"])), ['region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']] = "" #remove scores from residues with same and alt and ref residue.
-    cols = ['residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
+    cols = ['product', 'residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
     vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
     all_cols = vcf.columns.tolist()
     vcf.drop([col for col in all_cols if col not in ["original_index" , '#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'AC','AN', 'ANN', 'SUM', "SPEAR" ]], axis = 1, inplace = True)
