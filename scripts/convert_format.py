@@ -132,8 +132,8 @@ def main():
 
         input_file["SPEAR"] = input_file["SPEAR"].str.split(",", expand = False)
         input_file = input_file.explode("SPEAR")
-        input_file[["spear-product", "residues","region", "domain", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = input_file["SPEAR"].str.split("|", expand = True)
-        input_file.drop(input_file.drop(input_file[input_file["product"] != input_file["spear-product"]].index))
+        input_file[["spear-product", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = input_file["SPEAR"].str.split("|", expand = True)
+        input_file.drop(input_file[input_file["product"] != input_file["spear-product"]].index)
         pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions.
         input_file["respos"] = input_file["residues"].str.extract(pattern).fillna(-1).astype("int")
         input_file["refres"] = input_file["residues"].str.extract(r"([a-zA-Z\*]+)[0-9]+[a-zA-Z\?\*]+")
@@ -153,7 +153,7 @@ def main():
             input_file["BEC_EF_sample"] = ""
 
         final_samples = input_file.copy()
-        cols = ['spear-product', 'residues', 'region', 'domain', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2', 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
+        cols = ['spear-product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2', 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
         final_samples["SPEAR"] = final_samples[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
         all_cols = final_samples.columns.tolist()
 
