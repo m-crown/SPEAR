@@ -467,6 +467,7 @@ def main():
         scores_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5), "autosize" : True})
         scores_table_plt = offline.plot(scores_table, output_type='div', include_plotlyjs = False , config = {'displaylogo': False})
         scores_table.write_html(f'{args.output_dir}/plots/scores_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        score_table_message = '''For a full screen view of this table see <a href="plots/scores_table.html">here</a>. Source data used to produce this table can be found in the file <code>spear_score_summary.tsv</code>'''
 
         table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary", caption = "Quality warnings: ! - Spike N contig (default 150nt)  ;  ^ - Spike RBD N content (default 12nt)  ;  * - Global N percentage (default > half N percentage cutoff) ;  # - Spike N percentage (default > 5%)", caption_justify = "center")
         for column in sample_scores.columns:
@@ -481,10 +482,9 @@ def main():
                 row_value.append((f'[{bold} {colour}]{value}'))
             table.add_row(*row_value)
     else:
-        table = "No scoring residues detected in any samples."
-        scores_table_plt = "No scoring residues detected in any samples."
-
-
+        table = "No variants were detected in scoring regions of Spike"
+        scores_table_plt = "No variants were detected in scoring regions of Spike"
+        score_table_message = ""
 
     #MAKING THE INTERACTIVE PLOTS: 
     scores_cols = ["bloom_ACE2", "VDS","serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
@@ -964,9 +964,8 @@ def main():
         heatmap_all.write_html(f'{args.output_dir}/plots/all_residues_heatmap.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
         heatmap_message = f'For a full screen view of the current plot see <a href="plots/mutated_residues_heatmap.html">here</a>, and for a fullscreen heatmap across all residues (easier comparison between reports), see <a href="plots/all_residues_heatmap.html">here</a>.'
     else:
-        heatmap_html = "<p>No variants were detected in scoring regions of spike</p>"
+        heatmap_html = "<p>No variants were detected in scoring regions of Spike</p>"
         heatmap_message  = ""
-    #maybe a blobbogram of median min max and a baseline line? could have a dropdown on the horizontal bar plot to change the data vis style. 
     
     #################### HTML FORMATTING #####################
     
@@ -1057,7 +1056,7 @@ def main():
                             <div class = "card-footer">
                             Summarised scores per sample (sum across sample), cells with values higher than selected baseline are highlighted. 
                             Selected baseline is always shown in the top row, table is sorted by the cm mAb escape all classes sum column by default, 
-                            the drop down can be used to sort on other scores. For a description of these scores see <a href="https://github.com/m-crown/SPEAR/blob/main/docs/Table4.md#spear-score-summary">Table 4</a> in the SPEAR README. For a full screen view of this table see <a href="plots/scores_table.html">here</a>. Source data used to produce this table can be found in the file <code>spear_score_summary.tsv</code><br>
+                            the drop down can be used to sort on other scores. For a description of these scores see <a href="https://github.com/m-crown/SPEAR/blob/main/docs/Table4.md#spear-score-summary">Table 4</a> in the SPEAR README. ''' + score_table_message + '''<br>
                             Quality warnings: ! - Spike N contig (default 150nt)  ;  ^ - Spike RBD N content (default 12nt)  ;  * - Global N percentage (default > half N percentage cutoff) ;  # - Spike N percentage (default > 5%)</br>
                             </div>
                         </div>
