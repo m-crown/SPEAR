@@ -151,7 +151,7 @@ def main():
         df = df.replace(np.nan, '', regex=True)
         samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
         samples["original_index"] = df["original_index"]
-        header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'residue | region | domain | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
+        header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'product | residue | region | domain | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
         df = annotate_residues(df.copy(), args.data_dir)
 
         cols = [e for e in df.columns.to_list() if e not in ("ANN", "SUM", "SPEAR")]
