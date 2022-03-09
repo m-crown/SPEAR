@@ -16,10 +16,12 @@ from itertools import takewhile
 
 def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
     if option == "res_ret_esc":
-        res_ret_esc_df = binding_calculator.escape_per_site(residues_list.loc[(residues_list["Gene_Name"] == "S") & (residues_list["respos"] >= 331) & (residues_list["respos"] <= 531), "respos"])
+        residues_df = residues_list.copy()
+        res_ret_esc_df = binding_calculator.escape_per_site(residues_df.loc[(residues_df["Gene_Name"] == "S") & (residues_df["respos"] >= 331) & (residues_df["respos"] <= 531), "respos"])
         res_ret_esc_df["Gene_Name"] = "S"
-        residues_list = residues_list.merge(res_ret_esc_df[["site", "retained_escape", "Gene_Name"]], left_on = ["Gene_Name", "respos"], right_on = ["Gene_Name", "site"],how = "left")
-        return(residues_list)
+        residues_df = residues_df.merge(res_ret_esc_df[["site", "retained_escape", "Gene_Name"]], left_on = ["Gene_Name", "respos"], right_on = ["Gene_Name", "site"],how = "left")
+        residues_df.drop(axis = 1 , ["site"], inplace = True)
+        return(residues_df)
     else:
         ab_escape_fraction = 1 - binding_calculator.binding_retained(residues_list)
         return(ab_escape_fraction)
@@ -145,6 +147,7 @@ def main():
 
         bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
         rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531)]
+        input_file.drop(axis = 1, ["BEC_RES"]) #drop the old non contextual BEC RES scores 
         if len(rbd_residues) > 0:
             sample_ef = rbd_residues.copy().groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "escape_fraction")}).reset_index()
             sample_ef.columns = ["sample_id", "BEC_EF_sample"]
