@@ -14,10 +14,10 @@ from functools import reduce
 from bindingcalculator import BindingCalculator
 from itertools import takewhile
 
-def get_contextual_bindingcalc_values(residues_list, respos, binding_calculator, option):
+def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
     res_ret_esc_df = binding_calculator.escape_per_site(residues_list)
     if option == "res_ret_esc":
-        res_ret_esc = res_ret_esc_df.loc[res_ret_esc_df["site"] == respos, "retained_escape"].values[0]
+        res_ret_esc = res_ret_esc_df.loc[res_ret_esc_df["site"].isin(residues_list), "retained_escape"]
         return(res_ret_esc)
     else:
         ab_escape_fraction = 1 - binding_calculator.binding_retained(residues_list)
@@ -145,12 +145,13 @@ def main():
         bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
         rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531)]
         if len(rbd_residues) > 0:
-            sample_ef = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x,x, bindingcalc, "escape_fraction")}).reset_index()
+            sample_ef = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "escape_fraction")}).reset_index()
             sample_ef.columns = ["sample_id", "BEC_EF_sample"]
             input_file = input_file.merge(sample_ef, on = "sample_id")
             input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
 
-            sample_res = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x,x, bindingcalc, "res_ret_esc")}).reset_index()
+            sample_res = get_contextual_bindingcalc_values(rbd_residues,rbd_residues, bindingcalc, "res_ret_esc")
+            print(sample_res)
             sample_res.columns = ["sample_id", "BEC_RES"]
             input_file = input_file.merge(sample_res, on = "sample_id")
             input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_RES"] = ""
