@@ -149,6 +149,11 @@ def main():
             sample_ef.columns = ["sample_id", "BEC_EF_sample"]
             input_file = input_file.merge(sample_ef, on = "sample_id")
             input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
+
+            sample_res = rbd_residues.groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x,x, bindingcalc, "res_ret_esc")}).reset_index()
+            sample_res.columns = ["sample_id", "BEC_RES"]
+            input_file = input_file.merge(sample_res, on = "sample_id")
+            input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_RES"] = ""
         else: 
             input_file["BEC_EF_sample"] = ""
 
@@ -194,7 +199,8 @@ def main():
                 sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
                 sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
             else:
-                Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty      
+                Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
+
         #now getting summary scores 
         #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
         summary = input_file.loc[((input_file["refres"] != input_file["altres"]) & (input_file["residues"].isin([""]) == False)) | ((input_file["residues"].str.contains("[A-Z\*][0-9]+[A-Z\*\?]", regex = True) == False) & (input_file["residues"].isin([""]) == False))]
