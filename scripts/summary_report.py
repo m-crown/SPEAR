@@ -268,13 +268,13 @@ def main():
         'ORF10 protein': "darkcyan"}
 
     #MAKING A COUNT TABLE OF RESIDUE CHANGES - USES THE FILTERED ANNO SUMMARY SO DOES NOT INCLUDE REFRES = ALTRES
-    residues_counts_table = annotation_summary[["sample_id", "description", "residues", "compound_res_var"]].drop_duplicates(["sample_id", "compound_res_var"])
-    residues_counts_table_grouped = residues_counts_table.groupby(["description", "residues"])[["residues"]].count()
+    residues_counts_table = annotation_summary[["sample_id", "description", "residues","compound_nt_var", "compound_res_var"]].drop_duplicates(["sample_id", "compound_res_var"])
+    residues_counts_table_grouped = residues_counts_table.groupby(["compound_nt_var", "description", "residues"])[["residues"]].count()
     residues_counts_table_grouped.columns = ["count"]
     residues_counts_table_grouped = residues_counts_table_grouped.sort_values("count", axis = 0, ascending = False)
     residues_counts_table_grouped = residues_counts_table_grouped.reset_index()
-    residues_counts_table_respos = pd.merge(left = residues_counts_table_grouped, right = annotation_summary[["description", "residues", "respos"]], left_on = ["description", "residues"] , right_on = ["description", "residues"], how = "left")
-    residues_counts_table_respos = residues_counts_table_respos.groupby(["description","residues", "respos"]).first().reset_index() #remove duplicates from the merge. 
+    residues_counts_table_respos = pd.merge(left = residues_counts_table_grouped, right = annotation_summary[["POS", "REF", "ALT", "compound_nt_var", "description", "residues", "respos"]], left_on = ["compound_nt_var", "description", "residues"] , right_on = ["compound_nt_var", "description", "residues"], how = "left")
+    residues_counts_table_respos = residues_counts_table_respos.groupby(["compound_nt_var", "description","residues", "respos"]).first().reset_index() #remove duplicates from the merge. 
     residues_counts_table_respos["description"] = residues_counts_table_respos["description"].astype("category")
     residues_counts_table_respos["description"] = residues_counts_table_respos["description"].cat.set_categories(products)
     residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["count", "description", "respos"], ascending = False) #default
@@ -282,10 +282,10 @@ def main():
     residues_counts_table_respos["percentage_samples"] = residues_counts_table_respos["percentage_samples"].round(2)
 
     residues_table = go.Figure(data=[go.Table(
-        header=dict(values=["Product", "Residue", "Count", "% Samples"],
+        header=dict(values=["POS", "REF", "ALT", "Product", "Residue", "Count", "% Samples"],
                     fill_color='paleturquoise',
                     align='left'),
-        cells=dict(values=[residues_counts_table_respos["description"], residues_counts_table_respos["residues"], residues_counts_table_respos["count"], residues_counts_table_respos["percentage_samples"]],
+        cells=dict(values=[residues_counts_table_respos["POS"],residues_counts_table_respos["REF"],residues_counts_table_respos["ALT"], residues_counts_table_respos["description"], residues_counts_table_respos["residues"], residues_counts_table_respos["count"], residues_counts_table_respos["percentage_samples"]],
                    fill_color='lavender',
                    align='left'))
     ])  
@@ -303,7 +303,7 @@ def main():
                 method = 'restyle',
                 args = [
                     {"cells": {
-                        "values": [residues_counts_table_respos["description"], residues_counts_table_respos["residues"], residues_counts_table_respos["count"], residues_counts_table_respos["percentage_samples"]],
+                        "values": [residues_counts_table_respos["POS"],residues_counts_table_respos["REF"],residues_counts_table_respos["ALT"],residues_counts_table_respos["description"], residues_counts_table_respos["residues"], residues_counts_table_respos["count"], residues_counts_table_respos["percentage_samples"]],
                         "fill" : dict(color = 'lavender'),
                         "align":'left'
                     }}]))
