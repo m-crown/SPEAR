@@ -19,7 +19,8 @@ def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
         residues_df = residues_list.copy()
         res_ret_esc_df = binding_calculator.escape_per_site(residues_df.loc[(residues_df["Gene_Name"] == "S") & (residues_df["respos"] >= 331) & (residues_df["respos"] <= 531), "respos"])
         res_ret_esc_df["Gene_Name"] = "S"
-        residues_df = residues_df.merge(res_ret_esc_df[["site", "retained_escape", "Gene_Name"]], left_on = ["Gene_Name", "respos"], right_on = ["Gene_Name", "site"],how = "left")
+        res_ret_esc_df.rename(columns = {"retained_escape" : "BEC_RES"}, inplace = True)
+        residues_df = residues_df.merge(res_ret_esc_df[["site", "BEC_RES", "Gene_Name"]], left_on = ["Gene_Name", "respos"], right_on = ["Gene_Name", "site"],how = "left")
         residues_df.drop(axis = 1 , columns = ["site"], inplace = True)
         return(residues_df)
     else:
