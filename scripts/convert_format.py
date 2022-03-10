@@ -20,7 +20,7 @@ def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
         res_ret_esc_df = binding_calculator.escape_per_site(residues_df.loc[(residues_df["Gene_Name"] == "S") & (residues_df["respos"] >= 331) & (residues_df["respos"] <= 531), "respos"])
         res_ret_esc_df["Gene_Name"] = "S"
         residues_df = residues_df.merge(res_ret_esc_df[["site", "retained_escape", "Gene_Name"]], left_on = ["Gene_Name", "respos"], right_on = ["Gene_Name", "site"],how = "left")
-        residues_df.drop(axis = 1 , ["site"], inplace = True)
+        residues_df.drop(axis = 1 , columns = ["site"], inplace = True)
         return(residues_df)
     else:
         ab_escape_fraction = 1 - binding_calculator.binding_retained(residues_list)
@@ -146,16 +146,16 @@ def main():
         input_file.loc[input_file["Annotation"] == "synonymous_variant", "variant"] = input_file.loc[input_file["Annotation"] == "synonymous_variant", "HGVS.c"]
 
         bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
-        rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531)]
-        input_file.drop(axis = 1, ["BEC_RES"]) #drop the old non contextual BEC RES scores 
+        rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531) & (input_file["refres"] != input_file["altres"])]
+        input_file.drop(axis = 1, columns = ["BEC_RES"], inplace = True) #drop the old non contextual BEC RES scores 
         if len(rbd_residues) > 0:
             sample_ef = rbd_residues.copy().groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "escape_fraction")}).reset_index()
             sample_ef.columns = ["sample_id", "BEC_EF_sample"]
             input_file = input_file.merge(sample_ef, on = "sample_id", how = "left")
             input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
 
-            input_file = input_file.groupby("sample_id").apply(lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "res_ret_esc")).reset_index()
-            
+            input_file = input_file.groupby("sample_id", as_index = False).apply(lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "res_ret_esc")).reset_index()
+            input_file.loc[input_file["refres"] == input_file["altres"], "BEC_RES"] = "" 
         else:
             input_file["BEC_EF_sample"] = ""
             input_file["BEC_RES"] = ""
