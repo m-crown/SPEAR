@@ -145,9 +145,6 @@ def main():
         help='min n count to flag in rbd') #ADD A DEFAULT FOR THIS
     args = parser.parse_args()
 
-    #needs to take as input the conda bin location where plotly js is stored!
-    #NEED TO GET THE MIN AND MAX OF EACH SCORE SCALE IN A FILE TO READ IN AND USE TO SET COLOR SCALES - OR JUST WORK IT OUT AND HARD CODE IT ? 
-    #need to make a function for each of the manipulations of dataframes to streamline it and allow things like changing baseline? ? 
     seed(42069)
     
     Path(f'{args.output_dir}/images').mkdir(parents=True, exist_ok=True)
@@ -229,8 +226,8 @@ def main():
         )
 
     variants_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})  
-    variants_table_plt = offline.plot(variants_table,output_type='div', include_plotlyjs = f'plots/plotly/plotly-2.8.3.min.js', config = {'displaylogo': False}) #including plotly js with this plot and not with any future ones to keep html size down 
-
+    #variants_table_plt = offline.plot(variants_table,output_type='div', include_plotlyjs = f'plots/plotly/plotly-2.8.3.min.js', config = {'displaylogo': False}) #including plotly js with this plot and not with any future ones to keep html size down 
+    variants_table.write_html(f'{args.output_dir}/plots/nt_variants_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
 
     annotation_summary["respos"] = annotation_summary["respos"].fillna(0).astype(int)
     annotation_summary = annotation_summary.loc[(annotation_summary["refres"] != annotation_summary["altres"]) & (annotation_summary["refres"].isna() == False)]
@@ -334,7 +331,7 @@ def main():
             ]
         )
     residues_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
-    residues_table_plt = offline.plot(residues_table,output_type='div', include_plotlyjs = False , config = {'displaylogo': False})
+    residues_table_plt = offline.plot(residues_table,output_type='div', include_plotlyjs = f'plots/plotly/plotly-2.8.3.min.js', config = {'displaylogo': False})
     
     #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE 
     scores_cols = baseline_scores.columns.tolist()
@@ -1006,18 +1003,7 @@ def main():
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-6">
-                        <div class="card">
-                            <div class="card-header">Nucleotide Variants</div>
-                            <div class="card-body">
-                                <div>
-                                ''' + variants_table_plt + '''
-                                </div>
-                            </div>
-                            <div class="card-footer">Genomic variants detected across all samples. Sorted by variant count, use dropdown to sort by genomic position.</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
+                    <div class="col-12">
                         <div class="card">
                             <div class="card-header">Amino Acid Variants</div>
                             <div class="card-body">
@@ -1025,7 +1011,7 @@ def main():
                                 ''' + residues_table_plt + '''
                                 </div>
                             </div>
-                            <div class="card-footer">Amino acid missense, deletion, or insertion mutations across all samples. Sorted by count of mutation, use dropdown to sort by genomic position.</div>
+                            <div class="card-footer">Amino acid missense, deletion, or insertion mutations across all samples. Sorted by count of mutation, use dropdown to sort by genomic position. A table summarising nucleotide level variants can be found <a href="plots/nt_variants_table.html">here</a></div>
                         </div>
                     </div>
                 </div>
@@ -1091,12 +1077,24 @@ def main():
         </body>
     </html>'''
     
+    # <div class="col-6">
+    #     <div class="card">
+    #         <div class="card-header">Nucleotide Variants</div>
+    #         <div class="card-body">
+    #             <div>
+    #             ''' + variants_table_plt + '''
+    #             </div>
+    #         </div>
+    #         <div class="card-footer">Genomic variants detected across all samples. Sorted by variant count, use dropdown to sort by genomic position.</div>
+    #     </div>
+    # </div>
+
     copyfile(f'{args.images_dir}/SPEAR_smallest.png', f'{args.output_dir}/images/SPEAR_smallest.png')
     f = open(f'{args.output_dir}/report.html','w')
     f.write(html_string)
     f.close()
 
-    #after all processing is complete, print the table of results. 
+    
     console.print(table)
 if __name__ == "__main__":
     main()
