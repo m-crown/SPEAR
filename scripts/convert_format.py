@@ -233,12 +233,12 @@ def main():
             domain_counts["domain_residues"] = domain_counts["domain_residues"].str.join(",")
 
         feature_counts = summary.loc[summary["feature"] != "" , ["sample_id", "description", "domain", "feature"]]
-        feature_counts["feature"] = domain_counts["feature"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)    
+        feature_counts["feature"] = feature_counts["feature"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)    
         if feature_counts["feature"].isin([""]).all():
             feature_counts["feature_residues"] = ""
         else:
             feature_counts = feature_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "domain", "feature"])
-            feature_counts["feature_residues"] = feature_counts["description"] + ":" + feature_counts["domain"] + ":" + feature_counts["feature"] + feature_counts["count"].astype(str)
+            feature_counts["feature_residues"] = feature_counts["description"] + ":" + feature_counts["domain"] + ":" + feature_counts["feature"] + ":" + feature_counts["count"].astype(str)
             feature_counts = feature_counts[["sample_id" ,"feature_residues"]].groupby("sample_id").agg({"feature_residues" : lambda x : list(x)})
             feature_counts["feature_residues"] = feature_counts["feature_residues"].str.join(",")
 
