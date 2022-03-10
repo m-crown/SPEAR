@@ -160,7 +160,7 @@ def main():
         else:
             input_file["BEC_EF_sample"] = ""
             input_file["BEC_RES"] = ""
-
+        input_file = input_file.sort_values(by = ["sample_id", "POS", "respos"])
         final_samples = input_file.copy()
         cols = ['spear-product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2', 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
         final_samples["SPEAR"] = final_samples[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
