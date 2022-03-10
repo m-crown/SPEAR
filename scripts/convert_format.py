@@ -232,6 +232,16 @@ def main():
             domain_counts = domain_counts[["sample_id" ,"domain_residues"]].groupby("sample_id").agg({"domain_residues" : lambda x : list(x)})
             domain_counts["domain_residues"] = domain_counts["domain_residues"].str.join(",")
 
+        feature_counts = summary.loc[summary["feature"] != "" , ["sample_id", "description", "domain", "feature"]]
+        feature_counts["feature"] = domain_counts["feature"].str.split(",").explode().replace(r'^\s*$', np.nan, regex=True)    
+        if feature_counts["feature"].isin([""]).all():
+            feature_counts["feature_residues"] = ""
+        else:
+            feature_counts = feature_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "domain", "feature"])
+            feature_counts["feature_residues"] = feature_counts["description"] + ":" + feature_counts["domain"] + ":" + feature_counts["feature"] + feature_counts["count"].astype(str)
+            feature_counts = feature_counts[["sample_id" ,"feature_residues"]].groupby("sample_id").agg({"feature_residues" : lambda x : list(x)})
+            feature_counts["feature_residues"] = feature_counts["feature_residues"].str.join(",")
+
         contacts = summary[["sample_id", "description","contact_type"]].copy()
         contacts["contact_type"] = contacts["contact_type"].str.split(" ")
         contacts = contacts.explode("contact_type")
@@ -277,7 +287,7 @@ def main():
             barns_counts_grouped["barns_class_variants"] = barns_counts_grouped["barns_class_variants"].str.join(",")
 
         scores = ["bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1", "mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4","BEC_EF_sample"]
-        score_df_list = [total_variants, sample_residue_variant_number, type_string, region_counts,domain_counts, ace2_contacts_sum,ace2_contacts_score,trimer_contacts_sum,trimer_contacts_score, barns_counts_grouped]
+        score_df_list = [total_variants, sample_residue_variant_number, type_string, region_counts,domain_counts, feature_counts, ace2_contacts_sum,ace2_contacts_score,trimer_contacts_sum,trimer_contacts_score, barns_counts_grouped]
 
         for score in scores:
             if score == "BEC_EF_sample":
