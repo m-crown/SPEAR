@@ -8,7 +8,7 @@
 
 SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of all protein products, in particular, Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape. The aim of SPEAR is to provide a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores at point of sequencing. Functional annotation and effect scoring are derived from protein structure, theoretical simulation, and omics' experiments. 
 
-SPEAR is capable of running on single or multiple input files and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR will annotate and score 1,000 pre-aligned input sequences in ~16 min using a single CPU core and in ~9mins with 4 cores.
+SPEAR is capable of running on single or multiple input files and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR will annotate and score 1,000 pre-aligned input sequences in ~13 min using a single CPU core and in ~6mins with 4 cores.
 
 The SPEAR scoring system identifies both the potential immune escape and reduced ACE2 binding consequences of variants in the Omicron RBD, as well as highlighting the potential increased stability of the open conformation of the Spike protein within Omicron, a more in-depth discussion of these matters can be found in our [preprint](https://doi.org/10.1101/2021.12.14.472622) Teruel _et al_[1].
 
@@ -94,7 +94,7 @@ options:
   --window              Maximum number of flanking N's around deletion, default 2
   --baseline_scores     Custom baseline scores file for use in summary report
   --baseline            Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom
-                        baseline file. Default BA.1. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha
+                        baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha
   --no-product-plot     Do not produce individual sample product plots (for fastest operation)
 ```
 
@@ -134,12 +134,12 @@ By default SPEAR will filter out the variants occurring in "genomic scraggly end
 All spear output is nested into the output directory specified at run time.
 
 ### Terminal output
-Scores for each sample along with highlights showing where these exceed the chosen baseline (defaults to `BA.1`) are produced in the SPEAR terminal output. This mirrors the SPEAR Per Sample Scores Summary table found in the HTML report. And is sorted by the column `Class Masked mAb escape`. 
+Scores for each sample along with highlights showing where these exceed the chosen baseline (defaults to `BA.2`) are produced in the SPEAR terminal output. This mirrors the SPEAR Per Sample Scores Summary table found in the HTML report. And is sorted by the column `Class Masked mAb escape`. 
 
 ![](images/terminal_table.png) 
 
 ### Baseline scoring comparison 
-All scores (as discussed below) can be compared to a baseline lineage or user-supplied sample, the default is to compare to BA.1, this means that any scores above the values in the baseline will be highlighted, potentially flagging samples with enhanced immune escape or ACE2 binding, these scores are discussed below.  To select an alternative baseline from the built-in options use:
+All scores (as discussed below) can be compared to a baseline lineage or user-supplied sample, the default is to compare to BA.2, this means that any scores above the values in the baseline will be highlighted, potentially flagging samples with enhanced immune escape or ACE2 binding, these scores are discussed below.  To select an alternative baseline from the built-in options use:
 
 `--baseline BA.1 or BA.1.1, BA.2, Omicron, Delta, Alpha`
 
@@ -187,6 +187,7 @@ These columns are within both the per sample files and `spear_annotation_summary
 | `residues` | Amino acid residue changes in the format of N501Y (REF-AA residue ALT-AA), where the genomic events produces multiple changes these will be expressed like so: `G142D,del143,del144,del145` for G142D followed by deletion of 3 residues, or `R203K,G204R` exposing individual AA changes within a MNP. |
 | `region` | Currently only annotated for Spike: S1 or S2 and ORF3a transmembrane or cytosolic. |
 | `domain` | Annotated for protein where multiple domains are present, spike definitions, e.g. NTD, RBD, RBM, definitions can be found [here](/docs/S_domains.md). |
+| `feature` | Features possessed by residues distinct from domain annotation, such as active sites or ligand binding roles where each annotated residue contributes to the feature. |
 | `contact_type` | Takes the format for `molecule:bond_type_residue`, *e*.*g*. `ACE2:h-bond_E35+contact_K31_H34`, implies a ACE2 h-bond made by annotated residue to E35 within ACE2 as well as 4Å cut-off contact made to K31 and H34, `+` delimits additional contact types. `trimer:h-bond_707_709+contact` implies a contact in the trimer interface of Spike h-binding to residues 707 and 709 with an additional generic none residue specific contact. The bond type salt-bridge is also possible here. Currently only annotated for Spike. |
 | `NAb` | A list of bound neutralising antibodies, this list is `+` delimited, with `,` reserved to delimit multiple amino acid variant events as described in `residues`. Currently only annotated for Spike. |
 | `barns_class` | If the residue is part of a Barns epitope class as defined in Barns _et al_.[2], annotated values are 1, 2, 3, 4 with a + delimiter, some classes are appended with a * where they were not part of formal epitope studies but that residue was found to be sensitive to biding of antibodies of that class via mutagenesis studies. |
@@ -240,8 +241,6 @@ There are known problematic sites in [SARS-CoV-2 sequencing](https://github.com/
 | all | all of the above | Everything marked as mask. |
 
 **Table 3**. Filtering codes
-
-All sites flagged with "caution" within [W-L/ProblematicSites_SARS-CoV2](https://github.com/W-L/ProblematicSites_SARS-CoV2/) will be annotated as such within SPEAR output `.vcf` when `--mask-problem-sites` is used.
 
 ## Acknowledgments 
 Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-crown) project is led by [Matthew Bashton](https://twitter.com/mattbashton) and is developed in collaboration with the [Najmanovich Research Group](http://biophys.umontreal.ca/nrg/) specifically Natália Teruel and Rafael Najmanovich. This work is funded by [COG-UK](https://www.cogconsortium.uk/).
