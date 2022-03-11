@@ -167,7 +167,7 @@ def main():
     annotation_summary['respos'] = annotation_summary["residues"].str.extract('[A-Z\*]-*([0-9]+)-*[a-zA-Z\*\?]+')
     annotation_summary['altres'] = annotation_summary["residues"].str.extract('[A-Z\*]-*[0-9]+-*([a-zA-Z\*\?]+)')
 
-    #MAKING A COUNT TABLE OF RAW NUCLEOTIDE VARIANTS - USES THE FILTERED ANNO SUMMARY SO DOES NOT INCLUDE REFRES = ALTRES (BUT SHOULD IT?)
+    #MAKING A COUNT TABLE OF RAW NUCLEOTIDE VARIANTS
     variants_counts_table = annotation_summary[["sample_id","REF","POS", "ALT","compound_nt_var"]].drop_duplicates(["sample_id", "compound_nt_var"])
     variants_counts_table = variants_counts_table.groupby(["REF","POS", "ALT","compound_nt_var"])[["compound_nt_var"]].count()
     variants_counts_table.columns = ["count"]
@@ -485,8 +485,8 @@ def main():
             )
         all_samples_domain_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         all_samples_domain_table.write_html(f'{args.output_dir}/plots/samples_domain_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
-        domain_message = '''Table of mutation counts in protein domains. Total mutations = the total number of mutations in this domain seen across all samples. Unique mutations = total number of unique residue mutations observed across all samples.<br>
-                            A full table of protein domain mutation in each sample can be found <a href="plots/samples_domain_table.html">here</a> and in <code>spear_score_summary.tsv</code><br>'''
+        domain_message = '''Table of mutation counts in protein domains. <br>Total mutations: the total number of mutations in this domain seen across all samples. Unique mutations: total number of unique residue mutations observed across all samples.</br><br>
+                            A full table of protein domain mutation in each sample can be found <a href="plots/samples_domain_table.html">here</a> and in <code>spear_annotation_summary.tsv</code><br>'''
 
     else:
         domain_table_plt = "No domain mutations present in any samples."
@@ -616,8 +616,8 @@ def main():
             )
         all_samples_feature_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         all_samples_feature_table.write_html(f'{args.output_dir}/plots/samples_feature_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
-        feature_message = '''Table of mutation counts of protein features (in domains). Total mutations = the total number of mutations in this feature seen across all samples. Unique mutations = total number of unique residue mutations observed across all samples in this feature.<br>
-                            A full table of protein feature mutation in each sample can be found <a href="plots/samples_feature_table.html">here</a> and in <code>spear_score_summary.tsv</code><br>'''
+        feature_message = '''Table of mutation counts of protein features (in domains). <br>Total mutations: the total number of mutations in this feature seen across all samples. Unique mutations: total number of unique residue mutations observed across all samples in this feature.</br><br>
+                            A full table of protein feature mutation in each sample can be found <a href="plots/samples_feature_table.html">here</a> and in <code>spear_annotation_summary.tsv</code><br>'''
 
     else:
         feature_table_plt = "No domain mutations present in any samples."
@@ -1301,7 +1301,7 @@ def main():
                                 ''' + residues_table_plt + '''
                                 </div>
                             </div>
-                            <div class="card-footer">Amino acid missense, deletion, or insertion mutations across all samples. Sorted by count of mutation, use dropdown to sort by genomic position. A table summarising nucleotide level variants can be found <a href="plots/nt_variants_table.html">here</a></div>
+                            <div class="card-footer">Amino acid missense, deletion, or insertion mutations across all samples. Sorted by count of mutation, use dropdown to sort by genomic position. Nucleotide level variants may be repeated where there are multiple AA changes associated with a single genomic event. A table summarising nucleotide level variants can be found <a href="plots/nt_variants_table.html">here</a>.</div>
                         </div>
                     </div>
                 </div>
