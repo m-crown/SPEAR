@@ -167,7 +167,7 @@ def main():
         args.mask_problem_sites = None
         args.no_report = None
         args.baseline_scores = None
-        args.baseline = "BA.2"
+        args.baseline = "BA.1"
         args.no_product_plot = None
         args.debug = True
         args.tmp = False
