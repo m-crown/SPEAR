@@ -332,6 +332,296 @@ def main():
         )
     residues_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
     residues_table_plt = offline.plot(residues_table,output_type='div', include_plotlyjs = f'plots/plotly/plotly-2.8.3.min.js', config = {'displaylogo': False})
+
+    product_order = [
+        'leader protein', 
+        'nsp2', 
+        'nsp3', 
+        'nsp4', 
+        '3C-like proteinase', 
+        'nsp6', 
+        'nsp7', 
+        'nsp8', 
+        'nsp9', 
+        'nsp10', 
+        'nsp11', 
+        'RNA-dependent RNA polymerase', 
+        'helicase', 
+        "3'-to-5' exonuclease", 
+        'endoRNAse', 
+        "2'-O-ribose methyltransferase",
+        'surface glycoprotein',
+        'ORF3a protein',
+        'envelope protein', 
+        'membrane glycoprotein',
+        'ORF6 protein', 
+        'ORF7a protein', 
+        'ORF7b', 
+        'ORF8 protein',
+        'ORF10 protein',
+        'nucleocapsid phosphoprotein']
+
+    #making a domain counts table
+    if annotation_summary["domain"].replace("", np.nan).isnull().all() == False: 
+        domain_counts_table_unique = annotation_summary.loc[annotation_summary["domain"].replace("", np.nan).isnull() == False , ["description", "residues", "domain"]].drop_duplicates("residues")
+        domain_counts_table_unique_grouped = domain_counts_table_unique.groupby(["description", "domain"])[["domain"]].count()
+        domain_counts_table_unique_grouped.columns = ["count"]
+        domain_counts_table_unique_grouped = domain_counts_table_unique_grouped.sort_values("count", axis = 0, ascending = False)
+        domain_counts_table_unique_grouped = domain_counts_table_unique_grouped.reset_index()
+
+        domain_counts_table_all = annotation_summary.loc[annotation_summary["domain"].replace("", np.nan).isnull() == False , ["description", "residues", "domain"]]
+        domain_counts_table_all_grouped = domain_counts_table_all.groupby(["description", "domain"])[["domain"]].count()
+        domain_counts_table_all_grouped.columns = ["count"]
+        domain_counts_table_all_grouped = domain_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
+        domain_counts_table_all_grouped = domain_counts_table_all_grouped.reset_index()
+
+        domain_counts_table_all_grouped.rename(columns = {"count" : "total_mutations"}, inplace = True)
+        domain_counts_table_unique_grouped.rename(columns = {"count" : "unique_residues"}, inplace = True)
+        final_domain_counts = pd.merge(left = domain_counts_table_all_grouped, right = domain_counts_table_unique_grouped, on = ["description", "domain"])
+        final_domain_counts["order"] = final_domain_counts["description"].apply(lambda x: product_order.index(x))
+
+        domain_table = go.Figure(data=[go.Table(
+            header=dict(values=["Product", "Domain", "Total Mutations", "Unique Residue Mutations"],
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[final_domain_counts["description"],final_domain_counts["domain"], final_domain_counts["total_mutations"], final_domain_counts["unique_residues"]],
+                        fill_color='lavender',
+                        align='left'))
+        ])  
+
+        buttons = []
+        buttons_list = ["Total" , "Unique", "Product"]
+        for item in buttons_list:
+            if item == "Total":
+                final_domain_counts = final_domain_counts.sort_values(by = "total_mutations", ascending = False)
+
+            elif item == "Unique":
+                final_domain_counts = final_domain_counts.sort_values(by = "unique_residues", ascending = False)
+            elif item == "Product": 
+                final_domain_counts = final_domain_counts.sort_values(by = "order", ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [final_domain_counts["description"],final_domain_counts["domain"], final_domain_counts["total_mutations"], final_domain_counts["unique_residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        domain_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        domain_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        domain_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        domain_table_plt = offline.plot(domain_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+        all_samples_domain = annotation_summary.loc[annotation_summary["domain"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "domain"]]
+        all_samples_domain["order"] = all_samples_domain["description"].apply(lambda x: product_order.index(x))
+        all_samples_domain.sort_values(by = "sample_id", inplace = True)
+        all_samples_domain_table = go.Figure(data=[go.Table(
+                header=dict(values=["Sample", "Product", "Domain", "residue"],
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[all_samples_domain["sample_id"],all_samples_domain["description"],all_samples_domain["domain"], all_samples_domain["residues"]],
+                            fill_color='lavender',
+                            align='left'))
+            ])
+        buttons = []
+        buttons_list = ["Sample" , "Product"]
+        for item in buttons_list:
+            if item == "Sample":
+                all_samples_domain = all_samples_domain.sort_values(by = "sample_id", ascending = True)
+            elif item == "Product": 
+                all_samples_domain = all_samples_domain.sort_values(by = "order", ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [all_samples_domain["sample_id"],all_samples_domain["description"],all_samples_domain["domain"], all_samples_domain["residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        all_samples_domain_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        all_samples_domain_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        all_samples_domain_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        all_samples_domain_table.write_html(f'{args.output_dir}/plots/samples_domain_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        domain_message = '''Table of mutation counts in protein domains. Total mutations = the total number of mutations in this domain seen across all samples. Unique mutations = total number of unique residue mutations observed across all samples.<br>
+                            A full table of protein domain mutation in each sample can be found <a href="plots/samples_domain_table.html">here</a> and in <code>spear_score_summary.tsv</code><br>'''
+
+    else:
+        domain_table_plt = "No domain mutations present in any samples."
+        domain_message = ""
+
+    #making a domain counts table
+    if annotation_summary["feature"].replace("", np.nan).isnull().all() == False: 
+        feature_counts_table_unique = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "feature", "domain"]].drop_duplicates("residues")
+        feature_counts_table_unique_grouped = feature_counts_table_unique.groupby(["description", "domain", "feature"])[["feature"]].count()
+        feature_counts_table_unique_grouped.columns = ["count"]
+        feature_counts_table_unique_grouped = feature_counts_table_unique_grouped.sort_values("count", axis = 0, ascending = False)
+        feature_counts_table_unique_grouped = feature_counts_table_unique_grouped.reset_index()
+
+        feature_counts_table_all = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "domain", "feature"]]
+        feature_counts_table_all_grouped = feature_counts_table_all.groupby(["description", "domain", "feature"])[["feature"]].count()
+        feature_counts_table_all_grouped.columns = ["count"]
+        feature_counts_table_all_grouped = feature_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
+        feature_counts_table_all_grouped = feature_counts_table_all_grouped.reset_index()
+
+        feature_counts_table_all_grouped.rename(columns = {"count" : "total_mutations"}, inplace = True)
+        feature_counts_table_unique_grouped.rename(columns = {"count" : "unique_residues"}, inplace = True)
+        final_feature_counts = pd.merge(left = feature_counts_table_all_grouped, right = feature_counts_table_unique_grouped, on = ["description", "domain", "feature"])
+        final_feature_counts["order"] = final_feature_counts["description"].apply(lambda x: product_order.index(x))
+
+        feature_table = go.Figure(data=[go.Table(
+            header=dict(values=["Product", "Domain", "Feature",  "Total Mutations", "Unique Residue Mutations"],
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[final_feature_counts["description"],final_feature_counts["domain"],final_feature_counts["feature"], final_feature_counts["total_mutations"], final_feature_counts["unique_residues"]],
+                        fill_color='lavender',
+                        align='left'))
+        ])  
+
+        buttons = []
+        buttons_list = ["Total" , "Unique", "Product"]
+        for item in buttons_list:
+            if item == "Total":
+                final_feature_counts = final_feature_counts.sort_values(by = "total_mutations", ascending = False)
+
+            elif item == "Unique":
+                final_feature_counts = final_feature_counts.sort_values(by = "unique_residues", ascending = False)
+            elif item == "Product": 
+                final_feature_counts = final_feature_counts.sort_values(by = "order", ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [final_feature_counts["description"],final_feature_counts["domain"], final_feature_counts["feature"],final_feature_counts["total_mutations"], final_feature_counts["unique_residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        feature_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        feature_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        feature_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        feature_table_plt = offline.plot(feature_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+        all_samples_feature = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "domain", "feature"]]
+        all_samples_feature["order"] = all_samples_feature["description"].apply(lambda x: product_order.index(x))
+        all_samples_feature.sort_values(by = "sample_id", inplace = True)
+        all_samples_feature_table = go.Figure(data=[go.Table(
+                header=dict(values=["Sample", "Product", "Domain", "Feature", "Residue"],
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[all_samples_feature["sample_id"],all_samples_feature["description"],all_samples_feature["domain"],all_samples_feature["feature"], all_samples_feature["residues"]],
+                            fill_color='lavender',
+                            align='left'))
+            ])
+        buttons = []
+        buttons_list = ["Sample" , "Product"]
+        for item in buttons_list:
+            if item == "Sample":
+                all_samples_feature = all_samples_feature.sort_values(by = "sample_id", ascending = True)
+            elif item == "Product": 
+                all_samples_feature = all_samples_feature.sort_values(by = "order", ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [all_samples_feature["sample_id"], all_samples_feature["description"],all_samples_feature["domain"], all_samples_feature["feature"],all_samples_feature["residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        all_samples_feature_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        all_samples_feature_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        all_samples_feature_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        all_samples_feature_table.write_html(f'{args.output_dir}/plots/samples_feature_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        feature_message = '''Table of mutation counts of protein features (in domains). Total mutations = the total number of mutations in this feature seen across all samples. Unique mutations = total number of unique residue mutations observed across all samples in this feature.<br>
+                            A full table of protein feature mutation in each sample can be found <a href="plots/samples_feature_table.html">here</a> and in <code>spear_score_summary.tsv</code><br>'''
+
+    else:
+        feature_table_plt = "No domain mutations present in any samples."
+        feature_message = ""
     
     #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE 
     scores_cols = baseline_scores.columns.tolist()
@@ -997,7 +1287,7 @@ def main():
                     <div class = "col-12">
                         <div class="card">
                             <div class="card-body">
-                            <p class="p1 text-justify">From a total of ''' + args.input_samples + ''' input samples, ''' + args.qc_samples + ''' passed QC and were annotated by SPEAR. A total of ''' + str(total_genomic_variants) + ''' nucleotide variants were identified across all samples, which resulted in ''' + str(total_residue_variants) + ''' AA missense, deletion or insertions which are listed and evaluated below. </p>
+                            <p class="p1 text-justify">From a total of ''' + str(args.input_samples) + ''' input samples, ''' + str(args.qc_samples) + ''' passed QC and were annotated by SPEAR. A total of ''' + str(total_genomic_variants) + ''' nucleotide variants were identified across all samples, which resulted in ''' + str(total_residue_variants) + ''' AA missense, deletion or insertions which are listed and evaluated below. </p>
                             </div>
                         </div>
                     </div>
@@ -1033,7 +1323,7 @@ def main():
                     </div>
                 </div>
                 <div class = "row mt-2">
-                     <div class="col-12">
+                        <div class="col-12">
                         <div class="card">
                             <div class="card-header">Per Sample Scores Summary</div>
                             <div class="card-body">
@@ -1047,7 +1337,36 @@ def main():
                             </div>
                         </div>
                     </div> 
-                </div>       
+                </div>
+                <div class = "row mt-2">
+                    <div class="col-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Protein Domain Mutations
+                            </div>
+                            <div class="card-body">
+                                ''' + domain_table_plt + '''
+                            </div>
+                            <div class = "card-footer">
+                            ''' + domain_message + '''
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6"> 
+                        <div class="card">
+                            <div class="card-header">
+                                Protein Feature Mutations
+                            </div>
+                            <div class="card-body">
+                                ''' + feature_table_plt + '''
+                            </div>
+                            <div class = "card-footer">
+                            ''' + feature_message + '''
+                            </div>
+                        </div> 
+                    </div>    
+                </div>
+                    
                 ''' + table_card + '''    
 
             <footer class="page-footer font-small teal pt-4 border mt-2 mb-2">
@@ -1076,7 +1395,7 @@ def main():
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
         </body>
     </html>'''
-    
+
     # <div class="col-6">
     #     <div class="card">
     #         <div class="card-header">Nucleotide Variants</div>
@@ -1093,8 +1412,6 @@ def main():
     f = open(f'{args.output_dir}/report.html','w')
     f.write(html_string)
     f.close()
-
-    
     console.print(table)
 if __name__ == "__main__":
     main()
