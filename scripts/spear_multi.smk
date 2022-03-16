@@ -91,16 +91,28 @@ rule merge_qc:
    shell:
       '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  cat {input} >> {config[output_dir]}/qc.csv'''
 
-rule get_indels:
-   input:
-      vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
-      muscle_aln = config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
-   output:
-      snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
-      sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
-   log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
-   shell:
-      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.muscle_aln} NC_045512.2 {output.snps_indels} 2> {log}"
+if (config["align"]) & (config["aligner"] == "minimap2"):
+   rule get_indels:
+      input:
+         vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
+         muscle_aln = config["output_dir"] + "/intermediate_output/muscle/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      output:
+         snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
+         sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
+      log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
+      shell:
+         "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.muscle_aln} NC_045512.2 {output.snps_indels} 2> {log}"
+else:
+   rule get_indels:
+      input:
+         vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
+         muscle_aln = config["output_dir"] + "/intermediate_output/muscle/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      output:
+         snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
+         sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
+      log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
+      shell:
+         "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.muscle_aln} NC_045512.2 {output.snps_indels} 2> {log}"
 
 rule filter_problem_sites:
    input: 
@@ -122,7 +134,7 @@ rule mark_problem_sites:
 
 rule get_snps:
    input:
-      config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      config["output_dir"] + "/intermediate_output/muscle/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
    output:
       snps = config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/get_snps/{id}.get_snps.log"
@@ -130,12 +142,22 @@ rule get_snps:
       "faToVcf {config[exclude_ambiguous]} {input} {output.snps} ; update_vcf_header.sh {output.snps} 2> {log}"
 
 if config["align"]:
-   rule align:
-      input:
-         config["input_dir"] + "/{id}" + config["extension"]
-      output: 
-         plus_ref =  config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
-         alignment = config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" 
-      log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
-      shell:
-         "cat {config[reference_sequence]} {input} > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
+   if config["aligner"] == "minimap2":
+      rule align:
+         input:
+            config["input_dir"] + "/{id}" + config["extension"]
+         output: 
+            alignment = config["output_dir"] + "/intermediate_output/muscle/{id}.fasta" 
+         log: config["output_dir"] + "/intermediate_output/logs/vcf/{id}.vcf.log"
+         shell:
+            "minimap2 -ax asm20 --cs {config[reference_sequence]} {input} > {wildcards.id}.sam ;  gofasta sam toPairAlign -r {config[reference_sequence]} -s {wildcards.id}.sam --outpath {config[output_dir]}/intermediate_output/muscle"
+   elif config["aligner"] == "muscle":
+      rule align:
+         input:
+            config["input_dir"] + "/{id}" + config["extension"]
+         output: 
+            plus_ref =  config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
+            alignment = config["output_dir"] + "/intermediate_output/muscle/{id}.fasta" 
+         log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
+         shell:
+            "cat {config[reference_sequence]} {input} > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
