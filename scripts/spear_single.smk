@@ -110,11 +110,22 @@ rule get_snps:
       "faToVcf {config[exclude_ambiguous]} {input} {output.snps} ; update_vcf_header.sh {output.snps} 2> {log}"
 
 if config["align"]:
-   rule align:
-      input: config["input_dir"] + "/{id}" + config["extension"]
-      output: 
-         plus_ref =  config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
-         alignment = config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln"
-      log: config["output_dir"] + "/intermediate_output/logs/alignment/{id}.log"
-      shell:
-         "cat {config[reference_sequence]} {input} > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
+   if config["aligner"] == "minimap2":
+      rule align:
+         input:
+            config["input_dir"] + "/{id}" + config["extension"]
+         output: 
+            alignment = config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" 
+         log: config["output_dir"] + "/intermediate_output/logs/vcf/{id}.vcf.log"
+         shell:
+            "minimap2 -ax asm20 --cs {config[reference_sequence]} {input} > {id}.sam ;  gofasta sam toPairAlign -r {config[reference_sequence]} -s {id.sam} --outpath {config[output_dir]}/intermediate_output/muscle/"
+   elif config["aligner"] == "muscle":
+      rule align:
+         input:
+            config["input_dir"] + "/{id}" + config["extension"]
+         output: 
+            plus_ref =  config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
+            alignment = config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" 
+         log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
+         shell:
+            "cat {config[reference_sequence]} {input} > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
