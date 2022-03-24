@@ -608,6 +608,120 @@ def main():
         feature_table_plt = "No domain mutations present in any samples."
         feature_message = ""
     
+    #making a furin cleavage site specific table
+    if len(final_feature_counts.loc[(final_feature_counts["description"] == "surface glycoprotein") & (final_feature_counts["respos"] >= 680) & (final_feature_counts["respos"] <= 690)]) != 0:
+
+        furin_feature_counts = final_feature_counts.loc[(final_feature_counts["description"] == "surface glycoprotein") & (final_feature_counts["respos"] >= 680) & (final_feature_counts["respos"] <= 690)].copy()
+        furin_table = go.Figure(data=[go.Table(
+            header=dict(values=["Product", "Mutation", "Domain", "Feature", "Samples"],
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[furin_feature_counts["description"], furin_feature_counts["residues"], furin_feature_counts["domain"],furin_feature_counts["feature"], furin_feature_counts["total_mutations"]],
+                        fill_color='lavender',
+                        align='left'))
+        ])  
+
+        buttons = []
+        buttons_list = ["Total", "Product"]
+        for item in buttons_list:
+            if item == "Total":
+                furin_feature_counts = furin_feature_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+            elif item == "Product": 
+                furin_feature_counts = furin_feature_counts.sort_values(by = ["order", "respos"], ascending = [True, True])
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [furin_feature_counts["description"], furin_feature_counts["residues"], furin_feature_counts["domain"],furin_feature_counts["feature"], furin_feature_counts["total_mutations"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        furin_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        furin_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        furin_table_plt = offline.plot(furin_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+        all_samples_furin = all_samples_feature[(all_samples_feature["description"] == "surface glycoprotein") & (all_samples_feature["respos"] >= 680) & (all_samples_feature["respos"] <= 690)].copy()
+        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace("_", " ", regex = True)
+        all_samples_furin["order"] = all_samples_furin["description"].apply(lambda x: product_order.index(x))
+        all_samples_furin.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
+        all_samples_furin_table = go.Figure(data=[go.Table(
+                header=dict(values=["Sample", "Product", "Domain", "Feature", "Residue"],
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[all_samples_furin["sample_id"],all_samples_furin["description"],all_samples_furin["domain"],all_samples_furin["feature"],all_samples_furin["residues"]],
+                            fill_color='lavender',
+                            align='left'))
+            ])
+        buttons = []
+        buttons_list = ["Sample" , "Product"]
+        for item in buttons_list:
+            if item == "Sample":
+                all_samples_furin = all_samples_furin.sort_values(by = ["sample_id", "order", "respos"], ascending = True)
+            elif item == "Product": 
+                all_samples_furin = all_samples_furin.sort_values(by = ["order", "respos"], ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [all_samples_furin["sample_id"],all_samples_furin["description"],all_samples_furin["domain"],all_samples_furin["feature"],all_samples_furin["residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        all_samples_furin_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        all_samples_furin_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        all_samples_furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        all_samples_furin_table.write_html(f'{args.output_dir}/plots/samples_furin_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        furin_message = '''Table of mutation counts of protein features (in domains). Total mutations: the total number of mutations in this feature seen across all samples. Unique mutations: total number of unique residue mutations observed across all samples in this feature.
+                            A full table of protein feature mutation in each sample can be found <a href="plots/samples_furin_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
+
+    else:
+        furin_table_plt = "No furin mutations present in any samples."
+        furin_message = ""
+    
     #making a contacts counts table
     if annotation_summary["contact_type"].replace("", np.nan).isnull().all() == False: 
         contact_counts_table_all = annotation_summary.loc[annotation_summary["contact_type"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "contact_type"]].copy()
@@ -1492,7 +1606,7 @@ def main():
                     </div>    
                 </div>
                 <div class = "row mt-2">
-                    <div class="col-6 mx-auto">
+                    <div class="col-6">
                         <div class="card">
                             <div class = "card-header">
                                 Mutated Interacting Residues
@@ -1502,6 +1616,19 @@ def main():
                             </div>
                             <div class = "card-footer">
                             ''' + contacts_message + '''
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card">
+                            <div class = "card-header">
+                                Mutated Furin Site Residues
+                            </div>
+                            <div class = "card-body">
+                                ''' + furin_table_plt + '''
+                            </div>
+                            <div class = "card-footer">
+                            ''' + furin_message + '''
                             </div>
                         </div>
                     </div>
