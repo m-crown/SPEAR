@@ -186,6 +186,7 @@ def main():
         args.s_n = 1.0
         args.s_contig = 29903
         args.rbd_n = 5000
+        args.aligner = None
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
@@ -200,6 +201,7 @@ def main():
             align_in = True
         else:
             align_in = False
+            args.aligner = None
         if args.command == "vcf":
             vcf_in = True
             args.allowAmbiguous = False
