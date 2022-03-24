@@ -608,7 +608,147 @@ def main():
         feature_table_plt = "No domain mutations present in any samples."
         feature_message = ""
     
-    #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE 
+    #making a contacts counts table
+    if annotation_summary["contact_type"].replace("", np.nan).isnull().all() == False: 
+        contact_counts_table_all = annotation_summary.loc[annotation_summary["contact_type"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "contact_type"]].copy()
+        contact_counts_table_all["contact_type"] = contact_counts_table_all["contact_type"].str.split(" ")
+        contact_counts_table_all = contact_counts_table_all.explode("contact_type")
+        contact_counts_table_all[["contact", "contact_type"]] =  contact_counts_table_all["contact_type"].str.split(":", expand = True)
+        contact_counts_table_all["contact_type"] = contact_counts_table_all["contact_type"].str.split("+")
+        contact_counts_table_all = contact_counts_table_all.explode("contact_type")
+        contact_counts_table_all["contact"] = contact_counts_table_all["contact"].replace("_", " ", regex = True)
+        contact_counts_table_all[["contact_type", "contacting_residues"]] = contact_counts_table_all["contact_type"].str.split("_", n=1, expand = True)
+        contact_counts_table_all["contacting_residues"].fillna("", inplace = True)
+        contact_counts_table_all["contacting_residues"] = contact_counts_table_all["contacting_residues"].str.replace("_", ",")
+        contact_counts_table_all_grouped = contact_counts_table_all.groupby(["description", "residues", "respos", "contact", "contact_type", "contacting_residues"])[["contact_type"]].count()
+        contact_counts_table_all_grouped.columns = ["count"]
+        contact_counts_table_all_grouped = contact_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
+        contact_counts_table_all_grouped = contact_counts_table_all_grouped.reset_index()
+
+        contact_counts_table_all_grouped.rename(columns = {"count" : "total_mutations"}, inplace = True)
+        final_contact_counts = contact_counts_table_all_grouped
+        final_contact_counts["order"] = final_contact_counts["description"].apply(lambda x: product_order.index(x))
+        final_contact_counts = final_contact_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+        contacts_table = go.Figure(data=[go.Table(
+            header=dict(values=["Product", "Mutation", "Contact", "Contact Type","Contacting Residue(s)", "Samples"],
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[final_contact_counts["description"],final_contact_counts["residues"],final_contact_counts["contact"],final_contact_counts["contact_type"],final_contact_counts["contacting_residues"], final_contact_counts["total_mutations"]],
+                        fill_color='lavender',
+                        align='left'))
+        ])  
+
+        buttons = []
+        buttons_list = ["Total" , "Product"]
+        for item in buttons_list:
+            if item == "Total":
+                final_contact_counts = final_contact_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+            elif item == "Product": 
+                final_contact_counts = final_contact_counts.sort_values(by = ["order", "respos"], ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [final_contact_counts["description"],final_contact_counts["residues"],final_contact_counts["contact"],final_contact_counts["contact_type"],final_contact_counts["contacting_residues"], final_contact_counts["total_mutations"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        contacts_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        contacts_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        contacts_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        contacts_table_plt = offline.plot(contacts_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+
+        all_samples_contacts = annotation_summary.loc[annotation_summary["contact_type"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "respos", "contact_type"]].copy()
+        all_samples_contacts["contact_type"] = all_samples_contacts["contact_type"].str.split(" ")
+        all_samples_contacts = all_samples_contacts.explode("contact_type")
+        all_samples_contacts[["contact", "contact_type"]] =  all_samples_contacts["contact_type"].str.split(":", expand = True)
+        all_samples_contacts["contact_type"] = all_samples_contacts["contact_type"].str.split("+")
+        all_samples_contacts = all_samples_contacts.explode("contact_type")
+        all_samples_contacts["contact"] = all_samples_contacts["contact"].replace("_", " ", regex = True)
+        all_samples_contacts[["contact_type", "contacting_residues"]] = all_samples_contacts["contact_type"].str.split("_", n=1, expand = True)
+        all_samples_contacts["contacting_residues"].fillna("", inplace = True)
+        all_samples_contacts["contacting_residues"] = all_samples_contacts["contacting_residues"].str.replace("_", ",")
+        all_samples_contacts["order"] = all_samples_contacts["description"].apply(lambda x: product_order.index(x))
+        all_samples_contacts.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
+        all_samples_contacts_table = go.Figure(data=[go.Table(
+                header=dict(values=["Sample", "Product", "Mutation", "Contact", "Contact Type","Contacting Residue(s)"],
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[all_samples_contacts["sample_id"],all_samples_contacts["description"],all_samples_contacts["residues"],all_samples_contacts["contact"],all_samples_contacts["contact_type"], all_samples_contacts["contacting_residues"]],
+                            fill_color='lavender',
+                            align='left'))
+            ])
+        buttons = []
+        buttons_list = ["Sample" , "Product"]
+        for item in buttons_list:
+            if item == "Sample":
+                all_samples_contacts = all_samples_contacts.sort_values(by = ["sample_id", "order"], ascending = True)
+            elif item == "Product": 
+                all_samples_contacts = all_samples_contacts.sort_values(by = "order", ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [all_samples_contacts["sample_id"],all_samples_contacts["description"],all_samples_contacts["residues"],all_samples_contacts["contact"],all_samples_contacts["contact_type"], all_samples_contacts["contacting_residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        all_samples_contacts_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        all_samples_contacts_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        all_samples_contacts_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        all_samples_contacts_table.write_html(f'{args.output_dir}/plots/samples_contacts_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        contacts_message = '''Table of mutated residues with other residue interactions, and their interaction type e.g. H-bond, salt-bridge, "contact".
+                            A full table of interacting residue mutations in each sample can be found <a href="plots/samples_contacts_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
+
+    else:
+        contacts_table_plt = "No mutations in contacting residues present in any samples."
+        contacts_message = ""
+
+    #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE
     scores_cols = baseline_scores.columns.tolist()
     non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues','ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barns_class_variants','bloom_ACE2_max', 'bloom_ACE2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_RES_sum']
     displayed_scores_cols = [score for score in scores_cols if score not in non_displayed_scores]
@@ -669,9 +809,9 @@ def main():
             n_info.loc[n_info["global_n"] >= args.global_n, "global_n_display"] = "*"
             n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]] = n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]].fillna("")
             n_info["displayed_dropout"] = n_info["s_n_contig_display"] + n_info["rbd_n_display"] + n_info["s_n_display"] + n_info["global_n_display"]
-            sample_scores_baseline = sample_scores.iloc[0]
+            sample_scores_baseline = sample_scores.iloc[0].copy()
             sample_scores_baseline["displayed_dropout"] = ""
-            sample_scores_samples = sample_scores.iloc[1:]
+            sample_scores_samples = sample_scores.iloc[1:].copy()
             sample_scores_samples = pd.merge(left = sample_scores_samples, right = n_info[["sample_id", "displayed_dropout"]], on = "sample_id", how = "left").fillna("")
             sample_scores = pd.concat([sample_scores_baseline.to_frame().T, sample_scores_samples])
         sample_scores.set_index("sample_id", drop = False, inplace = True)
@@ -1351,7 +1491,21 @@ def main():
                         </div> 
                     </div>    
                 </div>
-                    
+                <div class = "row mt-2">
+                    <div class="col-6 mx-auto">
+                        <div class="card">
+                            <div class = "card-header">
+                                Mutated Interacting Residues
+                            </div>
+                            <div class = "card-body">
+                                ''' + contacts_table_plt + '''
+                            </div>
+                            <div class = "card-footer">
+                            ''' + contacts_message + '''
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 ''' + table_card + '''    
 
             <footer class="page-footer font-small teal pt-4 border mt-2 mb-2">
