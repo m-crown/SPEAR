@@ -67,7 +67,7 @@ Further options are then available depending on the type of input file, e.g. `sp
 
 ```
 usage: spear alignment [-h] [--debug] [--dag] [--no-report] [--tmp] [--extension]
-                       [--mask-problem-sites AB AM HA [AB AM HA ...]] [--threads] [--cutoff] [--global_n]
+                       [--mask-problem-sites AB AM HA [AB AM HA ...]] [--threads] [--aligner] [--cutoff] [--global_n]
                        [--s_n] [--s_contig] [--rbd_n] [--window] [--baseline_scores] [--baseline]
                        [--no-product-plot]
                        input output
@@ -86,6 +86,7 @@ options:
   --mask-problem-sites AB AM HA [AB AM HA ...]
                         Filter problematic sites with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]
   --threads             Max number of threads for snakemake job execution.
+  --aligner             Alignment method to use for alignment to SARS-CoV-2 reference, 'minimap2' or 'muscle', default minimap2
   --cutoff              Percentage N cutoff for input sequences. Default 50
   --global_n            Minimum percentage of N in sample to flag as poor coverage. Default half of cutoff.
   --s_n                 Minimum percentage of N in S gene to flag as poor coverage. Default 5.
@@ -119,6 +120,8 @@ To run on multiple input files replace the input file name with a directory:
 You can also use `.` as input directory to use files in the current working directory.
 
 By default consensus files are assumed to have the extension `.fa`, alignments `.aln` and vcf files `.vcf`, if you have a different extension then specify the suffix with `--extension`. This also allows you to remove a suffix from the sample ID used in output, so if all your input alignments conform to `<sample_id>.muscle.aln` specifying: `--extension .muscle.aln` will ensure only the sample id/name makes it into the output. Note that running on multiple input files may require you to increase the maximum number of open file handles on your system if your number of input samples starts to approach this limit, check this with `ulimit -n`.
+
+Consensus inputs can be aligned to reference using either muscle or minimap, specified using --aligner. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements. User's should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments. 
 
 ### Expected alignment format
 If using spear alignment please make sure your samples are aligned to [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3), and that the multiple FASTA format is used, (expected file extension `.aln`) with the reference sequence being the fist one within the alignment.  We recommend using [MUSCLE v3.8](https://drive5.com/muscle/downloads_v3.htm) but other aligners should also work, spear can of course align consensus FASTA for you.
