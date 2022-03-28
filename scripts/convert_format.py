@@ -52,27 +52,26 @@ def summarise_score(summary_df, metric):
     return(summary_df_final)
 
 def sample_header_format(item,sample,vcf,filtered,vcf_loc):
-    #if filter and vcf comes from masked
-    #if alignment or consensus comes from indels
-    #\n are interpreted literally here
-    if vcf:
+    if vcf == True:
         if item.startswith("##bcftools_mergeCommand=merge"):
             if filtered:
-                item = re.sub(r'(?<=merged\.vcf )[a-zA-Z0-9_\. \/]+(?=\n)', vcf_loc, item)
+                item = re.sub(r'(?<=merged\.vcf )[a-zA-Z0-9_\. \/]+(?=;)', vcf_loc, item)
             else:
-                item = re.sub(r'(?<=merged\.vcf )[a-zA-Z0-9_\. \/]+(?=\n)', vcf_loc, item)
+                item = re.sub(r'(?<=merged\.vcf )[a-zA-Z0-9_\. \/]+(?=;)', vcf_loc, item)
     else:
         if item.startswith("##reference="):
-            item = re.sub(r'(?<=alignment\/)[a-zA-Z0-9_\.]+(?=\.fasta)', f'{sample}', item)
-        if item.startswith("##reference="): 
-            item = re.sub(r'(?<=alignment\/)[a-zA-Z0-9_\.]+(?=\.fasta)', f'{sample}', item)
+            item = re.sub(r'(?<=muscle\/)[a-zA-Z0-9_\.\/]+(?=\.fasta)', f'{sample}', item)
+        
+        if item.startswith("##source="):
+            item = re.sub(r'(?<=muscle\/)[a-zA-Z0-9_\.]+(?=\.fasta)', f'{sample}', item)
             item = re.sub(r'(?<=fatovcf\/)[a-zA-Z0-9_\.]+(?=\.vcf)', f'{sample}', item)
 
         if item.startswith("##bcftools_mergeCommand=merge"):
             if filtered:
-                item = re.sub(r'(?<=merged\.vcf )[a-zA-Z0-9_\. \/]+(?=\n)', vcf_loc, item)
+                item = re.sub(r'(?<=merged\.vcf )[a-zA-Z0-9_\. \/]+(?=;)', vcf_loc, item)
             else:
                 item = re.sub(r'(?<=merged\.vcf )[a-zA-Z0-9_\. \/]+(?=;)', vcf_loc, item)
+    
     return(item)
 
 
@@ -96,7 +95,7 @@ def main():
     args = parser.parse_args()
 
     Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
-    if args.is_vcf_input:
+    if args.is_vcf_input == True:
         if args.is_filtered:
             infiles = f'{args.output_dir}/intermediate_output/masked/*.masked.vcf'
         else:
@@ -107,14 +106,15 @@ def main():
     with open(args.input_header, 'r') as fobj:
         headiter = takewhile(lambda s: s.startswith('#'), fobj)
         merged_header = pd.Series(headiter)
-    merged_header = merged_header.str.replace("\n", "")
+    merged_header = merged_header.str.replace('\n','')
+    merged_header = merged_header.str.replace('"','')
     cols = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "sample"]
 
     merged_header = merged_header[~merged_header.str.startswith('#CHROM')]
     input_file = pd.read_csv(args.input_vcf, sep = "\t", names = ["sample_id", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "end"])
     if len(input_file) > 0:
         input_file["sample_id"] = input_file["sample_id"].str.extract(r'final_vcfs\/([a-zA-Z0-9\._]+)\.spear\.vcf', expand = False)
-        input_file[["AN", "AC", "ANN", "SUM", "SPEAR"]] = input_file["INFO"].str.split(';',expand=True)
+        input_file[["AN", "AC", "ANN", "problem_exc", "problem_filter", "SUM", "SPEAR"]] = input_file["INFO"].str.split(';',expand=True)
         original_cols = input_file.columns.tolist()
         input_file[["AN", "AC", "ANN", "SUM", "SPEAR"]] = input_file[["AN", "AC", "ANN", "SUM", "SPEAR"]].replace("^[A-Z]+=", "", regex = True)
         input_file = input_file.loc[input_file["ANN"] != "no_annotation"]
@@ -156,7 +156,7 @@ def main():
             input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
 
             input_file = input_file.groupby("sample_id", as_index = False).apply(lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "res_ret_esc")).reset_index()
-            input_file.loc[input_file["refres"] == input_file["altres"], "BEC_RES"] = "" 
+            input_file.loc[input_file["refres"] == input_file["altres"], "BEC_RES"] = ""
         else:
             input_file["BEC_EF_sample"] = ""
             input_file["BEC_RES"] = ""
@@ -173,7 +173,7 @@ def main():
         final_vcf = final_samples.groupby(cols, as_index = False).agg({"SUM": set , "SPEAR": list})
         final_vcf["SUM"] = [','.join(map(str, l)) for l in final_vcf['SUM']]
         final_vcf["SPEAR"] = [','.join(map(str, l)) for l in final_vcf["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1] if re.search(r'^[a-zA-Z\*]+([0-9]+)|',y)[1] else "")))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
-        infocols = ["AC", "AN", "ANN", "SUM", "SPEAR"]
+        infocols = ["AC", "AN", "problem_exc", "problem_filter", "ANN", "SUM", "SPEAR"]
         for col in infocols:
             final_vcf[col] = col + "=" + final_vcf[col].fillna("").astype("str")
 
@@ -183,10 +183,9 @@ def main():
         final_vcf = final_vcf[original_cols]
 
         for sample in args.sample_list:
-            sample_header = merged_header.copy().apply(lambda x : sample_header_format(x, sample, args.is_vcf_input, args.is_filtered, infiles))
-            #sample_header.to_csv(f'output/{sample}.vcf', index = False)
+            sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, args.is_vcf_input, args.is_filtered, infiles))
             np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
-            if sample in final_vcf["sample_id"]:
+            if sample in final_vcf["sample_id"].values:
                 sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
                 sample_vcf["sample_id"] = "NC_045512.2"
                 sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
