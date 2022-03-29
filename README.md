@@ -245,6 +245,8 @@ There are known problematic sites in [SARS-CoV-2 sequencing](https://github.com/
 
 **Table 3**. Filtering codes
 
+All sites flagged within [W-L/ProblematicSites_SARS-CoV2](https://github.com/W-L/ProblematicSites_SARS-CoV2/) will be annotated within the SPEAR output `.vcf`
+
 ## Acknowledgments 
 Primary SPEAR development is undertaken by [Matthew Crown](https://github.com/m-crown) project is led by [Matthew Bashton](https://twitter.com/mattbashton) and is developed in collaboration with the [Najmanovich Research Group](http://biophys.umontreal.ca/nrg/) specifically Natália Teruel and Rafael Najmanovich. This work is funded by [COG-UK](https://www.cogconsortium.uk/).
 
