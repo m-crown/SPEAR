@@ -150,7 +150,7 @@ def main():
     if "problem_filter" not in infocols: 
         infocols.append("problem_filter")
         vcf["problem_filter"] = ""
-    infocols = ["AN", "AC", "ANN", "problem_exc", "problem_filter", "SUM"]
+    infocols = ["AN", "AC", "problem_exc", "problem_filter", "ANN", "SUM"]
     
     if len(vcf) != 0: #do not add summary if the vcf file is empty.
         vcf = vcf.rename_axis('original_index').reset_index()
@@ -161,18 +161,18 @@ def main():
         header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'product | residue | region | domain | feature | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
         df = annotate_residues(df.copy(), args.data_dir)
 
-        cols = [e for e in df.columns.to_list() if e not in ("ANN", "SUM", "SPEAR", "problem_exc", "problem_filter")]
+        cols = [e for e in df.columns.to_list() if e not in ("problem_exc", "problem_filter", "ANN", "SUM", "SPEAR")]
         df = df.groupby(cols, as_index = False).agg({
-            "ANN": set,
             "problem_exc" : set,
             "problem_filter" : set,
+            "ANN": set,
             "SUM": set,
             "SPEAR": list})
 
-        df["ANN"] = [','.join(map(str, l)) for l in df['ANN']]
-        df["SUM"] = [','.join(map(str, l)) for l in df['SUM']]
         df["problem_exc"] = [','.join(map(str, l)) for l in df['problem_exc']]
         df["problem_filter"] = [','.join(map(str, l)) for l in df['problem_filter']]
+        df["ANN"] = [','.join(map(str, l)) for l in df['ANN']]
+        df["SUM"] = [','.join(map(str, l)) for l in df['SUM']]
 
         df["SPEAR"] = [','.join(map(str, l)) for l in df["SPEAR"].apply(lambda x: set(sorted(x, key = lambda y: re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1] if re.search(r'^[a-zA-Z]+([0-9]+)|',y)[1] else "")))] #sorting like this because the groupby list doesnt always put residues in correct order. use set around list to remove duplicate annotations on NSP11 and RDRP overlap.
         infocols.append("SPEAR")

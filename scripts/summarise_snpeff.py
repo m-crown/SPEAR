@@ -213,7 +213,7 @@ def main():
   if "problem_filter" not in infocols: 
       infocols.append("problem_filter")
       vcf["problem_filter"] = "="
-  infocols = ["AN", "AC", "ANN", "problem_exc", "problem_filter"]
+  infocols = ["AN", "AC", "problem_exc", "problem_filter", "ANN"]
   if not args.allow_seq_end:
     vcf = vcf[vcf["POS"].between(56, 29804)].reset_index(drop = True)
   if len(vcf) != 0: #do not add summary if the vcf file is empty.

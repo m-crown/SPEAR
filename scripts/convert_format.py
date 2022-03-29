@@ -114,9 +114,9 @@ def main():
     input_file = pd.read_csv(args.input_vcf, sep = "\t", names = ["sample_id", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "end"])
     if len(input_file) > 0:
         input_file["sample_id"] = input_file["sample_id"].str.extract(r'final_vcfs\/([a-zA-Z0-9\._]+)\.spear\.vcf', expand = False)
-        input_file[["AN", "AC", "ANN", "problem_exc", "problem_filter", "SUM", "SPEAR"]] = input_file["INFO"].str.split(';',expand=True)
+        input_file[["AN", "AC", "problem_exc", "problem_filter", "ANN", "SUM", "SPEAR"]] = input_file["INFO"].str.split(';',expand=True)
         original_cols = input_file.columns.tolist()
-        input_file[["AN", "AC", "ANN", "SUM", "SPEAR"]] = input_file[["AN", "AC", "ANN", "SUM", "SPEAR"]].replace("^[A-Z]+=", "", regex = True)
+        input_file[["AN", "AC", "problem_exc", "problem_filter",  "ANN", "SUM", "SPEAR"]] = input_file[["AN", "AC", "problem_exc", "problem_filter", "ANN", "SUM", "SPEAR"]].replace("^[A-Z]+=", "", regex = True)
         input_file = input_file.loc[input_file["ANN"] != "no_annotation"]
 
         input_file["SUM"] = input_file["SUM"].str.split(",", expand = False)
@@ -160,6 +160,7 @@ def main():
         else:
             input_file["BEC_EF_sample"] = ""
             input_file["BEC_RES"] = ""
+        input_file["BEC_RES"] = input_file["BEC_RES"].fillna("")
         input_file = input_file.sort_values(by = ["sample_id", "POS", "respos"])
         final_samples = input_file.copy()
         cols = ['spear-product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2', 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
