@@ -609,9 +609,9 @@ def main():
         feature_message = ""
     
     #making a furin cleavage site specific table
-    if len(final_feature_counts.loc[(final_feature_counts["description"] == "surface glycoprotein") & (final_feature_counts["respos"] >= 680) & (final_feature_counts["respos"] <= 690)]) != 0:
+    if len(final_feature_counts.loc[(final_feature_counts["description"] == "surface glycoprotein") & (final_feature_counts["respos"] >= 675) & (final_feature_counts["respos"] <= 695)]) != 0:
 
-        furin_feature_counts = final_feature_counts.loc[(final_feature_counts["description"] == "surface glycoprotein") & (final_feature_counts["respos"] >= 680) & (final_feature_counts["respos"] <= 690)].copy()
+        furin_feature_counts = final_feature_counts.loc[(final_feature_counts["description"] == "surface glycoprotein") & (final_feature_counts["respos"] >= 675) & (final_feature_counts["respos"] <= 695)].copy()
         furin_table = go.Figure(data=[go.Table(
             header=dict(values=["Product", "Mutation", "Domain", "Feature", "Samples"],
                         fill_color='paleturquoise',
@@ -715,8 +715,8 @@ def main():
             )
         all_samples_furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         all_samples_furin_table.write_html(f'{args.output_dir}/plots/samples_furin_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
-        furin_message = '''Table of mutation counts of protein features (in domains). Total mutations: the total number of mutations in this feature seen across all samples. Unique mutations: total number of unique residue mutations observed across all samples in this feature.
-                            A full table of protein feature mutation in each sample can be found <a href="plots/samples_furin_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
+        furin_message = '''Subset of feature table containing mutations in Spike residues 675-695, the region of the S1/S2 furin cleavage site.
+                            A full table of furin site mutations in each sample can be found <a href="plots/samples_furin_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
 
     else:
         furin_table_plt = "No furin mutations present in any samples."
