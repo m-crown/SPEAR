@@ -210,9 +210,17 @@ def main():
   if "problem_exc" not in infocols:
       infocols.append("problem_exc")
       vcf["problem_exc"] = "="
+      cols = vcf.columns.to_list()
+      cols.pop(cols.index("problem_exc"))
+      cols.insert(cols.index("AC") + 1, "problem_exc")
+      vcf = vcf[cols]
   if "problem_filter" not in infocols: 
       infocols.append("problem_filter")
       vcf["problem_filter"] = "="
+      cols = vcf.columns.to_list()
+      cols.pop(cols.index("problem_filter"))
+      cols.insert(cols.index("AC") + 2, "problem_filter")
+      vcf = vcf[cols]
   infocols = ["AN", "AC", "problem_exc", "problem_filter", "ANN"]
   if not args.allow_seq_end:
     vcf = vcf[vcf["POS"].between(56, 29804)].reset_index(drop = True)
