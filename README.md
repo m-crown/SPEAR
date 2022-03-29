@@ -120,7 +120,7 @@ You can also use `.` as input directory to use files in the current working dire
 
 By default consensus files are assumed to have the extension `.fa`, alignments `.aln` and vcf files `.vcf`, if you have a different extension then specify the suffix with `--extension`. This also allows you to remove a suffix from the sample ID used in output, so if all your input alignments conform to `<sample_id>.muscle.aln` specifying: `--extension .muscle.aln` will ensure only the sample id/name makes it into the output. Note that running on multiple input files may require you to increase the maximum number of open file handles on your system if your number of input samples starts to approach this limit, check this with `ulimit -n`.
 
-Consensus inputs can be aligned to reference using either muscle or minimap, specified using --aligner. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements. User's should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments. 
+Consensus inputs can be aligned to reference using either MUSCLE or minimap2, specified using `--aligner`. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements. User's should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments where more than one alignment solution is possible. 
 
 ### Expected alignment format
 
