@@ -207,6 +207,13 @@ def main():
 
   respos_df = pd.read_pickle(f'{args.data_dir}/respos.pkl')
   header, vcf, infocols = parse_vcf(args.vcf)
+  if "problem_exc" not in infocols:
+      infocols.append("problem_exc")
+      vcf["problem_exc"] = "="
+  if "problem_filter" not in infocols: 
+      infocols.append("problem_filter")
+      vcf["problem_filter"] = "="
+  infocols = ["AN", "AC", "problem_exc", "problem_filter", "ANN"]
   if not args.allow_seq_end:
     vcf = vcf[vcf["POS"].between(56, 29804)].reset_index(drop = True)
   if len(vcf) != 0: #do not add summary if the vcf file is empty.
@@ -232,8 +239,6 @@ def main():
       df[col] = col + "=" + df[col]
     df['INFO'] = df[infocols].agg(';'.join, axis=1)
     df.drop(infocols, axis = 1, inplace = True)
-    df['INFO'] = df['INFO'].str.replace('problem_exc=;','')
-    df['INFO'] = df['INFO'].str.replace('problem_filter=;','')
     cols = df.columns.to_list()
     cols.pop(cols.index("INFO"))
     cols.insert(cols.index("FILTER") + 1, "INFO")
@@ -242,7 +247,7 @@ def main():
     vcf = pd.concat([df, samples],axis=1)
     write_vcf(header,vcf,args.output_filename)
   else:
-    copy(args.vcf, args.output_filename) #copy the empty vcf file so that snakemake sees command completion. 
+    copy(args.vcf, args.output_filename) #copy the empty vcf file so that snakemake sees command completion.
   
 
 if __name__ == "__main__":

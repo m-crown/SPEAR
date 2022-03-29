@@ -53,34 +53,42 @@ rule spear_annotate:
 
 rule annotate_variants:
    input:
-      config["output_dir"] + "/intermediate_output/merged.vcf" if config["filter"] else config["output_dir"] + "/intermediate_output/merged.vcf"
+      config["output_dir"] + "/intermediate_output/masked/merged.masked.vcf" if config["filter"] else config["output_dir"] + "/intermediate_output/masked/merged.problem.vcf"
    output:
-      config["output_dir"] + "/intermediate_output/snpeff/merged.ann.vcf" if config["filter"] else config["output_dir"] + "/intermediate_output/snpeff/merged.ann.vcf"
+      config["output_dir"] + "/intermediate_output/snpeff/merged.ann.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/snpeff/snpeff.log"
    shell:
       """
       java -Xmx2g -jar $CONDA_PREFIX/snpEff/snpEff.jar -noShiftHgvs -hgvs1LetterAa -download -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 {input} > {output} 2> {log}
       """
 
-if config["filter"] == True:
-   rule merge_vcfs:
-      input:
-         expand(config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf", id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf", id=config["samples"])
-      output:
-         config["output_dir"] + "/intermediate_output/merged.vcf"
-      log: config["output_dir"] + "/intermediate_output/logs/merge/merge.log"
+if config["filter"]:
+   rule filter_problem_sites:
+      input: 
+         config["output_dir"] + "/intermediate_output/masked/merged.problem.vcf"
+      output: 
+         config["output_dir"] + "/intermediate_output/masked/merged.masked.vcf"
+      log: config["output_dir"] + "/intermediate_output/logs/filter_problem_sites/filter_problem_sites.log"
       shell:
-         "bcftools merge --no-index -m none -o {output} {input} 2> {log}"
+         "java -Xmx2g -jar $CONDA_PREFIX/snpEff/SnpSift.jar filter \"!( {config[filter_params]} )\" {input} > {output} 2> {log}"
 
-if config["filter"] != True:
-   rule merge_vcfs:
-      input:
-         expand(config["input_dir"] + "/{id}" + config["extension"], id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf", id=config["samples"])
-      output:
-         config["output_dir"] + "/intermediate_output/merged.vcf"
-      log: config["output_dir"] + "/intermediate_output/logs/merge/merge.log"
-      shell:
-         "bcftools merge --no-index -m none -o {output} {input} 2> {log}"
+rule mark_problem_sites:
+   input:
+      config["output_dir"] + "/intermediate_output/merged.vcf" 
+   output:
+      config["output_dir"] + "/intermediate_output/masked/merged.problem.vcf"
+   log: config["output_dir"] + "/intermediate_output/logs/mark_problem_sites/mark_problem_sites.log"
+   shell:
+      "vcfanno --base-path $CONDA_PREFIX $CONDA_PREFIX/bin/conf.toml {input} > {output} 2> {log}"
+
+rule merge_vcfs:
+   input:
+      expand(config["input_dir"] + "/{id}" + config["extension"], id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf", id=config["samples"])
+   output:
+      config["output_dir"] + "/intermediate_output/merged.vcf"
+   log: config["output_dir"] + "/intermediate_output/logs/merge/merge.log"
+   shell:
+      "bcftools merge --no-index -m none -o {output} {input} 2> {log}"
 
 rule merge_qc:
    input:
@@ -91,38 +99,32 @@ rule merge_qc:
    shell:
       '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  cat {input} >> {config[output_dir]}/qc.csv'''
 
-rule get_indels:
-   input:
-      vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
-      muscle_aln = config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
-   output:
-      snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
-      sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
-   log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
-   shell:
-      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.muscle_aln} NC_045512.2 {output.snps_indels} 2> {log}"
-
-rule filter_problem_sites:
-   input: 
-      config["output_dir"] + "/intermediate_output/masked/{id}.problem.vcf"
-   output: 
-      config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf"
-   log: config["output_dir"] + "/intermediate_output/logs/filter_problem_sites/{id}.filter_problem_sites.log"
-   shell:
-      "java -Xmx2g -jar $CONDA_PREFIX/snpEff/SnpSift.jar filter \"!( {config[filter_params]} )\" {input} > {output} 2> {log}"
-
-rule mark_problem_sites:
-   input:
-      config["input_dir"] + "/{id}" + config["extension"] if config["vcf"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf" 
-   output:
-      config["output_dir"] + "/intermediate_output/masked/{id}.problem.vcf"
-   log: config["output_dir"] + "/intermediate_output/logs/mark_problem_sites/{id}.mark_problem_sites.log"
-   shell:
-      "vcfanno --base-path $CONDA_PREFIX $CONDA_PREFIX/bin/conf.toml {input} > {output} 2> {log}"
+if (config["align"]) & (config["aligner"] == "minimap2"):
+   rule get_indels:
+      input:
+         vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
+         aln = config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      output:
+         snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
+         sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
+      log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
+      shell:
+         "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.aln} NC_045512.2 {output.snps_indels} 2> {log}"
+else:
+   rule get_indels:
+      input:
+         vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
+         aln = config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      output:
+         snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
+         sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
+      log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
+      shell:
+         "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.aln} NC_045512.2 {output.snps_indels} 2> {log}"
 
 rule get_snps:
    input:
-      config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
    output:
       snps = config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/get_snps/{id}.get_snps.log"
@@ -130,12 +132,22 @@ rule get_snps:
       "faToVcf {config[exclude_ambiguous]} {input} {output.snps} ; update_vcf_header.sh {output.snps} 2> {log}"
 
 if config["align"]:
-   rule align:
-      input:
-         config["input_dir"] + "/{id}" + config["extension"]
-      output: 
-         plus_ref =  config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
-         alignment = config["output_dir"] + "/intermediate_output/muscle/{id}.muscle.aln" 
-      log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
-      shell:
-         "cat {config[reference_sequence]} {input} > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
+   if config["aligner"] == "minimap2":
+      rule align:
+         input:
+            config["input_dir"] + "/{id}" + config["extension"]
+         output: 
+            alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 
+         log: config["output_dir"] + "/intermediate_output/logs/vcf/{id}.vcf.log"
+         shell:
+            "minimap2 -ax asm20 --cs {config[reference_sequence]} {input} > {wildcards.id}.sam 2> {log} ;  gofasta sam toPairAlign -r {config[reference_sequence]} -s {wildcards.id}.sam --outpath {config[output_dir]}/intermediate_output/align 2> {log}"
+   elif config["aligner"] == "muscle":
+      rule align:
+         input:
+            config["input_dir"] + "/{id}" + config["extension"]
+         output: 
+            plus_ref = config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
+            alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 
+         log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
+         shell:
+            "cat {config[reference_sequence]} {input} > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
