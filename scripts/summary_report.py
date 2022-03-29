@@ -267,8 +267,36 @@ def main():
         'ORF8 protein': "cadetblue",
         'ORF10 protein': "darkcyan"}
 
+    product_order = [
+        'leader protein', 
+        'nsp2', 
+        'nsp3', 
+        'nsp4', 
+        '3C-like proteinase', 
+        'nsp6', 
+        'nsp7', 
+        'nsp8', 
+        'nsp9', 
+        'nsp10', 
+        'nsp11', 
+        'RNA-dependent RNA polymerase', 
+        'helicase', 
+        "3'-to-5' exonuclease", 
+        'endoRNAse', 
+        "2'-O-ribose methyltransferase",
+        'surface glycoprotein',
+        'ORF3a protein',
+        'envelope protein', 
+        'membrane glycoprotein',
+        'ORF6 protein', 
+        'ORF7a protein', 
+        'ORF7b', 
+        'ORF8 protein',
+        'ORF10 protein',
+        'nucleocapsid phosphoprotein']
+
     #MAKING A COUNT TABLE OF RESIDUE CHANGES - USES THE FILTERED ANNO SUMMARY SO DOES NOT INCLUDE REFRES = ALTRES
-    residues_counts_table = annotation_summary[["sample_id", "description", "residues","compound_nt_var", "compound_res_var"]].drop_duplicates(["sample_id", "compound_res_var"])
+    residues_counts_table = annotation_summary[["sample_id", "description", "residues", "compound_nt_var", "compound_res_var"]].drop_duplicates(["sample_id", "compound_res_var"])
     residues_counts_table_grouped = residues_counts_table.groupby(["compound_nt_var", "description", "residues"])[["residues"]].count()
     residues_counts_table_grouped.columns = ["count"]
     residues_counts_table_grouped = residues_counts_table_grouped.sort_values("count", axis = 0, ascending = False)
@@ -277,7 +305,8 @@ def main():
     residues_counts_table_respos = residues_counts_table_respos.groupby(["compound_nt_var", "description","residues", "respos"]).first().reset_index() #remove duplicates from the merge. 
     residues_counts_table_respos["description"] = residues_counts_table_respos["description"].astype("category")
     residues_counts_table_respos["description"] = residues_counts_table_respos["description"].cat.set_categories(products)
-    residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["count", "description", "respos"], ascending = False) #default
+    residues_counts_table_respos["order"] = residues_counts_table_respos["description"].apply(lambda x: product_order.index(x))
+    residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["count", "order", "respos"], ascending = [False, True, True]) #default
     residues_counts_table_respos["percentage_samples"] = (residues_counts_table_respos["count"] / int(args.qc_samples)) * 100
     residues_counts_table_respos["percentage_samples"] = residues_counts_table_respos["percentage_samples"].round(2)
 
@@ -294,10 +323,10 @@ def main():
     buttons_list = ["Genomic" , "Count"]
     for item in buttons_list:
         if item == "Genomic":
-            residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["description", "respos"])
+            residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["order", "respos"])
 
         elif item == "Count":
-            residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["count", "description", "respos"], ascending = False)
+            residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["count", "order", "respos"], ascending = [False, True, True])
         buttons.append(dict(
                 label = item,
                 method = 'restyle',
@@ -333,78 +362,41 @@ def main():
     residues_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
     residues_table_plt = offline.plot(residues_table,output_type='div', include_plotlyjs = f'plots/plotly/plotly-2.8.3.min.js', config = {'displaylogo': False})
 
-    product_order = [
-        'leader protein', 
-        'nsp2', 
-        'nsp3', 
-        'nsp4', 
-        '3C-like proteinase', 
-        'nsp6', 
-        'nsp7', 
-        'nsp8', 
-        'nsp9', 
-        'nsp10', 
-        'nsp11', 
-        'RNA-dependent RNA polymerase', 
-        'helicase', 
-        "3'-to-5' exonuclease", 
-        'endoRNAse', 
-        "2'-O-ribose methyltransferase",
-        'surface glycoprotein',
-        'ORF3a protein',
-        'envelope protein', 
-        'membrane glycoprotein',
-        'ORF6 protein', 
-        'ORF7a protein', 
-        'ORF7b', 
-        'ORF8 protein',
-        'ORF10 protein',
-        'nucleocapsid phosphoprotein']
-
     #making a domain counts table
     if annotation_summary["domain"].replace("", np.nan).isnull().all() == False: 
-        domain_counts_table_unique = annotation_summary.loc[annotation_summary["domain"].replace("", np.nan).isnull() == False , ["description", "residues", "domain"]].drop_duplicates("residues")
-        domain_counts_table_unique_grouped = domain_counts_table_unique.groupby(["description", "domain"])[["domain"]].count()
-        domain_counts_table_unique_grouped.columns = ["count"]
-        domain_counts_table_unique_grouped = domain_counts_table_unique_grouped.sort_values("count", axis = 0, ascending = False)
-        domain_counts_table_unique_grouped = domain_counts_table_unique_grouped.reset_index()
 
-        domain_counts_table_all = annotation_summary.loc[annotation_summary["domain"].replace("", np.nan).isnull() == False , ["description", "residues", "domain"]]
-        domain_counts_table_all_grouped = domain_counts_table_all.groupby(["description", "domain"])[["domain"]].count()
+        domain_counts_table_all = annotation_summary.loc[annotation_summary["domain"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "domain"]].copy()
+        domain_counts_table_all["domain"] = domain_counts_table_all["domain"].replace("_", " ", regex = True)
+        domain_counts_table_all_grouped = domain_counts_table_all.groupby(["description", "residues", "respos", "domain"])[["domain"]].count()
         domain_counts_table_all_grouped.columns = ["count"]
         domain_counts_table_all_grouped = domain_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
         domain_counts_table_all_grouped = domain_counts_table_all_grouped.reset_index()
-
         domain_counts_table_all_grouped.rename(columns = {"count" : "total_mutations"}, inplace = True)
-        domain_counts_table_unique_grouped.rename(columns = {"count" : "unique_residues"}, inplace = True)
-        final_domain_counts = pd.merge(left = domain_counts_table_all_grouped, right = domain_counts_table_unique_grouped, on = ["description", "domain"])
+        final_domain_counts = domain_counts_table_all_grouped
         final_domain_counts["order"] = final_domain_counts["description"].apply(lambda x: product_order.index(x))
-
+        final_domain_counts = final_domain_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
         domain_table = go.Figure(data=[go.Table(
-            header=dict(values=["Product", "Domain", "Total Mutations", "Unique Residue Mutations"],
+            header=dict(values=["Product", "Mutation", "Domain", "Samples"],
                         fill_color='paleturquoise',
                         align='left'),
-            cells=dict(values=[final_domain_counts["description"],final_domain_counts["domain"], final_domain_counts["total_mutations"], final_domain_counts["unique_residues"]],
+            cells=dict(values=[final_domain_counts["description"], final_domain_counts["residues"], final_domain_counts["domain"], final_domain_counts["total_mutations"]],
                         fill_color='lavender',
                         align='left'))
         ])  
 
         buttons = []
-        buttons_list = ["Total" , "Unique", "Product"]
+        buttons_list = ["Total" , "Product"]
         for item in buttons_list:
             if item == "Total":
-                final_domain_counts = final_domain_counts.sort_values(by = "total_mutations", ascending = False)
-
-            elif item == "Unique":
-                final_domain_counts = final_domain_counts.sort_values(by = "unique_residues", ascending = False)
+                final_domain_counts = final_domain_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
             elif item == "Product": 
-                final_domain_counts = final_domain_counts.sort_values(by = "order", ascending = True)
+                final_domain_counts = final_domain_counts.sort_values(by = ["order", "respos"], ascending = [True, True])
             buttons.append(dict(
                     label = item,
                     method = 'restyle',
                     args = [
                         {"cells": {
-                            "values": [final_domain_counts["description"],final_domain_counts["domain"], final_domain_counts["total_mutations"], final_domain_counts["unique_residues"]],
+                            "values": [final_domain_counts["description"], final_domain_counts["residues"], final_domain_counts["domain"], final_domain_counts["total_mutations"]],
                             "fill" : dict(color = 'lavender'),
                             "align":'left'
                         }}]))
@@ -433,9 +425,10 @@ def main():
             )
         domain_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         domain_table_plt = offline.plot(domain_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
-        all_samples_domain = annotation_summary.loc[annotation_summary["domain"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "domain"]]
+        all_samples_domain = annotation_summary.loc[annotation_summary["domain"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "respos", "domain"]].copy()
+        all_samples_domain["domain"] = all_samples_domain["domain"].replace("_", " ", regex = True)
         all_samples_domain["order"] = all_samples_domain["description"].apply(lambda x: product_order.index(x))
-        all_samples_domain.sort_values(by = "sample_id", inplace = True)
+        all_samples_domain.sort_values(by = ["sample_id", "order", "respos"], ascending = [True, True, True],inplace = True)
         all_samples_domain_table = go.Figure(data=[go.Table(
                 header=dict(values=["Sample", "Product", "Domain", "residue"],
                             fill_color='paleturquoise',
@@ -448,9 +441,9 @@ def main():
         buttons_list = ["Sample" , "Product"]
         for item in buttons_list:
             if item == "Sample":
-                all_samples_domain = all_samples_domain.sort_values(by = "sample_id", ascending = True)
+                all_samples_domain = all_samples_domain.sort_values(by = ["sample_id", "order", "respos"], ascending = [True, True, True])
             elif item == "Product": 
-                all_samples_domain = all_samples_domain.sort_values(by = "order", ascending = True)
+                all_samples_domain = all_samples_domain.sort_values(by = ["order", "respos"], ascending = [True, True])
             buttons.append(dict(
                     label = item,
                     method = 'restyle',
@@ -485,57 +478,48 @@ def main():
             )
         all_samples_domain_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         all_samples_domain_table.write_html(f'{args.output_dir}/plots/samples_domain_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
-        domain_message = '''Table of mutation counts in protein domains. <br>Total mutations: the total number of mutations in this domain seen across all samples. Unique mutations: total number of unique residue mutations observed across all samples.</br><br>
-                            A full table of protein domain mutation in each sample can be found <a href="plots/samples_domain_table.html">here</a> and in <code>spear_annotation_summary.tsv</code><br>'''
+        domain_message = '''Table of mutation counts in protein domains. Total mutations: the total number of mutations in this domain seen across all samples. Unique mutations: total number of unique residue mutations observed across all samples.
+                            A full table of protein domain mutation in each sample can be found <a href="plots/samples_domain_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
 
     else:
         domain_table_plt = "No domain mutations present in any samples."
         domain_message = ""
 
-    #making a domain counts table
+    #making a feature counts table
     if annotation_summary["feature"].replace("", np.nan).isnull().all() == False: 
-        feature_counts_table_unique = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "feature", "domain"]].drop_duplicates("residues")
-        feature_counts_table_unique_grouped = feature_counts_table_unique.groupby(["description", "domain", "feature"])[["feature"]].count()
-        feature_counts_table_unique_grouped.columns = ["count"]
-        feature_counts_table_unique_grouped = feature_counts_table_unique_grouped.sort_values("count", axis = 0, ascending = False)
-        feature_counts_table_unique_grouped = feature_counts_table_unique_grouped.reset_index()
 
-        feature_counts_table_all = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "domain", "feature"]]
-        feature_counts_table_all_grouped = feature_counts_table_all.groupby(["description", "domain", "feature"])[["feature"]].count()
+        feature_counts_table_all = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "domain", "feature"]].copy()
+        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace("_", " ", regex = True)
+        feature_counts_table_all_grouped = feature_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
         feature_counts_table_all_grouped.columns = ["count"]
         feature_counts_table_all_grouped = feature_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
         feature_counts_table_all_grouped = feature_counts_table_all_grouped.reset_index()
-
         feature_counts_table_all_grouped.rename(columns = {"count" : "total_mutations"}, inplace = True)
-        feature_counts_table_unique_grouped.rename(columns = {"count" : "unique_residues"}, inplace = True)
-        final_feature_counts = pd.merge(left = feature_counts_table_all_grouped, right = feature_counts_table_unique_grouped, on = ["description", "domain", "feature"])
+        final_feature_counts = feature_counts_table_all_grouped
         final_feature_counts["order"] = final_feature_counts["description"].apply(lambda x: product_order.index(x))
-
+        final_feature_counts = final_feature_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
         feature_table = go.Figure(data=[go.Table(
-            header=dict(values=["Product", "Domain", "Feature",  "Total Mutations", "Unique Residue Mutations"],
+            header=dict(values=["Product", "Mutation", "Domain", "Feature", "Samples"],
                         fill_color='paleturquoise',
                         align='left'),
-            cells=dict(values=[final_feature_counts["description"],final_feature_counts["domain"],final_feature_counts["feature"], final_feature_counts["total_mutations"], final_feature_counts["unique_residues"]],
+            cells=dict(values=[final_feature_counts["description"], final_feature_counts["residues"], final_feature_counts["domain"],final_feature_counts["feature"], final_feature_counts["total_mutations"]],
                         fill_color='lavender',
                         align='left'))
         ])  
 
         buttons = []
-        buttons_list = ["Total" , "Unique", "Product"]
+        buttons_list = ["Total", "Product"]
         for item in buttons_list:
             if item == "Total":
-                final_feature_counts = final_feature_counts.sort_values(by = "total_mutations", ascending = False)
-
-            elif item == "Unique":
-                final_feature_counts = final_feature_counts.sort_values(by = "unique_residues", ascending = False)
+                final_feature_counts = final_feature_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
             elif item == "Product": 
-                final_feature_counts = final_feature_counts.sort_values(by = "order", ascending = True)
+                final_feature_counts = final_feature_counts.sort_values(by = ["order", "respos"], ascending = [True, True])
             buttons.append(dict(
                     label = item,
                     method = 'restyle',
                     args = [
                         {"cells": {
-                            "values": [final_feature_counts["description"],final_feature_counts["domain"], final_feature_counts["feature"],final_feature_counts["total_mutations"], final_feature_counts["unique_residues"]],
+                            "values": [final_feature_counts["description"], final_feature_counts["residues"], final_feature_counts["domain"],final_feature_counts["feature"], final_feature_counts["total_mutations"]],
                             "fill" : dict(color = 'lavender'),
                             "align":'left'
                         }}]))
@@ -564,9 +548,10 @@ def main():
             )
         feature_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         feature_table_plt = offline.plot(feature_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
-        all_samples_feature = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "domain", "feature"]]
+        all_samples_feature = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
+        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace("_", " ", regex = True)
         all_samples_feature["order"] = all_samples_feature["description"].apply(lambda x: product_order.index(x))
-        all_samples_feature.sort_values(by = "sample_id", inplace = True)
+        all_samples_feature.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_feature_table = go.Figure(data=[go.Table(
                 header=dict(values=["Sample", "Product", "Domain", "Feature", "Residue"],
                             fill_color='paleturquoise',
@@ -579,9 +564,9 @@ def main():
         buttons_list = ["Sample" , "Product"]
         for item in buttons_list:
             if item == "Sample":
-                all_samples_feature = all_samples_feature.sort_values(by = "sample_id", ascending = True)
+                all_samples_feature = all_samples_feature.sort_values(by = ["sample_id", "order", "respos"], ascending = True)
             elif item == "Product": 
-                all_samples_feature = all_samples_feature.sort_values(by = "order", ascending = True)
+                all_samples_feature = all_samples_feature.sort_values(by = ["order", "respos"], ascending = True)
             buttons.append(dict(
                     label = item,
                     method = 'restyle',
@@ -616,14 +601,268 @@ def main():
             )
         all_samples_feature_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         all_samples_feature_table.write_html(f'{args.output_dir}/plots/samples_feature_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
-        feature_message = '''Table of mutation counts of protein features (in domains). <br>Total mutations: the total number of mutations in this feature seen across all samples. Unique mutations: total number of unique residue mutations observed across all samples in this feature.</br><br>
-                            A full table of protein feature mutation in each sample can be found <a href="plots/samples_feature_table.html">here</a> and in <code>spear_annotation_summary.tsv</code><br>'''
+        feature_message = '''Table of mutation counts of protein features (in domains). Total mutations: the total number of mutations in this feature seen across all samples. Unique mutations: total number of unique residue mutations observed across all samples in this feature.
+                            A full table of protein feature mutation in each sample can be found <a href="plots/samples_feature_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
 
     else:
         feature_table_plt = "No domain mutations present in any samples."
         feature_message = ""
     
-    #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE 
+    #making a furin cleavage site specific table
+    if len(final_feature_counts.loc[(final_feature_counts["description"] == "surface glycoprotein") & (final_feature_counts["respos"] >= 675) & (final_feature_counts["respos"] <= 695)]) != 0:
+
+        furin_feature_counts = final_feature_counts.loc[(final_feature_counts["description"] == "surface glycoprotein") & (final_feature_counts["respos"] >= 675) & (final_feature_counts["respos"] <= 695)].copy()
+        furin_table = go.Figure(data=[go.Table(
+            header=dict(values=["Product", "Mutation", "Domain", "Feature", "Samples"],
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[furin_feature_counts["description"], furin_feature_counts["residues"], furin_feature_counts["domain"],furin_feature_counts["feature"], furin_feature_counts["total_mutations"]],
+                        fill_color='lavender',
+                        align='left'))
+        ])  
+
+        buttons = []
+        buttons_list = ["Total", "Product"]
+        for item in buttons_list:
+            if item == "Total":
+                furin_feature_counts = furin_feature_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+            elif item == "Product": 
+                furin_feature_counts = furin_feature_counts.sort_values(by = ["order", "respos"], ascending = [True, True])
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [furin_feature_counts["description"], furin_feature_counts["residues"], furin_feature_counts["domain"],furin_feature_counts["feature"], furin_feature_counts["total_mutations"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        furin_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        furin_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        furin_table_plt = offline.plot(furin_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+        all_samples_furin = all_samples_feature[(all_samples_feature["description"] == "surface glycoprotein") & (all_samples_feature["respos"] >= 680) & (all_samples_feature["respos"] <= 690)].copy()
+        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace("_", " ", regex = True)
+        all_samples_furin["order"] = all_samples_furin["description"].apply(lambda x: product_order.index(x))
+        all_samples_furin.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
+        all_samples_furin_table = go.Figure(data=[go.Table(
+                header=dict(values=["Sample", "Product", "Domain", "Feature", "Residue"],
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[all_samples_furin["sample_id"],all_samples_furin["description"],all_samples_furin["domain"],all_samples_furin["feature"],all_samples_furin["residues"]],
+                            fill_color='lavender',
+                            align='left'))
+            ])
+        buttons = []
+        buttons_list = ["Sample" , "Product"]
+        for item in buttons_list:
+            if item == "Sample":
+                all_samples_furin = all_samples_furin.sort_values(by = ["sample_id", "order", "respos"], ascending = True)
+            elif item == "Product": 
+                all_samples_furin = all_samples_furin.sort_values(by = ["order", "respos"], ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [all_samples_furin["sample_id"],all_samples_furin["description"],all_samples_furin["domain"],all_samples_furin["feature"],all_samples_furin["residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        all_samples_furin_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        all_samples_furin_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        all_samples_furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        all_samples_furin_table.write_html(f'{args.output_dir}/plots/samples_furin_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        furin_message = '''Subset of feature table containing mutations in Spike residues 675-695, the region of the S1/S2 furin cleavage site.
+                            A full table of furin site mutations in each sample can be found <a href="plots/samples_furin_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
+
+    else:
+        furin_table_plt = "No furin mutations present in any samples."
+        furin_message = ""
+    
+    #making a contacts counts table
+    if annotation_summary["contact_type"].replace("", np.nan).isnull().all() == False: 
+        contact_counts_table_all = annotation_summary.loc[annotation_summary["contact_type"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "contact_type"]].copy()
+        contact_counts_table_all["contact_type"] = contact_counts_table_all["contact_type"].str.split(" ")
+        contact_counts_table_all = contact_counts_table_all.explode("contact_type")
+        contact_counts_table_all[["contact", "contact_type"]] =  contact_counts_table_all["contact_type"].str.split(":", expand = True)
+        contact_counts_table_all["contact_type"] = contact_counts_table_all["contact_type"].str.split("+")
+        contact_counts_table_all = contact_counts_table_all.explode("contact_type")
+        contact_counts_table_all["contact"] = contact_counts_table_all["contact"].replace("_", " ", regex = True)
+        contact_counts_table_all[["contact_type", "contacting_residues"]] = contact_counts_table_all["contact_type"].str.split("_", n=1, expand = True)
+        contact_counts_table_all["contacting_residues"].fillna("", inplace = True)
+        contact_counts_table_all["contacting_residues"] = contact_counts_table_all["contacting_residues"].str.replace("_", ",")
+        contact_counts_table_all_grouped = contact_counts_table_all.groupby(["description", "residues", "respos", "contact", "contact_type", "contacting_residues"])[["contact_type"]].count()
+        contact_counts_table_all_grouped.columns = ["count"]
+        contact_counts_table_all_grouped = contact_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
+        contact_counts_table_all_grouped = contact_counts_table_all_grouped.reset_index()
+
+        contact_counts_table_all_grouped.rename(columns = {"count" : "total_mutations"}, inplace = True)
+        final_contact_counts = contact_counts_table_all_grouped
+        final_contact_counts["order"] = final_contact_counts["description"].apply(lambda x: product_order.index(x))
+        final_contact_counts = final_contact_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+        contacts_table = go.Figure(data=[go.Table(
+            header=dict(values=["Product", "Mutation", "Contact", "Contact Type","Contacting Residue(s)", "Samples"],
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[final_contact_counts["description"],final_contact_counts["residues"],final_contact_counts["contact"],final_contact_counts["contact_type"],final_contact_counts["contacting_residues"], final_contact_counts["total_mutations"]],
+                        fill_color='lavender',
+                        align='left'))
+        ])  
+
+        buttons = []
+        buttons_list = ["Total" , "Product"]
+        for item in buttons_list:
+            if item == "Total":
+                final_contact_counts = final_contact_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+            elif item == "Product": 
+                final_contact_counts = final_contact_counts.sort_values(by = ["order", "respos"], ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [final_contact_counts["description"],final_contact_counts["residues"],final_contact_counts["contact"],final_contact_counts["contact_type"],final_contact_counts["contacting_residues"], final_contact_counts["total_mutations"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        contacts_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        contacts_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        contacts_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        contacts_table_plt = offline.plot(contacts_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+
+        all_samples_contacts = annotation_summary.loc[annotation_summary["contact_type"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "respos", "contact_type"]].copy()
+        all_samples_contacts["contact_type"] = all_samples_contacts["contact_type"].str.split(" ")
+        all_samples_contacts = all_samples_contacts.explode("contact_type")
+        all_samples_contacts[["contact", "contact_type"]] =  all_samples_contacts["contact_type"].str.split(":", expand = True)
+        all_samples_contacts["contact_type"] = all_samples_contacts["contact_type"].str.split("+")
+        all_samples_contacts = all_samples_contacts.explode("contact_type")
+        all_samples_contacts["contact"] = all_samples_contacts["contact"].replace("_", " ", regex = True)
+        all_samples_contacts[["contact_type", "contacting_residues"]] = all_samples_contacts["contact_type"].str.split("_", n=1, expand = True)
+        all_samples_contacts["contacting_residues"].fillna("", inplace = True)
+        all_samples_contacts["contacting_residues"] = all_samples_contacts["contacting_residues"].str.replace("_", ",")
+        all_samples_contacts["order"] = all_samples_contacts["description"].apply(lambda x: product_order.index(x))
+        all_samples_contacts.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
+        all_samples_contacts_table = go.Figure(data=[go.Table(
+                header=dict(values=["Sample", "Product", "Mutation", "Contact", "Contact Type","Contacting Residue(s)"],
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[all_samples_contacts["sample_id"],all_samples_contacts["description"],all_samples_contacts["residues"],all_samples_contacts["contact"],all_samples_contacts["contact_type"], all_samples_contacts["contacting_residues"]],
+                            fill_color='lavender',
+                            align='left'))
+            ])
+        buttons = []
+        buttons_list = ["Sample" , "Product"]
+        for item in buttons_list:
+            if item == "Sample":
+                all_samples_contacts = all_samples_contacts.sort_values(by = ["sample_id", "order"], ascending = True)
+            elif item == "Product": 
+                all_samples_contacts = all_samples_contacts.sort_values(by = "order", ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [all_samples_contacts["sample_id"],all_samples_contacts["description"],all_samples_contacts["residues"],all_samples_contacts["contact"],all_samples_contacts["contact_type"], all_samples_contacts["contacting_residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        all_samples_contacts_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        all_samples_contacts_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        all_samples_contacts_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        all_samples_contacts_table.write_html(f'{args.output_dir}/plots/samples_contacts_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        contacts_message = '''Table of mutated residues with other residue interactions, and their interaction type e.g. H-bond, salt-bridge, "contact".
+                            A full table of interacting residue mutations in each sample can be found <a href="plots/samples_contacts_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
+
+    else:
+        contacts_table_plt = "No mutations in contacting residues present in any samples."
+        contacts_message = ""
+
+    #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE
     scores_cols = baseline_scores.columns.tolist()
     non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues','ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barns_class_variants','bloom_ACE2_max', 'bloom_ACE2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_RES_sum']
     displayed_scores_cols = [score for score in scores_cols if score not in non_displayed_scores]
@@ -684,9 +923,9 @@ def main():
             n_info.loc[n_info["global_n"] >= args.global_n, "global_n_display"] = "*"
             n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]] = n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]].fillna("")
             n_info["displayed_dropout"] = n_info["s_n_contig_display"] + n_info["rbd_n_display"] + n_info["s_n_display"] + n_info["global_n_display"]
-            sample_scores_baseline = sample_scores.iloc[0]
+            sample_scores_baseline = sample_scores.iloc[0].copy()
             sample_scores_baseline["displayed_dropout"] = ""
-            sample_scores_samples = sample_scores.iloc[1:]
+            sample_scores_samples = sample_scores.iloc[1:].copy()
             sample_scores_samples = pd.merge(left = sample_scores_samples, right = n_info[["sample_id", "displayed_dropout"]], on = "sample_id", how = "left").fillna("")
             sample_scores = pd.concat([sample_scores_baseline.to_frame().T, sample_scores_samples])
         sample_scores.set_index("sample_id", drop = False, inplace = True)
@@ -1366,7 +1605,34 @@ def main():
                         </div> 
                     </div>    
                 </div>
-                    
+                <div class = "row mt-2">
+                    <div class="col-6">
+                        <div class="card">
+                            <div class = "card-header">
+                                Mutated Interacting Residues
+                            </div>
+                            <div class = "card-body">
+                                ''' + contacts_table_plt + '''
+                            </div>
+                            <div class = "card-footer">
+                            ''' + contacts_message + '''
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card">
+                            <div class = "card-header">
+                                Mutated Furin Site Residues
+                            </div>
+                            <div class = "card-body">
+                                ''' + furin_table_plt + '''
+                            </div>
+                            <div class = "card-footer">
+                            ''' + furin_message + '''
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 ''' + table_card + '''    
 
             <footer class="page-footer font-small teal pt-4 border mt-2 mb-2">
@@ -1376,7 +1642,7 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 0.7.0 </p>
+                            <p> SPEAR Version 0.8.0 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
