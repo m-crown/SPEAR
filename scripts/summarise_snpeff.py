@@ -209,14 +209,14 @@ def main():
   header, vcf, infocols = parse_vcf(args.vcf)
   if "problem_exc" not in infocols:
       infocols.append("problem_exc")
-      vcf["problem_exc"] = "="
+      vcf["problem_exc"] = ""
       cols = vcf.columns.to_list()
       cols.pop(cols.index("problem_exc"))
       cols.insert(cols.index("AC") + 1, "problem_exc")
       vcf = vcf[cols]
   if "problem_filter" not in infocols: 
       infocols.append("problem_filter")
-      vcf["problem_filter"] = "="
+      vcf["problem_filter"] = ""
       cols = vcf.columns.to_list()
       cols.pop(cols.index("problem_filter"))
       cols.insert(cols.index("AC") + 2, "problem_filter")
