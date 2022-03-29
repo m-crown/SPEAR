@@ -22,6 +22,8 @@ dependencies:
   - wget
   - conda-forge::pytables
   - pip
+  - bioconda::gofasta==1.0.0
+  - bioconda::minimap2==2.24
   - pip:
     - rich
     - plotly
