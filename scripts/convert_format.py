@@ -113,7 +113,7 @@ def main():
     merged_header = merged_header[~merged_header.str.startswith('#CHROM')]
     input_file = pd.read_csv(args.input_vcf, sep = "\t", names = ["sample_id", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "end"])
     if len(input_file) > 0:
-        input_file["sample_id"] = input_file["sample_id"].str.extract(r'final_vcfs\/([a-zA-Z0-9\._]+)\.spear\.vcf', expand = False)
+        input_file["sample_id"] = input_file["sample_id"].str.extract(r'([a-zA-Z0-9\._]+)\.spear\.vcf', expand = False)
         input_file[["AN", "AC", "problem_exc", "problem_filter", "ANN", "SUM", "SPEAR"]] = input_file["INFO"].str.split(';',expand=True)
         original_cols = input_file.columns.tolist()
         input_file[["AN", "AC", "problem_exc", "problem_filter",  "ANN", "SUM", "SPEAR"]] = input_file[["AN", "AC", "problem_exc", "problem_filter", "ANN", "SUM", "SPEAR"]].replace("^[A-Z]+=", "", regex = True)
