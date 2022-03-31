@@ -8,7 +8,7 @@
 
 SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of all protein products, in particular, Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape. The aim of SPEAR is to provide a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores at point of sequencing. Functional annotation and effect scoring are derived from protein structure, theoretical simulation, and omics' experiments. 
 
-SPEAR is capable of running on single or multiple input files and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR will annotate and score 1,000 pre-aligned input sequences in ~13 min using a single CPU core and in ~6 mins with 4 cores.
+SPEAR is capable of running on single or multiple input files and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR will annotate and score 1,000 consensus input sequences in ~14mins using a single CPU core and in ~6 mins with 4 cores.
 
 The SPEAR scoring system identifies both the potential immune escape and reduced ACE2 binding consequences of variants in the Omicron RBD, as well as highlighting the potential increased stability of the open conformation of the Spike protein within Omicron, a more in-depth discussion of these matters can be found in our [preprint](https://doi.org/10.1101/2021.12.14.472622) Teruel _et al_[1].
 
@@ -44,7 +44,7 @@ SPEAR has been tested on Intel Mac OS 10.5, 11.x, 12.x, RHEL clones 7/8 and Ubun
 
 ## Usage
 
-SPEAR is driven by input modality so your fist argument to it should reflect the type of input files you are providing, `spear consensus` for analysis of `.fa` genome consensus files, `spear alignment` for analysis of pre-aligned consensuses in multiple FASTA format `.aln`.  And `spear vcf` for the analysis of `.vcf` files.  The reference genome used should be either [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3).
+SPEAR is driven by input modality so your first argument to it should reflect the type of input files you are providing, `spear consensus` for analysis of `.fa` genome consensus files, `spear alignment` for analysis of pre-aligned consensuses in multiple FASTA format `.aln`.  And `spear vcf` for the analysis of `.vcf` files.  The reference genome used should be either [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3).
 
 ```
 usage: spear [-h] {consensus,alignment,vcf,update,demo} ...
@@ -120,11 +120,11 @@ You can also use `.` as input directory to use files in the current working dire
 
 By default consensus files are assumed to have the extension `.fa`, alignments `.aln` and vcf files `.vcf`, if you have a different extension then specify the suffix with `--extension`. This also allows you to remove a suffix from the sample ID used in output, so if all your input alignments conform to `<sample_id>.muscle.aln` specifying: `--extension .muscle.aln` will ensure only the sample id/name makes it into the output. Note that running on multiple input files may require you to increase the maximum number of open file handles on your system if your number of input samples starts to approach this limit, check this with `ulimit -n`.
 
-Consensus inputs can be aligned to reference using either MUSCLE or minimap2, specified using `--aligner`. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements. User's should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments where more than one alignment solution is possible. 
+Consensus inputs can be aligned to reference using either MUSCLE v3.8 or minimap2, specified using `--aligner`. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements - 15.7X speedup on single thread, 9.9X speedup on quad thread and 8.8X speedup on eight threads. Users should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments where more than one alignment solution is possible. 
 
 ### Expected alignment format
 
-If using spear alignment please make sure your samples are aligned to [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3), and that the multiple FASTA format is used, (expected file extension `.aln`) with the reference sequence being the fist one within the alignment.  We recommend using [MUSCLE v3.8](https://drive5.com/muscle/downloads_v3.htm) but other aligners should also work, spear can of course align consensus FASTA for you.
+If using spear alignment please make sure your samples are aligned to [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3), and that the multiple FASTA format is used, (expected file extension `.aln`) with the reference sequence being the fist one within the alignment.  We recommend using [MUSCLE v3.8](https://drive5.com/muscle/downloads_v3.htm) or [Minimap2](https://github.com/lh3/minimap2).
 
 ### VCF considerations
 
@@ -273,7 +273,7 @@ Spear makes use of the following:
 * [UCSC faToVCF](https://hgdownload.cse.ucsc.edu/admin/exe/)
 * [vcfanno](https://github.com/brentp/vcfanno) Pedersen _et al_.[20]
 * [Binding Calculator](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) Greaney _et al_.[13]
-* [Minmap2](https://github.com/lh3/minimap2) Heng Li [21]
+* [Minimap2](https://github.com/lh3/minimap2) Heng Li [21]
 * [gofasta](https://github.com/virus-evolution/gofasta)
 * [Plotly](https://plot.ly)
 * [Bootstrap](https://getbootstrap.com/)
@@ -302,5 +302,3 @@ Spear makes use of the following:
 19. [Cingolani, P. *et al*. Using Drosophila melanogaster as a Model for Genotoxic Chemical Mutational Studies with a New Program, SnpSift. *Frontiers Genetics* **3**, 35 (2012)](https://doi.org/10.3389/fgene.2012.00035).
 20. [Pedersen, B. S., Layer, R. M. & Quinlan, A. R. Vcfanno: fast, flexible annotation of genetic variants. *Genome Biol* **17**, 118 (2016)](https://doi.org/10.1186/s13059-016-0973-5).
 21. [Heng, L. Minimap2: pairwise alignment for nucleotide sequences. *Bioinformatics* **34**, 3094-3100 (2018)](https://academic.oup.com/bioinformatics/article/34/18/3094/4994778).
-    
-    
