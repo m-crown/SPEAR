@@ -120,11 +120,11 @@ You can also use `.` as input directory to use files in the current working dire
 
 By default consensus files are assumed to have the extension `.fa`, alignments `.aln` and vcf files `.vcf`, if you have a different extension then specify the suffix with `--extension`. This also allows you to remove a suffix from the sample ID used in output, so if all your input alignments conform to `<sample_id>.muscle.aln` specifying: `--extension .muscle.aln` will ensure only the sample id/name makes it into the output. Note that running on multiple input files may require you to increase the maximum number of open file handles on your system if your number of input samples starts to approach this limit, check this with `ulimit -n`.
 
-Consensus inputs can be aligned to reference using either MUSCLE v3.8 or minimap2, specified using `--aligner`. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements - 15.7X speedup on single thread, 9.9X speedup on quad thread and 8.8X speedup on eight threads. Users should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments where more than one alignment solution is possible. 
+Consensus inputs can be aligned to reference using either MUSCLE v3.8 or minimap2, specified using `--aligner`. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements - 15.7X speedup on single thread, 9.9X speedup on quad thread and 8.8X speedup on eight threads. Users should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments where the alignment solution is ambiguous - these cases are rare, and the vast majority of alignments should agree. 
 
 ### Expected alignment format
 
-If using spear alignment please make sure your samples are aligned to [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3), and that the multiple FASTA format is used, (expected file extension `.aln`) with the reference sequence being the fist one within the alignment.  We recommend using [MUSCLE v3.8](https://drive5.com/muscle/downloads_v3.htm) or [Minimap2](https://github.com/lh3/minimap2).
+If using spear alignment please make sure your samples are aligned to [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1798174254) or [MN908947.3](https://www.ncbi.nlm.nih.gov/nuccore/MN908947.3), and that the multiple FASTA format is used, (expected file extension `.aln`) with the reference sequence being the fist one within the alignment.
 
 ### VCF considerations
 
