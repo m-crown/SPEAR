@@ -1642,7 +1642,7 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 0.8.1 </p>
+                            <p> SPEAR Version 0.8.2 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
