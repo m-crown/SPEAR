@@ -1,4 +1,4 @@
-#|/usr/bin/env bash -eu
+#!/usr/bin/env bash -eu
 # Matt Bashton 2021
 # Updates SPEAR
 # Assumes spear conda env is already active is script is envoked by spear itself
