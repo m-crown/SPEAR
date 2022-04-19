@@ -1,23 +1,26 @@
 if config["report"] == False:
    rule all:
       input: 
-         expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
+         annotation = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
+         lineages = config["output_dir"] + "/lineage_report.csv"
 else:
    rule all:
       input:
          samples = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
-         report = config["output_dir"] + "/report/report.html"
+         report = config["output_dir"] + "/report/report.html",
+         lineages = config["output_dir"] + "/lineage_report.csv"
 
 rule produce_report:
    input:
       summary = config["output_dir"] + "/spear_score_summary.tsv",
       all_samples = config["output_dir"] + "/spear_annotation_summary.tsv",
-      n_perc = config["output_dir"] + "/qc.csv" if config["vcf"] == False else config["output_dir"] + "/spear_score_summary.tsv"
+      n_perc = config["output_dir"] + "/qc.csv" if config["vcf"] == False else config["output_dir"] + "/spear_score_summary.tsv",
+      lineage_report = config["output_dir"] + "/lineage_report.csv"
    output:
       config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
    shell:
-      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {config[global_n]} {config[s_n]} {config[s_contig]} {config[rbd_n]} 2> {log}"""
+      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {config[global_n]} {config[s_n]} {config[s_contig]} {config[rbd_n]} {input.lineage_report} 2> {log}"""
 
 rule summarise_vcfs:
    input:
@@ -28,8 +31,35 @@ rule summarise_vcfs:
       config["output_dir"] + "/spear_score_summary.tsv"
    log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
    shell:
-      """for i in $(grep -lP '^NC_045512\.2' {config[output_dir]}/final_vcfs/*.spear.vcf); do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' $i | grep -v '^#' $i | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {config[output_dir]}/all_samples.spear.vcf {config[samples]} 2> {log}"""
-  
+      """for i in $(grep -lP '^NC_045512\.2' {config[output_dir]}/final_vcfs/*.spear.vcf); do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {config[output_dir]}/all_samples.spear.vcf {config[samples]} 2> {log}"""
+
+if config["pangolin"] != "none":
+   rule pangolin_prep:
+      input:
+         expand(config["output_dir"] + "/input_files/{id}" + config["extension"], id = config["samples"]) if config["vcf"] == False else expand(config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa", id = config["samples"])
+      output:
+         config["output_dir"] + "/lineage_report.csv"
+      log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin.log"
+      shell:
+         """echo {input} ; for i in {input}; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.*}}; sed -n '/>'"${{BNAME2}}"'/, />/{{ />NC_045512\.2/!p ;}}' ${{i}} ; done > {config[output_dir]}/intermediate_output/consensus.fa ; run_pango.sh {config[output_dir]}/intermediate_output/consensus.fa {config[output_dir]} 2> {log} """
+
+   rule vcf_consensus:
+      input:
+         config["input_dir"] + "/{id}" + config["extension"]
+      output:
+         config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa"
+      log: config["output_dir"] + "/intermediate_output/logs/vcf_consensus/{id}.vcf_cons.log"
+      shell:
+         """BNAME={wildcards.id} ; echo $BNAME ; bgzip -k {config[input_dir]}/{wildcards.id}{config[extension]} ; tabix {config[input_dir]}/{wildcards.id}{config[extension]}.gz ; cat {config[reference_sequence]} | bcftools consensus {config[input_dir]}/{wildcards.id}{config[extension]}.gz > {output} ; sed -i "s|NC_045512\.2|${{BNAME}}|g" {output}"""
+else:
+   rule pangolin_touch_file:
+      input:
+         config["output_dir"] + "/spear_score_summary.tsv"
+      output:
+         config["output_dir"] + "/lineage_report.csv"
+      log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin_touch.log"
+      shell:
+         """touch {config[output_dir]}/lineage_report.csv"""
 
 rule split_vcfs:
    input:
@@ -136,7 +166,7 @@ if config["align"]:
       rule align:
          input:
             config["input_dir"] + "/{id}" + config["extension"]
-         output: 
+         output:
             alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 
          log: config["output_dir"] + "/intermediate_output/logs/vcf/{id}.vcf.log"
          shell:
@@ -145,7 +175,7 @@ if config["align"]:
       rule align:
          input:
             config["input_dir"] + "/{id}" + config["extension"]
-         output: 
+         output:
             plus_ref = config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
             alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 
          log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"

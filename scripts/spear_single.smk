@@ -12,12 +12,13 @@ rule produce_report:
    input:
       summary = config["output_dir"] + "/spear_score_summary.tsv",
       all_samples = config["output_dir"] + "/spear_annotation_summary.tsv",
-      n_perc = config["output_dir"] + "/qc.csv" if config["vcf"] == False else config["output_dir"] + "/spear_score_summary.tsv"
+      n_perc = config["output_dir"] + "/qc.csv" if config["vcf"] == False else config["output_dir"] + "/spear_score_summary.tsv",
+      lineage_report = config["output_dir"] + "/lineage_report.csv"
    output:
       config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
    shell:
-      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {config[global_n]} {config[s_n]} {config[s_contig]} {config[rbd_n]} 2> {log}"""
+      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {config[global_n]} {config[s_n]} {config[s_contig]} {config[rbd_n]} {config[output_dir]}/lineage_report.csv 2> {log}"""
 
 rule summarise_vcfs:
    input:
@@ -30,6 +31,35 @@ rule summarise_vcfs:
    shell:
       """for i in $(grep -lP '^NC_045512\.2' {config[output_dir]}/final_vcfs/*.spear.vcf); do BNAME=${{i##*/}}; BNAME2=${BNAME%.spear.vcf}; grep -v '^#' $i | grep -v '^#' $i | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {input} {config[samples]} 2> {log}"""
 
+if config["pangolin"] != "none":
+   rule pangolin_prep:
+      input:
+         expand(config["output_dir"] + "/input_files/{id}" + config["extension"], id = config["samples"]) if config["vcf"] == False else expand(config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa", id = config["samples"])
+      output:
+         config["output_dir"] + "/lineage_report.csv"
+      log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin.log"
+      shell:
+         """echo {input} ; for i in {input}; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.*}}; sed -n '/>'"${{BNAME2}}"'/, />/{{ />NC_045512\.2/!p ;}}' ${{i}} ; done > {config[output_dir]}/intermediate_output/consensus.fa ; run_pango.sh {config[output_dir]}/intermediate_output/consensus.fa {config[output_dir]} 2> {log} """
+
+   rule vcf_consensus:
+      input:
+         config["input_dir"] + "/{id}" + config["extension"]
+      output:
+         config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa"
+      log: config["output_dir"] + "/intermediate_output/logs/vcf_consensus/{id}.vcf_cons.log"
+      shell:
+         """BNAME={wildcards.id} ; echo $BNAME ; bgzip -k {config[input_dir]}/{wildcards.id}{config[extension]} ; tabix {config[input_dir]}/{wildcards.id}{config[extension]}.gz ; cat {config[reference_sequence]} | bcftools consensus {config[input_dir]}/{wildcards.id}{config[extension]}.gz > {output} ; sed -i "s|NC_045512\.2|${{BNAME}}|g" {output}"""
+else:
+   rule pangolin_touch_file:
+      input:
+         config["output_dir"] + "/spear_score_summary.tsv"
+      output:
+         config["output_dir"] + "/lineage_report.csv"
+      log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin_touch.log"
+      shell:
+         """touch {config[output_dir]}/lineage_report.csv"""
+
+
 rule spear_annotate:
    input:
       config["output_dir"] + "/intermediate_output/snpeff/{id}.ann.vcf"
@@ -38,7 +68,6 @@ rule spear_annotate:
    log: config["output_dir"] + "/intermediate_output/logs/spear/{id}.log"
    shell:
       "summarise_snpeff.py {output} {input} {config[data_dir]} ; spear_annotate.py {output} {output} {config[data_dir]} 2> {log}"
-
 
 rule annotate_variants:
    input:
@@ -63,7 +92,7 @@ if config["filter"]:
 
 rule mark_problem_sites:
    input:
-      config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf" 
+      config["input_dir"] + "/{id}" + config["extension"] if config["vcf"] else config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf" 
    output:
       config["output_dir"] + "/intermediate_output/masked/{id}.problem.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/mark_problem_sites/{id}.mark_problem_sites.log"

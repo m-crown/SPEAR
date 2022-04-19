@@ -63,7 +63,9 @@ def main():
     consensus.add_argument('--baseline' , metavar='', type = str, default = "BA.2",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
     consensus.add_argument('--no-product-plot', default=False, action='store_true',
-        help = "Do not produce individual sample product plots (for fastest operation)")   
+        help = "Do not produce individual sample product plots (for fastest operation)")  
+    consensus.add_argument('--pangolin', default="usher", type = str,
+        help = "Pangolin operation mode: UShER, fast, none")  
     consensus.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     consensus.add_argument('output', metavar='output', type=str,
@@ -102,7 +104,9 @@ def main():
     alignment.add_argument('--baseline' , metavar='', type = str, default = "BA.2",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
     alignment.add_argument('--no-product-plot', default=False, action='store_true',
-        help = "Do not produce individual sample product plots (for fastest operation)")        
+        help = "Do not produce individual sample product plots (for fastest operation)")  
+    alignment.add_argument('--pangolin', default="usher", type = str,
+        help = "Pangolin operation mode: UShER, fast, none")        
     alignment.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     alignment.add_argument('output', metavar='output', type=str,
@@ -128,6 +132,8 @@ def main():
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
     vcf.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")
+    vcf.add_argument('--pangolin', default="usher", type = str,
+        help = "Pangolin operation mode: UShER, fast, none")  
     vcf.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     vcf.add_argument('output', metavar='output', type=str,
@@ -187,6 +193,7 @@ def main():
         args.s_contig = 29903
         args.rbd_n = 5000
         args.aligner = None
+        args.pangolin = "UShER"
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
@@ -604,7 +611,8 @@ def main():
             "global_n" : args.global_n,
             "s_n" : args.s_n , 
             "s_contig" : args.s_contig,
-            "rbd_n" : args.rbd_n}
+            "rbd_n" : args.rbd_n,
+            "pangolin" : args.pangolin}
 
         console.print(table)
 
