@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.progress import track
 import os
+import csv
 
 def add_orf_shape(x_min_pos, x_max_pos, product, orf1ab, structural, accessory,product_colours):
     shapes = []
@@ -116,15 +117,15 @@ def main():
     parser.add_argument('--n_perc', metavar='n_perc.csv', type=str,
         help='Filename for %N and S gene dropout')
     parser.add_argument('score_summary', metavar='spear_score_summary.tsv', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS
+        help='Filename for SnpEff summarised and residue annotated VCF')
     parser.add_argument('annotation_summary', metavar='spear_annotation_summary.tsv', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS
+        help='Filename for SnpEff summarised and residue annotated VCF')
     parser.add_argument('baseline_scores', metavar='baseline.tsv', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS 
+        help='Filename for SnpEff summarised and residue annotated VCF')
     parser.add_argument('input_samples', metavar='1000', type=str,
-        help='Number of samples input into SPEAR pipeline') #ADD A DEFAULT FOR THIS 
+        help='Number of samples input into SPEAR pipeline') 
     parser.add_argument('qc_samples', metavar='700', type=str,
-        help='Number of samples passing QC and entering SPEAR pipeline') #ADD A DEFAULT FOR THIS 
+        help='Number of samples passing QC and entering SPEAR pipeline')
     parser.add_argument('images_dir', metavar='spear_images/', type=str,
         help='Directory for spear images to be copied from') 
     parser.add_argument('scripts_dir', metavar='$CONDA_PREFIX/bin', type=str,
@@ -132,17 +133,23 @@ def main():
     parser.add_argument('data_dir', metavar='$CONDA_PREFIX/data', type=str,
         help='Directory for spear data')        
     parser.add_argument('output_dir', metavar='report/', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF') #ADD A DEFAULT FOR THIS
+        help='Filename for SnpEff summarised and residue annotated VCF')
     parser.add_argument('baseline', metavar='Omicron', type=str,
-        help='lineage for baseline') #ADD A DEFAULT FOR THIS
+        help='lineage for baseline')
     parser.add_argument('global_n', metavar='0.50', default = 0.5, type=float,
-        help='global n max to flag') #ADD A DEFAULT FOR THIS
+        help='global n max to flag')
     parser.add_argument('s_n', metavar='0.05', default = 0.05, type=float,
-        help='spike n max to flag') #ADD A DEFAULT FOR THIS
+        help='spike n max to flag')
     parser.add_argument('s_contig', metavar='150', default = 150, type=float,
-        help='min n contig to flag in spike') #ADD A DEFAULT FOR THIS
+        help='min n contig to flag in spike')
     parser.add_argument('rbd_n', metavar='12', default = 12, type=float,
-        help='min n count to flag in rbd') #ADD A DEFAULT FOR THIS
+        help='min n count to flag in rbd')
+    parser.add_argument('pangolin_report', metavar='lineage_report.csv', type=str,
+        help='pangolin lineage report for organising samples')
+    parser.add_argument('pangolin_command', metavar='pangolin_command.txt', type=str,
+        help='pangolin command which was run')
+    parser.add_argument('spear_params', metavar='args.spear_params', type=str,
+        help='spear params')
     args = parser.parse_args()
 
     seed(42069)
@@ -158,6 +165,18 @@ def main():
 
     scores_summary = pd.read_csv(f'{args.score_summary}', sep = '\t')
     annotation_summary = pd.read_csv(f'{args.annotation_summary}', sep = '\t')
+    try:
+        lineages = pd.read_csv(f'{args.pangolin_report}', sep = ",")
+    except pd.errors.EmptyDataError:
+        lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : "NA"})
+
+    with open(f'{args.pangolin_command}') as file:
+        pangolin_command = [line.rstrip() for line in file]
+    pangolin_params = pangolin_command[0]
+    pangolin_versions = ' '.join(pangolin_command[1:])
+
+    spear_params = args.spear_params.replace("," , " ")
+
     annotation_summary["compound_nt_var"] = annotation_summary["description"] + annotation_summary["REF"] + annotation_summary["POS"].astype("str") + annotation_summary["ALT"]
     annotation_summary["compound_res_var"] = annotation_summary["description"] + annotation_summary["residues"]
     total_genomic_variants = annotation_summary["compound_nt_var"].nunique()
@@ -489,7 +508,7 @@ def main():
     if annotation_summary["feature"].replace("", np.nan).isnull().all() == False: 
 
         feature_counts_table_all = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "domain", "feature"]].copy()
-        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace("_", " ", regex = True)
+        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
         feature_counts_table_all_grouped = feature_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
         feature_counts_table_all_grouped.columns = ["count"]
         feature_counts_table_all_grouped = feature_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
@@ -549,7 +568,7 @@ def main():
         feature_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         feature_table_plt = offline.plot(feature_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         all_samples_feature = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
-        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace("_", " ", regex = True)
+        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
         all_samples_feature["order"] = all_samples_feature["description"].apply(lambda x: product_order.index(x))
         all_samples_feature.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_feature_table = go.Figure(data=[go.Table(
@@ -663,7 +682,7 @@ def main():
         furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         furin_table_plt = offline.plot(furin_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         all_samples_furin = all_samples_feature[(all_samples_feature["description"] == "surface glycoprotein") & (all_samples_feature["respos"] >= 680) & (all_samples_feature["respos"] <= 690)].copy()
-        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace("_", " ", regex = True)
+        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
         all_samples_furin["order"] = all_samples_furin["description"].apply(lambda x: product_order.index(x))
         all_samples_furin.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_furin_table = go.Figure(data=[go.Table(
@@ -721,6 +740,129 @@ def main():
     else:
         furin_table_plt = "No furin mutations present in any samples."
         furin_message = ""
+
+    #making an NTD supersite loops specific table
+    if len(annotation_summary.loc[annotation_summary["domain"] == "NTD"]) != 0:
+        ntd_counts_table_all = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["description", "residues", "respos", "domain", "feature"]].copy()
+        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        ntd_counts_table_all_grouped = ntd_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
+        ntd_counts_table_all_grouped.columns = ["count"]
+        ntd_counts_table_all_grouped = ntd_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
+        ntd_counts_table_all_grouped = ntd_counts_table_all_grouped.reset_index()
+        ntd_counts_table_all_grouped.rename(columns = {"count" : "total_mutations"}, inplace = True)
+        final_ntd_counts = ntd_counts_table_all_grouped
+        final_ntd_counts["order"] = final_ntd_counts["description"].apply(lambda x: product_order.index(x))
+        final_ntd_counts = final_ntd_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+        ntd_table = go.Figure(data=[go.Table(
+            header=dict(values=["Product", "Mutation", "Domain", "Feature", "Samples"],
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[final_ntd_counts["description"], final_ntd_counts["residues"], final_ntd_counts["domain"],final_ntd_counts["feature"], final_ntd_counts["total_mutations"]],
+                        fill_color='lavender',
+                        align='left'))
+        ])  
+
+        buttons = []
+        buttons_list = ["Total", "Product"]
+        for item in buttons_list:
+            if item == "Total":
+                final_ntd_counts = final_ntd_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+            elif item == "Product": 
+                final_ntd_counts = final_ntd_counts.sort_values(by = ["order", "respos"], ascending = [True, True])
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [final_ntd_counts["description"], final_ntd_counts["residues"], final_ntd_counts["domain"],final_ntd_counts["feature"], final_ntd_counts["total_mutations"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        ntd_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        ntd_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        ntd_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        ntd_table_plt = offline.plot(ntd_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+        
+        all_samples_ntd = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
+        all_samples_ntd[["feature", "domain"]] = all_samples_ntd[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        all_samples_ntd["order"] = all_samples_ntd["description"].apply(lambda x: product_order.index(x))
+        all_samples_ntd.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
+        all_samples_ntd_table = go.Figure(data=[go.Table(
+                header=dict(values=["Sample", "Product", "Domain", "Feature", "Residue"],
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[all_samples_ntd["sample_id"],all_samples_ntd["description"],all_samples_ntd["domain"],all_samples_ntd["feature"],all_samples_ntd["residues"]],
+                            fill_color='lavender',
+                            align='left'))
+            ])
+        buttons = []
+        buttons_list = ["Sample" , "Product"]
+        for item in buttons_list:
+            if item == "Sample":
+                all_samples_ntd = all_samples_ntd.sort_values(by = ["sample_id", "order", "respos"], ascending = True)
+            elif item == "Product": 
+                all_samples_ntd = all_samples_ntd.sort_values(by = ["order", "respos"], ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [all_samples_ntd["sample_id"],all_samples_ntd["description"],all_samples_ntd["domain"],all_samples_ntd["feature"],all_samples_ntd["residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        all_samples_ntd_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        all_samples_ntd_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        all_samples_ntd_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        all_samples_ntd_table.write_html(f'{args.output_dir}/plots/samples_ntd_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        ntd_message = '''Mutations in Spike NTD.
+                            A full table of NTD mutations in each sample can be found <a href="plots/samples_ntd_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
+
+    else:
+        ntd_table_plt = "No NTD mutations present in any samples."
+        ntd_message = ""
     
     #making a contacts counts table
     if annotation_summary["contact_type"].replace("", np.nan).isnull().all() == False: 
@@ -870,7 +1012,7 @@ def main():
     sample_scores = sample_scores.replace("", np.nan).dropna(axis=1, how = "all") #remove empty cols from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
     displayed_scores_cols = [score for score in displayed_scores_cols if score in sample_scores.columns.tolist()]
     actual_scores_cols = [score for score in displayed_scores_cols if score != "sample_id"]
-    if sample_scores[[score for score in actual_scores_cols if score != "displayed_dropout"]].isna().all().all() == False:
+    if sample_scores[[score for score in actual_scores_cols if score not in ("displayed_dropout","lineage")]].isna().all().all() == False:
         if "cm_mAb_escape_all_classes_sum" in sample_scores.columns:
             sort_col = "cm_mAb_escape_all_classes_sum"
         else:
@@ -899,6 +1041,7 @@ def main():
         
         labels = {
             "sample_id" : "Sample ID", 
+            "lineage" : "Pango-Lineage",
             "VDS_sum" : "Vibrational Difference Score",
             "bloom_ACE2_sum" : "Bloom ACE2",
             "serum_escape_sum" : "Serum Escape",
@@ -933,8 +1076,15 @@ def main():
 
         n_info_colours = np.where(sample_scores["displayed_dropout"] != "", "rgb(250,180,174)", "rgb(179,205,227)")
         n_info_colours[0] = "lavender"
+        lineages_sub = lineages[["taxon", "lineage"]].rename(columns = {"taxon" : "sample_id"})
+        sample_scores = pd.merge(sample_scores, lineages_sub, on = "sample_id" , how = "left")
+        sample_scores.index = sample_scores["sample_id"]
+        sample_scores = sample_scores.rename_axis("index")
+
         displayed_scores_cols.append("displayed_dropout")
         baseline_relative_sample_colours_df["displayed_dropout"] = n_info_colours
+        displayed_scores_cols.insert(1,"lineage")
+        baseline_relative_sample_colours_df["lineage"] = "lavender"
         baseline_relative_sample_colours = np.concatenate([baseline_relative_sample_colours, np.reshape(n_info_colours, (-1,1))], axis = 1)
         scores_table = go.Figure(data=[go.Table(
             header=dict(values= [labels[col] for col in displayed_scores_cols],
@@ -943,11 +1093,10 @@ def main():
             cells=dict(values= [sample_scores[x] for x in displayed_scores_cols],
                     fill_color=[baseline_relative_sample_colours_df[x] for x in displayed_scores_cols],
                     align='center'))
-                    ])
-            
+                    ])  
         buttons = []
         for score in displayed_scores_cols:
-            if score == "sample_id":
+            if score == "sample_id" or score == "lineage":
                 asc = True
             else:
                 asc = False
@@ -957,8 +1106,10 @@ def main():
             samples_colours = baseline_relative_sample_colours_df.iloc[1:, :]
             samples_scores = samples_scores.replace("", np.nan).sort_values(by = score, ascending = asc ).replace(np.nan, "")
             samples_colours = samples_colours.reindex(samples_scores.index)
+            
             sorted_scores = pd.concat([baseline_scores, samples_scores])
             sorted_colours = pd.concat([baseline_colours, samples_colours])
+
             buttons.append(dict(
                     label = labels[score],
                     method = 'restyle',
@@ -996,6 +1147,10 @@ def main():
         score_table_message = '''For a full screen view of this table see <a href="plots/scores_table.html">here</a>. Source data used to produce this table can be found in the file <code>spear_score_summary.tsv</code>'''
 
         table = Table(show_header=True, header_style="bold magenta", title = "Per Sample Scores Summary", caption = "Quality warnings: ! - Spike N contig (default 150nt)  ;  ^ - Spike RBD N content (default 12nt)  ;  * - Global N percentage (default > half N percentage cutoff) ;  # - Spike N percentage (default > 5%)", caption_justify = "center")
+        pango_lineage = sample_scores.pop("lineage")
+        sample_scores.insert(1, "lineage", pango_lineage)
+        pango_lineage_colours = baseline_relative_sample_colours_df.pop("lineage")
+        baseline_relative_sample_colours_df.insert(1, "lineage", pango_lineage_colours)
         for column in sample_scores.columns:
             table.add_column(labels[column])
         cli_baseline_relative_sample_truths = np.where(np.isin(baseline_relative_sample_colours_df,["rgb(179,205,227)", "lavender"]), False, True)
@@ -1264,8 +1419,10 @@ def main():
     #heatmap ________
     
     anno_merge = pd.merge(respos_df, annotation_summary, left_on = ["product", "residue-position"], right_on = ["description", "respos"], how = "left")
+    anno_merge = pd.merge(anno_merge, lineages[["taxon", "lineage"]], left_on = "sample_id", right_on = "taxon", how = "left")
     anno_merge.set_index("residues")
-    anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
+    anno_merge["text_var"] = anno_merge["sample_id"] + "(" + anno_merge["lineage"] + "): " + anno_merge["residues"]
+    anno_merge.sort_values(by  = "lineage", inplace = True)
     displayed_scores = []
     if anno_merge[scores_cols].isna().all().all() == False:
         heatmap = go.Figure()
@@ -1286,7 +1443,7 @@ def main():
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : heatmap_text,
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                             "colorscale" : "rdbu",
                             "name" : "VDS",
@@ -1301,7 +1458,7 @@ def main():
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : heatmap_all_text,
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                             "colorscale" : "rdbu",
                             "name" : "VDS",
@@ -1318,7 +1475,7 @@ def main():
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                             "colorscale" : "plasma", 
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False, 
                         }))
                     heatmap_all.add_trace(go.Heatmap(
@@ -1329,7 +1486,7 @@ def main():
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                             "colorscale" : "plasma",
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                         }))
                 elif score == "cm_mAb_escape_all_classes":                
@@ -1340,7 +1497,7 @@ def main():
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                             "colorscale" : "hot_r",
                             "name" : "cm_mAb_escape_all_classes", 
@@ -1355,7 +1512,7 @@ def main():
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                             "colorscale" : "hot_r",
                             "name" : "cm_mAb_escape_all_classes",
@@ -1371,7 +1528,7 @@ def main():
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                             "name" : "BEC_RES",
                             'colorscale' : "purd_r",
@@ -1383,7 +1540,7 @@ def main():
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                             "name" : "BEC_RES",
                             'colorscale' : "purd_r",
@@ -1396,7 +1553,7 @@ def main():
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                             "colorscale" : "hot_r",
                             "name" : score, 
@@ -1411,7 +1568,7 @@ def main():
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
-                            'hovertemplate' : 'Mutation: %{text} <br>Score: %{z}<extra></extra>',
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                             "colorscale" : "hot_r", 
                             "zmin" : scores_z_min[score],
@@ -1553,7 +1710,7 @@ def main():
                             </div>
                             <div class="card-footer">
                                 Summary heatmap of all residue positions for which there is at least one mutation across all samples. 
-                                Individual sample IDs and mutations are plotted on datapoint, for large samples sets these become visible at higher zoom levels.  
+                                Individual sample IDs and mutations are plotted on datapoint, for large samples sets these become visible at higher zoom levels. Residues are labelled in the following format: sample_id(pango_lineage):mutation.   
                                 Hover text will show z: selected score for sample-residue and sample ID and mutation.  
                                 For a description of these scores see <a href="https://github.com/m-crown/SPEAR#scores">Table 3</a> in the SPEAR README.  
                                 ''' + heatmap_message + '''
@@ -1633,6 +1790,21 @@ def main():
                         </div>
                     </div>
                 </div>
+                <div class = "row mt-2">
+                    <div class = "col-6">
+                        <div class="card">
+                            <div class = "card-header">
+                                Mutated NTD Residues
+                            </div>
+                            <div class = "card-body">
+                                ''' + ntd_table_plt + '''
+                            </div>
+                            <div class = "card-footer">
+                            ''' + ntd_message + '''
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 ''' + table_card + '''    
 
             <footer class="page-footer font-small teal pt-4 border mt-2 mb-2">
@@ -1642,16 +1814,31 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 0.8.2 </p>
+                            <p> SPEAR Version 1.0.0 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
                         </div>
                     </div>                   
                     <div class="row">
-                    <div class="col-md-12 mt-md-0 mt-3 text-center">
-                        <p><a href="https://github.com/m-crown/SPEAR">SPEAR</a> was developed by Matt Crown and Matt Bashton at <a href="https://www.northumbria.ac.uk/">Northumbria University UK</a> from work funded by <a href="https://www.cogconsortium.uk/">COG-UK</a>. Please post bugs, issue and feature requests on <a href="https://github.com/m-crown/SPEAR/issues">GitHub</a>. </p>
+                        <div class="col-md-12 mt-md-0 mt-3 text-center">
+                            <p><a href="https://github.com/m-crown/SPEAR">SPEAR</a> was developed by Matt Crown and Matt Bashton at <a href="https://www.northumbria.ac.uk/">Northumbria University UK</a> from work funded by <a href="https://www.cogconsortium.uk/">COG-UK</a>. Please post bugs, issue and feature requests on <a href="https://github.com/m-crown/SPEAR/issues">GitHub</a>. </p>
+                        </div>
                     </div>
+                    <div class="row">
+                        <div class="col">
+                            <h6>''' + spear_params +'''</h6>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <h6>''' + pangolin_params +'''</h6>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <h6>Pangolin versions: ''' + pangolin_versions +'''</h6>
+                        </div>
                     </div>
                 </div>
             </footer>
