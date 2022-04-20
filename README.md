@@ -96,6 +96,7 @@ options:
   --baseline            Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom
                         baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha
   --no-product-plot     Do not produce individual sample product plots (for fastest operation)
+  --pangolin PANGOLIN   Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)
 ```
 
 ## Usage examples
@@ -134,6 +135,10 @@ Make sure you VCF file uses [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/1
 
 By default SPEAR will filter out the variants occurring in "genomic scraggly ends" the very most 5' 1-55 nucleotides and final 3' end of the genome 29,804-29,903. Input consensus FASTA will also be filtered to exclude samples that are more than 50% N before they are aligned to the reference.  Percentage N filtering can be tuned with `--cutoff`.  Further filtering options are discussed in [Advanced filtering options](https://github.com/m-crown/SPEAR#advanced-filtering-options) below.
 
+### Pangolin
+
+Pangolin lineage assignment will be run by default on all samples, (including VCF), this enables grouping of sample by lineage in the output report. There are three pangolin operation modes in spear: `accurate (UShER)`, `fast (pangolearn)`, `none (don't run pangolin)`. Please note that with VCF inputs consensus fasta sequences will be reconstructed from VCF and all other bases are assumed to be reference. We recommend conducting appropriate QC outside of SPEAR on these samples. Where possible please use sequence inputs so that SPEAR can assess dropouts, %N, (See QC section below) and pass ambiguous base calls to pangolin.
+
 ## Output
 
 All spear output is nested into the output directory specified at run time.
@@ -169,6 +174,7 @@ SPEAR will quality check and flag issues within any consensus or alignment input
 * `qc.csv` - a comma delimited file with QC data, columns: `sample_id`, `global_n` (global N%), `s_n` (Spike N%), `s_n_contig` (longest Spike contig of N), `rbd_n` (RBD N nt count).
 * `report/` - this directory will contain an HTML `report.html` supporting files are also required within this directory tree.
 * `report/plots/` - this directory contains all standalone plots also found in the above report.
+* `lineage_report.csv` - output from Pangolin (if Pangolin is not run this file will be empty).
 
 ### Per sample files
 
@@ -275,6 +281,7 @@ Spear makes use of the following:
 * [Binding Calculator](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) Greaney _et al_.[13]
 * [Minimap2](https://github.com/lh3/minimap2) Heng Li [21]
 * [gofasta](https://github.com/virus-evolution/gofasta)
+* [pangolin]([GitHub - cov-lineages/pangolin: Software package for assigning SARS-CoV-2 genome sequences to global lineages.](https://github.com/cov-lineages/pangolin))
 * [Plotly](https://plot.ly)
 * [Bootstrap](https://getbootstrap.com/)
 * [Rich](https://github.com/Textualize/rich)
