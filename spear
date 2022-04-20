@@ -193,7 +193,7 @@ def main():
         args.s_contig = 29903
         args.rbd_n = 5000
         args.aligner = None
-        args.pangolin = "UShER"
+        args.pangolin = "none"
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
