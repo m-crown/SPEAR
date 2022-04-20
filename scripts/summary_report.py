@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.progress import track
 import os
+import csv
 
 def add_orf_shape(x_min_pos, x_max_pos, product, orf1ab, structural, accessory,product_colours):
     shapes = []
@@ -145,6 +146,10 @@ def main():
         help='min n count to flag in rbd')
     parser.add_argument('pangolin_report', metavar='lineage_report.csv', type=str,
         help='pangolin lineage report for organising samples')
+    parser.add_argument('pangolin_command', metavar='pangolin_command.txt', type=str,
+        help='pangolin command which was run')
+    parser.add_argument('spear_params', metavar='args.spear_params', type=str,
+        help='spear params')
     args = parser.parse_args()
 
     seed(42069)
@@ -164,7 +169,14 @@ def main():
         lineages = pd.read_csv(f'{args.pangolin_report}', sep = ",")
     except pd.errors.EmptyDataError:
         lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : "NA"})
-        
+
+    with open(f'{args.pangolin_command}') as file:
+        pangolin_command = [line.rstrip() for line in file]
+    pangolin_params = pangolin_command[0]
+    pangolin_versions = ' '.join(pangolin_command[1:])
+
+    spear_params = args.spear_params.replace("," , " ")
+
     annotation_summary["compound_nt_var"] = annotation_summary["description"] + annotation_summary["REF"] + annotation_summary["POS"].astype("str") + annotation_summary["ALT"]
     annotation_summary["compound_res_var"] = annotation_summary["description"] + annotation_summary["residues"]
     total_genomic_variants = annotation_summary["compound_nt_var"].nunique()
@@ -496,7 +508,7 @@ def main():
     if annotation_summary["feature"].replace("", np.nan).isnull().all() == False: 
 
         feature_counts_table_all = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "domain", "feature"]].copy()
-        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace("_", " ", regex = True)
+        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
         feature_counts_table_all_grouped = feature_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
         feature_counts_table_all_grouped.columns = ["count"]
         feature_counts_table_all_grouped = feature_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
@@ -556,7 +568,7 @@ def main():
         feature_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         feature_table_plt = offline.plot(feature_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         all_samples_feature = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
-        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace("_", " ", regex = True)
+        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
         all_samples_feature["order"] = all_samples_feature["description"].apply(lambda x: product_order.index(x))
         all_samples_feature.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_feature_table = go.Figure(data=[go.Table(
@@ -670,7 +682,7 @@ def main():
         furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         furin_table_plt = offline.plot(furin_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         all_samples_furin = all_samples_feature[(all_samples_feature["description"] == "surface glycoprotein") & (all_samples_feature["respos"] >= 680) & (all_samples_feature["respos"] <= 690)].copy()
-        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace("_", " ", regex = True)
+        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
         all_samples_furin["order"] = all_samples_furin["description"].apply(lambda x: product_order.index(x))
         all_samples_furin.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_furin_table = go.Figure(data=[go.Table(
@@ -728,6 +740,129 @@ def main():
     else:
         furin_table_plt = "No furin mutations present in any samples."
         furin_message = ""
+
+    #making an NTD supersite loops specific table
+    if len(annotation_summary.loc[annotation_summary["domain"] == "NTD"]) != 0:
+        ntd_counts_table_all = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["description", "residues", "respos", "domain", "feature"]].copy()
+        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        ntd_counts_table_all_grouped = ntd_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
+        ntd_counts_table_all_grouped.columns = ["count"]
+        ntd_counts_table_all_grouped = ntd_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
+        ntd_counts_table_all_grouped = ntd_counts_table_all_grouped.reset_index()
+        ntd_counts_table_all_grouped.rename(columns = {"count" : "total_mutations"}, inplace = True)
+        final_ntd_counts = ntd_counts_table_all_grouped
+        final_ntd_counts["order"] = final_ntd_counts["description"].apply(lambda x: product_order.index(x))
+        final_ntd_counts = final_ntd_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+        ntd_table = go.Figure(data=[go.Table(
+            header=dict(values=["Product", "Mutation", "Domain", "Feature", "Samples"],
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[final_ntd_counts["description"], final_ntd_counts["residues"], final_ntd_counts["domain"],final_ntd_counts["feature"], final_ntd_counts["total_mutations"]],
+                        fill_color='lavender',
+                        align='left'))
+        ])  
+
+        buttons = []
+        buttons_list = ["Total", "Product"]
+        for item in buttons_list:
+            if item == "Total":
+                final_ntd_counts = final_ntd_counts.sort_values(by = ["total_mutations", "order", "respos"], ascending = [False, True, True])
+            elif item == "Product": 
+                final_ntd_counts = final_ntd_counts.sort_values(by = ["order", "respos"], ascending = [True, True])
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [final_ntd_counts["description"], final_ntd_counts["residues"], final_ntd_counts["domain"],final_ntd_counts["feature"], final_ntd_counts["total_mutations"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        ntd_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        ntd_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        ntd_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        ntd_table_plt = offline.plot(ntd_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
+        
+        all_samples_ntd = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
+        all_samples_ntd[["feature", "domain"]] = all_samples_ntd[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        all_samples_ntd["order"] = all_samples_ntd["description"].apply(lambda x: product_order.index(x))
+        all_samples_ntd.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
+        all_samples_ntd_table = go.Figure(data=[go.Table(
+                header=dict(values=["Sample", "Product", "Domain", "Feature", "Residue"],
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[all_samples_ntd["sample_id"],all_samples_ntd["description"],all_samples_ntd["domain"],all_samples_ntd["feature"],all_samples_ntd["residues"]],
+                            fill_color='lavender',
+                            align='left'))
+            ])
+        buttons = []
+        buttons_list = ["Sample" , "Product"]
+        for item in buttons_list:
+            if item == "Sample":
+                all_samples_ntd = all_samples_ntd.sort_values(by = ["sample_id", "order", "respos"], ascending = True)
+            elif item == "Product": 
+                all_samples_ntd = all_samples_ntd.sort_values(by = ["order", "respos"], ascending = True)
+            buttons.append(dict(
+                    label = item,
+                    method = 'restyle',
+                    args = [
+                        {"cells": {
+                            "values": [all_samples_ntd["sample_id"],all_samples_ntd["description"],all_samples_ntd["domain"],all_samples_ntd["feature"],all_samples_ntd["residues"]],
+                            "fill" : dict(color = 'lavender'),
+                            "align":'left'
+                        }}]))
+
+        all_samples_ntd_table.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=buttons,
+                    active = 0,
+                    bgcolor = "white",
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x = 0.05,
+                    y = 1.15,
+                    xanchor="left",
+                    yanchor="top")
+                    ])
+
+        all_samples_ntd_table.update_layout(
+            annotations=[
+                dict(
+                    text="Sort:", showarrow=False,
+                    x=0, y=1.1, yref="paper", align="left")
+                ]
+            )
+        all_samples_ntd_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
+        all_samples_ntd_table.write_html(f'{args.output_dir}/plots/samples_ntd_table.html', include_plotlyjs=f'plotly/plotly-2.8.3.min.js')
+        ntd_message = '''Mutations in Spike NTD.
+                            A full table of NTD mutations in each sample can be found <a href="plots/samples_ntd_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
+
+    else:
+        ntd_table_plt = "No NTD mutations present in any samples."
+        ntd_message = ""
     
     #making a contacts counts table
     if annotation_summary["contact_type"].replace("", np.nan).isnull().all() == False: 
@@ -1575,7 +1710,7 @@ def main():
                             </div>
                             <div class="card-footer">
                                 Summary heatmap of all residue positions for which there is at least one mutation across all samples. 
-                                Individual sample IDs and mutations are plotted on datapoint, for large samples sets these become visible at higher zoom levels.  
+                                Individual sample IDs and mutations are plotted on datapoint, for large samples sets these become visible at higher zoom levels. Residues are labelled in the following format: sample_id(pango_lineage):mutation.   
                                 Hover text will show z: selected score for sample-residue and sample ID and mutation.  
                                 For a description of these scores see <a href="https://github.com/m-crown/SPEAR#scores">Table 3</a> in the SPEAR README.  
                                 ''' + heatmap_message + '''
@@ -1655,6 +1790,21 @@ def main():
                         </div>
                     </div>
                 </div>
+                <div class = "row mt-2">
+                    <div class = "col-6">
+                        <div class="card">
+                            <div class = "card-header">
+                                Mutated NTD Residues
+                            </div>
+                            <div class = "card-body">
+                                ''' + ntd_table_plt + '''
+                            </div>
+                            <div class = "card-footer">
+                            ''' + ntd_message + '''
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 ''' + table_card + '''    
 
             <footer class="page-footer font-small teal pt-4 border mt-2 mb-2">
@@ -1664,16 +1814,31 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 0.8.2 </p>
+                            <p> SPEAR Version 1.0.0 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
                         </div>
                     </div>                   
                     <div class="row">
-                    <div class="col-md-12 mt-md-0 mt-3 text-center">
-                        <p><a href="https://github.com/m-crown/SPEAR">SPEAR</a> was developed by Matt Crown and Matt Bashton at <a href="https://www.northumbria.ac.uk/">Northumbria University UK</a> from work funded by <a href="https://www.cogconsortium.uk/">COG-UK</a>. Please post bugs, issue and feature requests on <a href="https://github.com/m-crown/SPEAR/issues">GitHub</a>. </p>
+                        <div class="col-md-12 mt-md-0 mt-3 text-center">
+                            <p><a href="https://github.com/m-crown/SPEAR">SPEAR</a> was developed by Matt Crown and Matt Bashton at <a href="https://www.northumbria.ac.uk/">Northumbria University UK</a> from work funded by <a href="https://www.cogconsortium.uk/">COG-UK</a>. Please post bugs, issue and feature requests on <a href="https://github.com/m-crown/SPEAR/issues">GitHub</a>. </p>
+                        </div>
                     </div>
+                    <div class="row">
+                        <div class="col">
+                            <h6>''' + spear_params +'''</h6>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <h6>''' + pangolin_params +'''</h6>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <h6>Pangolin versions: ''' + pangolin_versions +'''</h6>
+                        </div>
                     </div>
                 </div>
             </footer>
