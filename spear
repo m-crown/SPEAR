@@ -46,8 +46,8 @@ def main():
         help = "Alignment method to use for alignment to SARS-CoV-2 reference, 'minimap2' or 'muscle', default minimap2")  
     #consensus.add_argument('--allowAmbiguous', default=False, action='store_true',
     #    help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
-    consensus.add_argument('--cutoff', metavar = '', type = int , default=50,
-        help = "Percentage N cutoff for input sequences. Default 50")
+    consensus.add_argument('--cutoff', metavar = '', type = int , default=30,
+        help = "Percentage N cutoff for input sequences. Default 30")
     consensus.add_argument('--global_n', metavar = '', type = float,
         help = "Minimum percentage of N in sample to flag as poor coverage. Default half of cutoff.")
     consensus.add_argument('--s_n', metavar = '', type = float, default = 0.05,
@@ -64,8 +64,8 @@ def main():
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
     consensus.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")  
-    consensus.add_argument('--pangolin', default="usher", type = str,
-        help = "Pangolin operation mode: UShER, fast, none")  
+    consensus.add_argument('--pangolin', default="accurate", type = str,
+        help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")  
     consensus.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     consensus.add_argument('output', metavar='output', type=str,
@@ -87,8 +87,8 @@ def main():
         help = "Max number of threads for snakemake job execution.")  
     #alignment.add_argument('--allowAmbiguous', default=False, action='store_true',
     #    help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
-    alignment.add_argument('--cutoff', metavar = '', type = int , default=50,
-        help = "Percentage N cutoff for input sequences. Default 50")
+    alignment.add_argument('--cutoff', metavar = '', type = int , default=30,
+        help = "Percentage N cutoff for input sequences. Default 30")
     alignment.add_argument('--global_n', metavar = '', type = float,
         help = "Minimum percentage of N in sample to flag as poor coverage. Default half of cutoff.")
     alignment.add_argument('--s_n', metavar = '', type = float, default = 0.05,
@@ -105,8 +105,8 @@ def main():
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
     alignment.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")  
-    alignment.add_argument('--pangolin', default="usher", type = str,
-        help = "Pangolin operation mode: UShER, fast, none")        
+    alignment.add_argument('--pangolin', default="accurate", type = str,
+        help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")        
     alignment.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     alignment.add_argument('output', metavar='output', type=str,
@@ -132,8 +132,8 @@ def main():
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
     vcf.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")
-    vcf.add_argument('--pangolin', default="usher", type = str,
-        help = "Pangolin operation mode: UShER, fast, none")  
+    vcf.add_argument('--pangolin', default="accurate", type = str,
+        help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")  
     vcf.add_argument('input', metavar='input', type=str,
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     vcf.add_argument('output', metavar='output', type=str,
@@ -162,7 +162,7 @@ def main():
         Text.assemble(("/_    _\\", "bold")),
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
-        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v0.8.2", "bold red")),
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.0.0", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2022", "bold red"))]
     
     for item in logo:
@@ -583,6 +583,13 @@ def main():
         if args.command in ["consensus", "alignment"]:
             if not args.global_n:
                 args.global_n = (args.cutoff/100) * 0.5
+        
+        if args.command == "vcf":
+            cutoff = 0.3
+        else:
+            cutoff = args.cutoff/100
+
+        spear_params = f'spear:{args.command},mask-problem-sites:{problem_sites},aligner:{args.aligner},cutoff:{cutoff},global_n:{args.global_n},s_n:{args.s_n},s_contig:{args.s_contig},rbd_n:{args.rbd_n},window:{args.window}'
         args.s_contig = int(args.s_contig)
         config = {
             "input_dir" : indir,
@@ -612,8 +619,11 @@ def main():
             "s_n" : args.s_n , 
             "s_contig" : args.s_contig,
             "rbd_n" : args.rbd_n,
-            "pangolin" : args.pangolin}
-
+            "pangolin" : args.pangolin,
+            "threads" : args.threads,
+            "max_n" : cutoff, 
+            "spear_params" : spear_params}
+        
         console.print(table)
 
         status = snakemake.snakemake(
