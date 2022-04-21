@@ -281,7 +281,7 @@ Spear makes use of the following:
 * [Binding Calculator](https://github.com/jbloomlab/SARS2_RBD_Ab_escape_maps/blob/main/bindingcalculator.py) Greaney _et al_.[13]
 * [Minimap2](https://github.com/lh3/minimap2) Heng Li [21]
 * [gofasta](https://github.com/virus-evolution/gofasta)
-* [pangolin]([GitHub - cov-lineages/pangolin: Software package for assigning SARS-CoV-2 genome sequences to global lineages.](https://github.com/cov-lineages/pangolin))
+* [pangolin](https://github.com/cov-lineages/pangolin)
 * [Plotly](https://plot.ly)
 * [Bootstrap](https://getbootstrap.com/)
 * [Rich](https://github.com/Textualize/rich)
