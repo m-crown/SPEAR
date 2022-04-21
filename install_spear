@@ -79,6 +79,30 @@ git clone --quiet https://github.com/m-crown/SPEAR.git ${CONDA_PREFIX}/repo
 # Test snpEff is working
 java -Xmx1g -jar $CONDA_PREFIX/snpEff/snpEff.jar -hgvs1LetterAa -nodownload -no SPLICE_SITE_ACCEPTOR -no SPLICE_SITE_DONOR -no SPLICE_SITE_REGION -no SPLICE_SITE_BRANCH -no SPLICE_SITE_BRANCH_U12 -noLog -noLof -no-intron -noMotif -noStats -no-downstream -no-upstream -no-utr NC_045512.2 $CONDA_PREFIX/data/install_vcf.vcf > /dev/null
 
+# Deavtivate env
+conda deactivate
+
+# Optional Pangolin install
+while true; do
+    read -p "Do you wish to install Pangolin? (skip if you already have a working Pangolin env)" yn
+    case ${yn} in
+	[Yy]* ) echo " - Installing latest Pangolin"
+		mkdir -p latest_pangolin; wget -qO- https://api.github.com/repos/cov-lineages/pangolin/releases | grep "tarball_url" | grep -Eo 'https://[^\"]*' | sed -n '1p' | xargs wget -qO- | tar -xz --strip-components=1 -C latest_pangolin
+		cd latest_pangolin
+		conda env create -q --force -f environment.yml
+		conda activate pangolin
+		pip -q install .
+		cd ..
+		conda deactivate
+		echo -ne "\n\n"
+		break;;
+	[Nn]* ) echo " - Skipping Pangolin installation"
+		echo -ne "\n\n"
+		break;;
+	* ) echo "Please answer yes or no.";;
+    esac
+done
+
 # Finish up
 echo "To use SPEAR activate the conda enviroment like so:"
 echo "conda activate spear"
