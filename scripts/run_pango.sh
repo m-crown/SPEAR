@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 CONDA_PATH=$(conda list -n base | awk 'NR == 1' | grep -oP '/\S+[^:]')
 source ${CONDA_PATH}/etc/profile.d/conda.sh
