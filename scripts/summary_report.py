@@ -1422,7 +1422,6 @@ def main():
     anno_merge = pd.merge(anno_merge, lineages[["taxon", "lineage"]], left_on = "sample_id", right_on = "taxon", how = "left")
     anno_merge.set_index("residues")
     anno_merge["text_var"] = anno_merge["sample_id"] + "(" + anno_merge["lineage"] + "): " + anno_merge["residues"]
-    anno_merge.sort_values(by  = "lineage", inplace = True)
     displayed_scores = []
     if anno_merge[scores_cols].isna().all().all() == False:
         heatmap = go.Figure()
