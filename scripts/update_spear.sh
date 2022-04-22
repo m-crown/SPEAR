@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -eu
 # Matt Bashton 2021
 # Updates SPEAR
-# Assumes spear conda env is already active is script is envoked by spear itself
+# Assumes spear conda env is already active as script is envoked by spear itself
 
 # We need a command to run
 [ $# -ne 1 ] && { echo -en "Error, usage: $(basename $0) [spear|all-data|all]\n\n" ; exit 1; }
