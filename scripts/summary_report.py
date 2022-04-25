@@ -513,6 +513,7 @@ def main():
 
         feature_counts_table_all = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "domain", "feature"]].copy()
         feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace({"_": " "}, regex = True)
         feature_counts_table_all_grouped = feature_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
         feature_counts_table_all_grouped.columns = ["count"]
         feature_counts_table_all_grouped = feature_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
@@ -573,6 +574,7 @@ def main():
         feature_table_plt = offline.plot(feature_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         all_samples_feature = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
         all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace({"_": " "}, regex = True)
         all_samples_feature["order"] = all_samples_feature["description"].apply(lambda x: product_order.index(x))
         all_samples_feature.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_feature_table = go.Figure(data=[go.Table(
@@ -686,7 +688,8 @@ def main():
         furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         furin_table_plt = offline.plot(furin_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         all_samples_furin = all_samples_feature[(all_samples_feature["description"] == "surface glycoprotein") & (all_samples_feature["respos"] >= 680) & (all_samples_feature["respos"] <= 690)].copy()
-        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
+        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace({"_": " "}, regex = True)
         all_samples_furin["order"] = all_samples_furin["description"].apply(lambda x: product_order.index(x))
         all_samples_furin.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_furin_table = go.Figure(data=[go.Table(
