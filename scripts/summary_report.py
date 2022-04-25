@@ -748,7 +748,8 @@ def main():
     #making an NTD supersite loops specific table
     if len(annotation_summary.loc[annotation_summary["domain"] == "NTD"]) != 0:
         ntd_counts_table_all = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["description", "residues", "respos", "domain", "feature"]].copy()
-        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
+        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({"_" : " ", np.nan : ""}, regex = True)
         ntd_counts_table_all_grouped = ntd_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
         ntd_counts_table_all_grouped.columns = ["count"]
         ntd_counts_table_all_grouped = ntd_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
