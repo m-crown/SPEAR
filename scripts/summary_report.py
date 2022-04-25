@@ -169,9 +169,9 @@ def main():
         lineages = pd.read_csv(f'{args.pangolin_report}', sep = ",")
         run_pangolin = True
         if len(lineages) == 0:
-            lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : "NA"}) 
+            lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : ""}) 
     except pd.errors.EmptyDataError:
-        lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : "NA"})
+        lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : ""})
         run_pangolin = False
 
     with open(f'{args.pangolin_command}') as file:
@@ -1430,8 +1430,13 @@ def main():
     anno_merge = pd.merge(respos_df, annotation_summary, left_on = ["product", "residue-position"], right_on = ["description", "respos"], how = "left")
     anno_merge = pd.merge(anno_merge, lineages[["taxon", "lineage"]], left_on = "sample_id", right_on = "taxon", how = "left")
     anno_merge.set_index("residues")
-    anno_merge["text_var"] = anno_merge["sample_id"] + "(" + anno_merge["lineage"] + "): " + anno_merge["residues"]
-    anno_merge["lineage_sample"] = anno_merge["lineage"] + anno_merge["sample_id"]
+    if np.unique(anno_merge.loc[anno_merge["lineage"].isna() == False, "lineage"]) == "":
+        anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
+        anno_merge["lineage_sample"] = anno_merge["sample_id"]
+    else:
+        anno_merge["text_var"] = anno_merge["sample_id"] + "(" + anno_merge["lineage"] + "): " + anno_merge["residues"]
+        anno_merge["lineage_sample"] = anno_merge["lineage"] + anno_merge["sample_id"]
+
     lineage_categories = anno_merge.loc[anno_merge["lineage_sample"].isna() == False, "lineage_sample"].to_list()
     lineage_categories = sorted(lineage_categories)
     displayed_scores = []
