@@ -167,8 +167,12 @@ def main():
     annotation_summary = pd.read_csv(f'{args.annotation_summary}', sep = '\t')
     try:
         lineages = pd.read_csv(f'{args.pangolin_report}', sep = ",")
+        run_pangolin = True
+        if len(lineages) == 0:
+            lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : ""}) 
     except pd.errors.EmptyDataError:
-        lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : "NA"})
+        lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : ""})
+        run_pangolin = False
 
     with open(f'{args.pangolin_command}') as file:
         pangolin_command = [line.rstrip() for line in file]
@@ -508,7 +512,8 @@ def main():
     if annotation_summary["feature"].replace("", np.nan).isnull().all() == False: 
 
         feature_counts_table_all = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["description", "residues", "respos", "domain", "feature"]].copy()
-        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
+        feature_counts_table_all[["feature", "domain"]] = feature_counts_table_all[["feature", "domain"]].replace({"_": " "}, regex = True)
         feature_counts_table_all_grouped = feature_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
         feature_counts_table_all_grouped.columns = ["count"]
         feature_counts_table_all_grouped = feature_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
@@ -568,7 +573,8 @@ def main():
         feature_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         feature_table_plt = offline.plot(feature_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         all_samples_feature = annotation_summary.loc[annotation_summary["feature"].replace("", np.nan).isnull() == False , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
-        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
+        all_samples_feature[["feature", "domain"]] = all_samples_feature[["feature", "domain"]].replace({"_": " "}, regex = True)
         all_samples_feature["order"] = all_samples_feature["description"].apply(lambda x: product_order.index(x))
         all_samples_feature.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_feature_table = go.Figure(data=[go.Table(
@@ -682,7 +688,8 @@ def main():
         furin_table.update_layout({"paper_bgcolor":'rgba(0,0,0,0)', "margin" : dict(r=5, l=5, t=5, b=5)})
         furin_table_plt = offline.plot(furin_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         all_samples_furin = all_samples_feature[(all_samples_feature["description"] == "surface glycoprotein") & (all_samples_feature["respos"] >= 680) & (all_samples_feature["respos"] <= 690)].copy()
-        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
+        all_samples_furin[["feature", "domain"]] = all_samples_furin[["feature", "domain"]].replace({"_": " "}, regex = True)
         all_samples_furin["order"] = all_samples_furin["description"].apply(lambda x: product_order.index(x))
         all_samples_furin.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_furin_table = go.Figure(data=[go.Table(
@@ -744,7 +751,8 @@ def main():
     #making an NTD supersite loops specific table
     if len(annotation_summary.loc[annotation_summary["domain"] == "NTD"]) != 0:
         ntd_counts_table_all = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["description", "residues", "respos", "domain", "feature"]].copy()
-        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
+        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({"_" : " "}, regex = True)
         ntd_counts_table_all_grouped = ntd_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
         ntd_counts_table_all_grouped.columns = ["count"]
         ntd_counts_table_all_grouped = ntd_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
@@ -805,7 +813,8 @@ def main():
         ntd_table_plt = offline.plot(ntd_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         
         all_samples_ntd = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
-        all_samples_ntd[["feature", "domain"]] = all_samples_ntd[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        all_samples_ntd[["feature", "domain"]] = all_samples_ntd[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
+        all_samples_ntd[["feature", "domain"]] = all_samples_ntd[["feature", "domain"]].replace({"_": " "}, regex = True)
         all_samples_ntd["order"] = all_samples_ntd["description"].apply(lambda x: product_order.index(x))
         all_samples_ntd.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_ntd_table = go.Figure(data=[go.Table(
@@ -1421,7 +1430,15 @@ def main():
     anno_merge = pd.merge(respos_df, annotation_summary, left_on = ["product", "residue-position"], right_on = ["description", "respos"], how = "left")
     anno_merge = pd.merge(anno_merge, lineages[["taxon", "lineage"]], left_on = "sample_id", right_on = "taxon", how = "left")
     anno_merge.set_index("residues")
-    anno_merge["text_var"] = anno_merge["sample_id"] + "(" + anno_merge["lineage"] + "): " + anno_merge["residues"]
+    if np.unique(anno_merge.loc[anno_merge["lineage"].isna() == False, "lineage"]) == "":
+        anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
+        anno_merge["lineage_sample"] = anno_merge["sample_id"]
+    else:
+        anno_merge["text_var"] = anno_merge["sample_id"] + "(" + anno_merge["lineage"] + "): " + anno_merge["residues"]
+        anno_merge["lineage_sample"] = anno_merge["lineage"] + anno_merge["sample_id"]
+
+    lineage_categories = anno_merge.loc[anno_merge["lineage_sample"].isna() == False, "lineage_sample"].to_list()
+    lineage_categories = sorted(lineage_categories)
     displayed_scores = []
     if anno_merge[scores_cols].isna().all().all() == False:
         heatmap = go.Figure()
@@ -1438,7 +1455,7 @@ def main():
                     heatmap.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 14) & (anno_merge["respos"] <= 913),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : heatmap_text,
                             'texttemplate' : "%{text}",
@@ -1453,7 +1470,7 @@ def main():
                     heatmap_all.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 14) & (anno_merge["residue-position"] <= 913),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : heatmap_all_text,
                             'texttemplate' : "%{text}",
@@ -1469,7 +1486,7 @@ def main():
                     heatmap.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                             "colorscale" : "plasma", 
@@ -1480,7 +1497,7 @@ def main():
                     heatmap_all.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                             "colorscale" : "plasma",
@@ -1492,7 +1509,7 @@ def main():
                     heatmap.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
@@ -1507,7 +1524,7 @@ def main():
                     heatmap_all.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
@@ -1523,7 +1540,7 @@ def main():
                     heatmap.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
@@ -1535,7 +1552,7 @@ def main():
                     heatmap_all.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
@@ -1548,7 +1565,7 @@ def main():
                     heatmap.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
@@ -1563,7 +1580,7 @@ def main():
                     heatmap_all.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
-                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"sample_id"].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"lineage_sample"].astype("category").values.tolist(),
                             'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
                             'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
                             'texttemplate' : "%{text}",
@@ -1591,8 +1608,10 @@ def main():
             "xaxis" : {"title": "Sample" , "showticklabels" : False, "showgrid" : False},
             "yaxis" : {"title": "Residue Position" ,"tickformat": '.0f', "showgrid" : False}}
         heatmap.update_layout(layout)
-
         heatmap_all.update_layout(layout)
+        heatmap.update_xaxes(type="category")
+        heatmap.update_xaxes(categoryorder='array', categoryarray= lineage_categories)
+        #heatmap_all.update_yaxes(categoryorder="category ascending")
         
         trace_list = [True] * len(displayed_scores)
         count = 0
@@ -1813,7 +1832,7 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 1.0.2 </p>
+                            <p> SPEAR Version 1.0.4 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
