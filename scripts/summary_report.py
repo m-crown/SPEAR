@@ -749,7 +749,7 @@ def main():
     if len(annotation_summary.loc[annotation_summary["domain"] == "NTD"]) != 0:
         ntd_counts_table_all = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["description", "residues", "respos", "domain", "feature"]].copy()
         ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
-        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({"_" : " ", np.nan : ""}, regex = True)
+        ntd_counts_table_all[["feature", "domain"]] = ntd_counts_table_all[["feature", "domain"]].replace({"_" : " "}, regex = True)
         ntd_counts_table_all_grouped = ntd_counts_table_all.groupby(["description", "domain", "residues", "respos", "feature"])[["feature"]].count()
         ntd_counts_table_all_grouped.columns = ["count"]
         ntd_counts_table_all_grouped = ntd_counts_table_all_grouped.sort_values("count", axis = 0, ascending = False)
@@ -810,7 +810,8 @@ def main():
         ntd_table_plt = offline.plot(ntd_table,output_type='div', include_plotlyjs = False, config = {'displaylogo': False})
         
         all_samples_ntd = annotation_summary.loc[annotation_summary["domain"] == "NTD" , ["sample_id", "description", "residues", "respos", "domain", "feature"]].copy()
-        all_samples_ntd[["feature", "domain"]] = all_samples_ntd[["feature", "domain"]].replace({"_": " ", " " : ",", np.nan : ""}, regex = True)
+        all_samples_ntd[["feature", "domain"]] = all_samples_ntd[["feature", "domain"]].replace({" " : ",", np.nan : ""}, regex = True)
+        all_samples_ntd[["feature", "domain"]] = all_samples_ntd[["feature", "domain"]].replace({"_": " "}, regex = True)
         all_samples_ntd["order"] = all_samples_ntd["description"].apply(lambda x: product_order.index(x))
         all_samples_ntd.sort_values(by = ["sample_id", "order", "respos"], inplace = True)
         all_samples_ntd_table = go.Figure(data=[go.Table(
