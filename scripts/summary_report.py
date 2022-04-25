@@ -168,9 +168,12 @@ def main():
     try:
         lineages = pd.read_csv(f'{args.pangolin_report}', sep = ",")
         run_pangolin = True
+        if len(lineages) == 0:
+            lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : "NA"}) 
     except pd.errors.EmptyDataError:
         lineages = pd.DataFrame(data = {"taxon" : scores_summary["sample_id"], "lineage" : "NA"})
-        run_pangolin = False 
+        run_pangolin = False
+
     with open(f'{args.pangolin_command}') as file:
         pangolin_command = [line.rstrip() for line in file]
     pangolin_params = pangolin_command[0]
@@ -1424,7 +1427,8 @@ def main():
     anno_merge.set_index("residues")
     anno_merge["text_var"] = anno_merge["sample_id"] + "(" + anno_merge["lineage"] + "): " + anno_merge["residues"]
     anno_merge["lineage_sample"] = anno_merge["lineage"] + anno_merge["sample_id"]
-    #anno_merge.sort_values(by  = ["lineage_sample"], inplace = True)
+    lineage_categories = anno_merge.loc[anno_merge["lineage_sample"].isna() == False, "lineage_sample"].to_list()
+    lineage_categories = sorted(lineage_categories)
     displayed_scores = []
     if anno_merge[scores_cols].isna().all().all() == False:
         heatmap = go.Figure()
@@ -1596,7 +1600,7 @@ def main():
         heatmap.update_layout(layout)
         heatmap_all.update_layout(layout)
         heatmap.update_xaxes(type="category")
-        heatmap.update_xaxes(categoryorder="category ascending")
+        heatmap.update_xaxes(categoryorder='array', categoryarray= lineage_categories)
         #heatmap_all.update_yaxes(categoryorder="category ascending")
         
         trace_list = [True] * len(displayed_scores)
