@@ -1430,7 +1430,7 @@ def main():
     anno_merge = pd.merge(respos_df, annotation_summary, left_on = ["product", "residue-position"], right_on = ["description", "respos"], how = "left")
     anno_merge = pd.merge(anno_merge, lineages[["taxon", "lineage"]], left_on = "sample_id", right_on = "taxon", how = "left")
     anno_merge.set_index("residues")
-    if np.unique(anno_merge.loc[anno_merge["lineage"].isna() == False, "lineage"]) == "":
+    if anno_merge.loc[anno_merge["lineage"].isna() == False, "lineage"].isin(["", np.nan]).all():
         anno_merge["text_var"] = anno_merge["sample_id"] + ": " + anno_merge["residues"]
         anno_merge["lineage_sample"] = anno_merge["sample_id"]
     else:
