@@ -2,13 +2,15 @@ if config["report"] == False:
    rule all:
       input: 
          annotation = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
-         lineages = config["output_dir"] + "/lineage_report.csv"
+         lineages = config["output_dir"] + "/lineage_report.csv",
+         qc = config["output_dir"] + "/qc.csv",
 else:
    rule all:
       input:
          samples = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
          report = config["output_dir"] + "/report/report.html",
-         lineages = config["output_dir"] + "/lineage_report.csv"
+         lineages = config["output_dir"] + "/lineage_report.csv",
+         qc = config["output_dir"] + "/qc.csv"
 
 rule produce_report:
    input:

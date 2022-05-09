@@ -1,12 +1,14 @@
 if config["report"] == False:
    rule all:
       input: 
-         expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
+         expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
+         qc = config["output_dir"] + "/qc.csv"
 else:
    rule all:
       input: 
          samples = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
-         report = config["output_dir"] + "/report/report.html"
+         report = config["output_dir"] + "/report/report.html",
+         qc = config["output_dir"] + "/qc.csv"
 
 rule produce_report:
    input:
