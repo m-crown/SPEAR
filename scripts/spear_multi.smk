@@ -1,16 +1,21 @@
+if config["vcf"] == False:
+    qc_file = config["output_dir"] + "/qc.csv"
+else:
+    qc_file = config["output_dir"] + "/spear_score_summary.tsv"
+
 if config["report"] == False:
    rule all:
       input: 
          annotation = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
          lineages = config["output_dir"] + "/lineage_report.csv",
-         qc = config["output_dir"] + "/qc.csv",
+         qc = qc_file,
 else:
    rule all:
       input:
          samples = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
          report = config["output_dir"] + "/report/report.html",
          lineages = config["output_dir"] + "/lineage_report.csv",
-         qc = config["output_dir"] + "/qc.csv"
+         qc = qc_file
 
 rule produce_report:
    input:
@@ -133,28 +138,17 @@ rule merge_qc:
    shell:
       '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  cat {input} >> {config[output_dir]}/qc.csv'''
 
-if (config["align"]) & (config["aligner"] == "minimap2"):
-   rule get_indels:
-      input:
-         vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
-         aln = config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
-      output:
-         snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
-         sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
-      log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
-      shell:
-         "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.aln} NC_045512.2 {output.snps_indels} 2> {log}"
-else:
-   rule get_indels:
-      input:
-         vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
-         aln = config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
-      output:
-         snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
-         sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
-      log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
-      shell:
-         "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.aln} NC_045512.2 {output.snps_indels} 2> {log}"
+
+rule get_indels:
+   input:
+      vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
+      aln = config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+   output:
+      snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
+      sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
+   log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
+   shell:
+      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.aln} NC_045512.2 {output.snps_indels} 2> {log}"
 
 rule get_snps:
    input:

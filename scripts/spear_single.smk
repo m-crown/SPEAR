@@ -1,3 +1,8 @@
+if config["vcf"] == False:
+    qc_file = config["output_dir"] + "/qc.csv"
+else:
+    qc_file = config["output_dir"] + "/spear_score_summary.tsv"
+
 if config["report"] == False:
    rule all:
       input: 
