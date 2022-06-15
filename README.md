@@ -12,6 +12,12 @@ SPEAR is capable of running on single or multiple input files and accepts a rang
 
 The SPEAR scoring system identifies both the potential immune escape and reduced ACE2 binding consequences of variants in the Omicron RBD, as well as highlighting the potential increased stability of the open conformation of the Spike protein within Omicron, a more in-depth discussion of these matters can be found in our [preprint](https://doi.org/10.1101/2021.12.14.472622) Teruel _et al_[1].
 
+## Citation
+
+SPEAR is now published in *Bionformatics*, if you use SPEAR in your work please cite our paper:
+
+Crown M, Teruel N, Najmanovich R, Basthon M. SPEAR: Systematic ProtEin AnnotatoR *Bioinformatics*, btac391, [https://doi.org/10.1093/bioinformatics/btac391](https://doi.org/10.1093/bioinformatics/btac391)
+
 ## Installation
 
 Clone this repo: 
