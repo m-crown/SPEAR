@@ -1,14 +1,18 @@
 if config["vcf"] == False:
-    qc_file = config["output_dir"] + "/qc.csv"
+   qc_file = config["output_dir"] + "/qc.csv"
+   vcf_loc = config["output_dir"] + "/intermediate_output/indels/"
+   vcf_ext = ".indels.vcf"
 else:
-    qc_file = config["output_dir"] + "/spear_score_summary.tsv"
+   qc_file = config["output_dir"] + "/spear_score_summary.tsv"
+   vcf_loc = config["input_dir"]
+   vcf_ext = config["extension"]
 
 if config["report"] == False:
    rule all:
       input: 
          annotation = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
          lineages = config["output_dir"] + "/lineage_report.csv",
-         qc = qc_file,
+         qc = qc_file
 else:
    rule all:
       input:
@@ -38,7 +42,7 @@ rule summarise_vcfs:
       config["output_dir"] + "/spear_score_summary.tsv"
    log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
    shell:
-      """for i in $(grep -lP '^NC_045512\.2' {config[output_dir]}/final_vcfs/*.spear.vcf); do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {config[output_dir]}/all_samples.spear.vcf {config[samples]} 2> {log}"""
+      """echo "{config[samples]}" > {config[output_dir]}/intermediate_output/sample_list.txt ; for i in $(grep -lP '^NC_045512\.2' {config[output_dir]}/final_vcfs/*.spear.vcf); do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {config[output_dir]}/all_samples.spear.vcf {config[output_dir]}/intermediate_output/sample_list.txt 2> {log}"""
 
 if config["pangolin"] != "none":
    rule pangolin:
@@ -122,12 +126,12 @@ rule mark_problem_sites:
 
 rule merge_vcfs:
    input:
-      expand(config["input_dir"] + "/{id}" + config["extension"], id=config["samples"]) if config["vcf"] else expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf", id=config["samples"])
+      expand(vcf_loc + "/{id}" + vcf_ext, id=config["samples"])
    output:
       config["output_dir"] + "/intermediate_output/merged.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/merge/merge.log"
    shell:
-      "bcftools merge --no-index -m none -o {output} {input} 2> {log}"
+      '''find {vcf_loc} -type f -name "*{vcf_ext}" > {config[output_dir]}/intermediate_output/merge_list.txt ; bcftools merge --no-index -m none -o {output} -l {config[output_dir]}/intermediate_output/merge_list.txt 2> {log}'''
 
 rule merge_qc:
    input:
@@ -136,7 +140,7 @@ rule merge_qc:
       qc_file = config["output_dir"] + "/qc.csv"
    log: config["output_dir"] + "/intermediate_output/logs/qc/qc.log"
    shell:
-      '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  cat {input} >> {config[output_dir]}/qc.csv'''
+      '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  find {config[output_dir]}/intermediate_output/indels/ -type f -name "*.nperc.csv" -exec cat {{}} + > {config[output_dir]}/qc.csv'''
 
 
 rule get_indels:
