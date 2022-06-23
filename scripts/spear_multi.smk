@@ -126,7 +126,7 @@ rule mark_problem_sites:
 
 rule merge_vcfs:
    input:
-      expand(vcf_loc + "/{id}" + vcf_ext, id=config["samples"])
+      expand(vcf_loc + "{id}" + vcf_ext, id=config["samples"])
    output:
       config["output_dir"] + "/intermediate_output/merged.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/merge/merge.log"
