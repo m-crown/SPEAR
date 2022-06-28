@@ -153,7 +153,6 @@ def main():
     args = parser.parse_args()
 
     seed(42069)
-    
     Path(f'{args.output_dir}/images').mkdir(parents=True, exist_ok=True)
     Path(f'{args.output_dir}/plots/plotly').mkdir(parents=True, exist_ok=True)
     Path(f'{args.output_dir}/plots/product_plots').mkdir(parents=True, exist_ok=True)
