@@ -41,8 +41,9 @@ rule summarise_vcfs:
       config["output_dir"] + "/spear_annotation_summary.tsv",
       config["output_dir"] + "/spear_score_summary.tsv"
    log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
+   threads: workflow.cores
    shell:
-      """echo "{config[samples]}" > {config[output_dir]}/intermediate_output/sample_list.txt ; for i in $(find {config[output_dir]}/final_vcfs/ -type f -exec grep -lP '^NC_045512\.2' {{}} \;) ; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {config[output_dir]}/all_samples.spear.vcf {config[output_dir]}/intermediate_output/sample_list.txt 2> {log} """
+      """echo "{config[samples]}" > {config[output_dir]}/intermediate_output/sample_list.txt ; for i in $(find {config[output_dir]}/final_vcfs/ -type f -exec grep -lP '^NC_045512\.2' {{}} \;) ; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --threads {threads} --is_vcf_input {config[vcf]} --is_filtered {config[filter]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {config[output_dir]}/all_samples.spear.vcf {config[output_dir]}/intermediate_output/sample_list.txt 2> {log} """
 
 if config["pangolin"] != "none":
    rule pangolin:

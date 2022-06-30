@@ -13,6 +13,8 @@ import re
 from functools import reduce
 from bindingcalculator import BindingCalculator
 from itertools import takewhile
+from joblib import Parallel, delayed
+import multiprocessing
 
 def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
     if option == "res_ret_esc":
@@ -75,6 +77,37 @@ def sample_header_format(item,sample,vcf,filtered,vcf_loc):
     
     return(item)
 
+def write_sample_vcf(arguments_tuple):
+    #arguements are passed as tuple in following order:
+    sample = arguments_tuple[0]
+    merged_header = arguments_tuple[1]
+    output_dir = arguments_tuple[2]
+    final_vcf = arguments_tuple[3]
+    is_vcf_input = arguments_tuple[4]
+    is_filtered = arguments_tuple[5]
+    infiles = arguments_tuple[6]
+    
+    sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, is_vcf_input, is_filtered, infiles))
+    np.savetxt(f'{output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
+    if sample in final_vcf["sample_id"].values:
+        sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
+        sample_vcf["sample_id"] = "NC_045512.2"
+        sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
+        #append to header created above
+        sample_vcf.to_csv(f'{output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
+
+def write_sample_tsv(arguments_tuple):
+    sample = arguments_tuple[0]
+    in_file = arguments_tuple[1]
+    output_dir = arguments_tuple[2]
+
+    if sample in in_file["sample_id"].values:
+        sample_summary = in_file.loc[in_file["sample_id"] == sample].copy()
+        sample_summary.to_csv(f'{output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
+    else:
+        Path(f'{output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
+
+
 
 def main():
     parser = argparse.ArgumentParser(description='')
@@ -92,6 +125,8 @@ def main():
         help = "Set input file type to VCF")
     parser.add_argument('--is_filtered', default="False", type=str,
         help = "Specify files come from filtered directory")
+    parser.add_argument('--threads', default = 1, type = int,
+        help = "Number of threads to use")
 
     args = parser.parse_args()
     Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
@@ -187,27 +222,38 @@ def main():
         original_cols = [col for col in original_cols if col not in infocols]
         final_vcf = final_vcf[original_cols]
 
-        for sample in sample_list:
-            sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, args.is_vcf_input, args.is_filtered, infiles))
-            np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
-            if sample in final_vcf["sample_id"].values:
-                sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
-                sample_vcf["sample_id"] = "NC_045512.2"
-                sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
-                #append to header created above
-                sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
-            
-
         cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
         input_file = input_file[cols]
         input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
         input_file[[col for col in input_file.columns if col not in ["refres", "altres", "respos"]]].to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = "\t", index = False)
-        for sample in sample_list:
-            if sample in input_file["sample_id"].values:
-                sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
-                sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
-            else:
-                Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
+        
+        num_cores = multiprocessing.cpu_count()
+
+        #with Parallel(n_jobs=num_cores) as parallel:
+        params = [merged_header, args.output_dir, final_vcf, args.is_vcf_input, args.is_filtered, infiles]
+        sample_vcf_params = [([sample] + params) for sample in sample_list]
+        Parallel(n_jobs=num_cores)(delayed(write_sample_vcf)(sample_param) for sample_param in sample_vcf_params)      
+
+        # for sample in sample_list:
+        #     sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, args.is_vcf_input, args.is_filtered, infiles))
+        #     np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
+        #     if sample in final_vcf["sample_id"].values:
+        #         sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
+        #         sample_vcf["sample_id"] = "NC_045512.2"
+        #         sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
+        #         #append to header created above
+        #         sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
+
+        params = [input_file, args.output_dir]
+        sample_tsv_params = [([sample] + params) for sample in sample_list]
+        Parallel(n_jobs=num_cores)(delayed(write_sample_tsv)(sample_param) for sample_param in sample_tsv_params)
+
+        # for sample in sample_list:
+        #     if sample in input_file["sample_id"].values:
+        #         sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
+        #         sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
+        #     else:
+        #         Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
 
         #now getting summary scores 
         #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
@@ -277,7 +323,7 @@ def main():
         barns = summary[["sample_id", "description","barns_class"]].copy()
 
         if barns["barns_class"].isin([""]).all():
-            barns_counts_grouped = barns["sample_id"]
+            barns_counts_grouped = pd.DataFrame(data = {"sample_id" : barns["sample_id"].unique()})
             barns_counts_grouped["barns_class_variants"] = ""
         else: 
             barns["barns_class"] = barns["barns_class"].str.split(",")
