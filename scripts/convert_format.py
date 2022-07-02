@@ -14,10 +14,10 @@ from functools import reduce
 from bindingcalculator import BindingCalculator
 from itertools import takewhile
 
-def get_contextual_bindingcalc_values(residues_list,binding_calculator, option, bindingcalc_data = None):
+def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
     if option == "res_ret_esc":
         residues_df = residues_list.copy()
-        res_ret_esc_df = binding_calculator.escape_per_site(residues_df.loc[(residues_df["Gene_Name"] == "S") & (residues_df["respos"] >= 331) & (residues_df["respos"] <= 531) & (residues_df["respos"].isin(bindingcalc_data["site"].unique())), "respos"])
+        res_ret_esc_df = binding_calculator.escape_per_site(residues_df.loc[(residues_df["Gene_Name"] == "S") & (residues_df["respos"] >= 331) & (residues_df["respos"] <= 531) & (residues_df["respos"].isin(binding_calculator.sites)), "respos"])
         res_ret_esc_df["Gene_Name"] = "S"
         res_ret_esc_df.rename(columns = {"retained_escape" : "BEC_RES"}, inplace = True)
         residues_df = residues_df.merge(res_ret_esc_df[["site", "BEC_RES", "Gene_Name"]], left_on = ["Gene_Name", "respos"], right_on = ["Gene_Name", "site"],how = "left")
@@ -86,7 +86,7 @@ def main():
         help='Data dir for binding calculator data files')
     parser.add_argument('input_header', metavar='merged.vcf', type=str,
         help='Merged VCF file for header retrieval')
-    parser.add_argument('sample_list', metavar='', nargs="+",
+    parser.add_argument('sample_list', metavar='', type=str,
         help='list of inputs to detect no variant samples ')    
     parser.add_argument('--is_vcf_input', default="False", type=str,
         help = "Set input file type to VCF")
@@ -94,7 +94,6 @@ def main():
         help = "Specify files come from filtered directory")
 
     args = parser.parse_args()
-
     Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
     if args.is_vcf_input == True:
         if args.is_filtered:
@@ -113,6 +112,10 @@ def main():
 
     merged_header = merged_header[~merged_header.str.startswith('#CHROM')]
     input_file = pd.read_csv(args.input_vcf, sep = "\t", names = ["sample_id", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "end"])
+    
+    with open(args.sample_list, 'r') as samples:
+        sample_list = samples.read().replace('\n', '').split(" ")
+
     if len(input_file) > 0:
         input_file[["AN", "AC", "problem_exc", "problem_filter", "ANN", "SUM", "SPEAR"]] = input_file["INFO"].str.split(';',expand=True)
         original_cols = input_file.columns.tolist()
@@ -147,9 +150,8 @@ def main():
         input_file.loc[input_file["Annotation"] == "synonymous_variant", "variant"] = input_file.loc[input_file["Annotation"] == "synonymous_variant", "HGVS.c"]
 
         bindingcalc = BindingCalculator(csv_or_url = f'{args.data_dir}/escape_calculator_data.csv')
-        bindingcalc_data = pd.read_csv(f'{args.data_dir}/escape_calculator_data.csv')
 
-        rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531) & (input_file["refres"] != input_file["altres"]) & (input_file["respos"].isin(bindingcalc_data["site"].unique()))]
+        rbd_residues = input_file.loc[(input_file["Gene_Name"] == "S") & (input_file["respos"] >= 331) & (input_file["respos"] <= 531) & (input_file["refres"] != input_file["altres"]) & (input_file["respos"].isin(bindingcalc.sites))]
         input_file.drop(axis = 1, columns = ["BEC_RES"], inplace = True) #drop the old non contextual BEC RES scores 
         if len(rbd_residues) > 0:
             sample_ef = rbd_residues.copy().groupby("sample_id").agg({"respos" : lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "escape_fraction")}).reset_index()
@@ -157,7 +159,7 @@ def main():
             input_file = input_file.merge(sample_ef, on = "sample_id", how = "left")
             input_file.loc[(input_file["Gene_Name"] != "S") | ((input_file["Gene_Name"] == "S") & ((input_file["respos"] < 331) | (input_file["respos"] > 531))), "BEC_EF_sample"] = ""
 
-            input_file = input_file.groupby("sample_id", as_index = False).apply(lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "res_ret_esc", bindingcalc_data)).reset_index()
+            input_file = input_file.groupby("sample_id", as_index = False).apply(lambda x : get_contextual_bindingcalc_values(x, bindingcalc, "res_ret_esc")).reset_index()
             input_file.loc[input_file["refres"] == input_file["altres"], "BEC_RES"] = ""
         else:
             input_file["BEC_EF_sample"] = ""
@@ -185,7 +187,7 @@ def main():
         original_cols = [col for col in original_cols if col not in infocols]
         final_vcf = final_vcf[original_cols]
 
-        for sample in args.sample_list:
+        for sample in sample_list:
             sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, args.is_vcf_input, args.is_filtered, infiles))
             np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
             if sample in final_vcf["sample_id"].values:
@@ -200,7 +202,7 @@ def main():
         input_file = input_file[cols]
         input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
         input_file[[col for col in input_file.columns if col not in ["refres", "altres", "respos"]]].to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = "\t", index = False)
-        for sample in args.sample_list:
+        for sample in sample_list:
             if sample in input_file["sample_id"].values:
                 sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
                 sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
@@ -263,9 +265,11 @@ def main():
         contacts_counts = contacts[["sample_id", "description", "contact_type", "contact"]].groupby(["sample_id","description", "contact"]).count().reset_index()
 
         ace2_contacts_score = contacts_scores.loc[contacts_scores["contact"]=="ACE2",["sample_id", "contact", "score"]].groupby(["sample_id", "contact"]).sum().astype("int")
-        ace2_contacts_score.columns = ["ACE2_contact_score"]
+        if len(ace2_contacts_score) > 0: 
+            ace2_contacts_score.columns = ["ACE2_contact_score"]
         trimer_contacts_score = contacts_scores.loc[contacts_scores["contact"]=="trimer",["sample_id", "contact", "score"]].groupby(["sample_id", "contact"]).sum().astype("int")
-        trimer_contacts_score.columns = ["trimer_contact_score"]
+        if len(trimer_contacts_score) > 0:
+            trimer_contacts_score.columns = ["trimer_contact_score"]
 
         ace2_contacts_sum = contacts_counts.loc[contacts_counts["contact"]=="ACE2",["sample_id", "contact_type"]]
         ace2_contacts_sum.columns = ["sample_id", "ACE2_contact_counts"]
@@ -275,7 +279,7 @@ def main():
         barns = summary[["sample_id", "description","barns_class"]].copy()
 
         if barns["barns_class"].isin([""]).all():
-            barns_counts_grouped = barns["sample_id"]
+            barns_counts_grouped = pd.DataFrame(data = {"sample_id" : barns["sample_id"]})
             barns_counts_grouped["barns_class_variants"] = ""
         else: 
             barns["barns_class"] = barns["barns_class"].str.split(",")
@@ -309,9 +313,10 @@ def main():
         scores_df.rename(columns={'mAb_escape_sum':'mAb_escape_all_classes_sum', 'mAb_escape_min':'mAb_escape_all_classes_min', 'mAb_escape_max':'mAb_escape_all_classes_max', 'cm_mAb_escape_sum':'cm_mAb_escape_all_classes_sum', 'cm_mAb_escape_min':'cm_mAb_escape_all_classes_min', 'cm_mAb_escape_max':'cm_mAb_escape_all_classes_max'}, inplace=True)
         scores_df.to_csv(f'{args.output_dir}/spear_score_summary.tsv' , sep = "\t", index = False)
     else:
-        for sample in args.sample_list:
+        for sample in sample_list:
             Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty
         Path(f'{args.output_dir}/spear_score_summary.tsv').touch()
         Path(f'{args.output_dir}/spear_annotation_summary.tsv').touch()
+
 if __name__ == "__main__":
     main()

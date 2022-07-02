@@ -204,7 +204,6 @@ def main():
   parser.add_argument('data_dir', metavar='path/to/data/', type = str,
       help ='Data files for peptide subpositions')
   args = parser.parse_args()
-
   respos_df = pd.read_pickle(f'{args.data_dir}/respos.pkl')
   header, vcf, infocols = parse_vcf(args.vcf)
   if "problem_exc" not in infocols:
