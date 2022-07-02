@@ -265,9 +265,11 @@ def main():
         contacts_counts = contacts[["sample_id", "description", "contact_type", "contact"]].groupby(["sample_id","description", "contact"]).count().reset_index()
 
         ace2_contacts_score = contacts_scores.loc[contacts_scores["contact"]=="ACE2",["sample_id", "contact", "score"]].groupby(["sample_id", "contact"]).sum().astype("int")
-        ace2_contacts_score.columns = ["ACE2_contact_score"]
+        if len(ace2_contacts_score) > 0: 
+            ace2_contacts_score.columns = ["ACE2_contact_score"]
         trimer_contacts_score = contacts_scores.loc[contacts_scores["contact"]=="trimer",["sample_id", "contact", "score"]].groupby(["sample_id", "contact"]).sum().astype("int")
-        trimer_contacts_score.columns = ["trimer_contact_score"]
+        if len(trimer_contacts_score) > 0:
+            trimer_contacts_score.columns = ["trimer_contact_score"]
 
         ace2_contacts_sum = contacts_counts.loc[contacts_counts["contact"]=="ACE2",["sample_id", "contact_type"]]
         ace2_contacts_sum.columns = ["sample_id", "ACE2_contact_counts"]
