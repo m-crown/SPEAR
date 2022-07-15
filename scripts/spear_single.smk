@@ -3,15 +3,20 @@ if config["vcf"] == False:
 else:
     qc_file = config["output_dir"] + "/spear_score_summary.tsv"
 
+if config["per_sample_outputs"] == "True":
+   output = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
+else:
+   output = config["output_dir"] + "spear_annotation_summary.tsv"
+
 if config["report"] == False:
    rule all:
       input: 
-         expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
+         outputs = output, 
          qc = config["output_dir"] + "/qc.csv"
 else:
    rule all:
       input: 
-         samples = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
+         outputs = output,
          report = config["output_dir"] + "/report/report.html",
          qc = config["output_dir"] + "/qc.csv"
 
@@ -36,7 +41,7 @@ rule summarise_vcfs:
       config["output_dir"] + "/spear_score_summary.tsv",
    log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
    shell:
-      """for i in $(grep -lP '^NC_045512\.2' {config[output_dir]}/final_vcfs/*.spear.vcf); do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {input} {config[samples]} 2> {log}"""
+      """for i in $(grep -lP '^NC_045512\.2' {config[output_dir]}/final_vcfs/*.spear.vcf); do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} --per_sample_outputs {config[per_sample_outputs]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {input} {config[samples]} 2> {log}"""
 
 if config["pangolin"] != "none":
    rule pangolin:
