@@ -4,7 +4,7 @@ if config["vcf"] == False:
    vcf_ext = ".indels.vcf"
 else:
    qc_file = config["output_dir"] + "/spear_score_summary.tsv"
-   vcf_loc = config["input_dir"]
+   vcf_loc = config["input_dir"] + "/"
    vcf_ext = config["extension"]
 
 if config["report"] == False:
