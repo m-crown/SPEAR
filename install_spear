@@ -1,4 +1,5 @@
-#!/usr/bin/env -S bash -eu
+#!/usr/bin/env bash
+set -eu
 # Matt Bashton 2021
 # Install required dependencies for SPEAR
 tput bold
