@@ -279,7 +279,7 @@ def main():
         barns = summary[["sample_id", "description","barns_class"]].copy()
 
         if barns["barns_class"].isin([""]).all():
-            barns_counts_grouped = pd.DataFrame(data = {"sample_id" : barns["sample_id"]})
+            barns_counts_grouped = pd.DataFrame(data = {"sample_id" : barns["sample_id"].unique()})
             barns_counts_grouped["barns_class_variants"] = ""
         else: 
             barns["barns_class"] = barns["barns_class"].str.split(",")
