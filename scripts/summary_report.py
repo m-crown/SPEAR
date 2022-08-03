@@ -1833,7 +1833,7 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 1.0.9 </p>
+                            <p> SPEAR Version 1.0.10 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
