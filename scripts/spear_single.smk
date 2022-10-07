@@ -3,15 +3,20 @@ if config["vcf"] == False:
 else:
     qc_file = config["output_dir"] + "/spear_score_summary.tsv"
 
+if config["per_sample_outputs"] == "True":
+   output = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
+else:
+   output = config["output_dir"] + "spear_annotation_summary.tsv"
+
 if config["report"] == False:
    rule all:
       input: 
-         expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
+         outputs = output, 
          qc = config["output_dir"] + "/qc.csv"
 else:
    rule all:
       input: 
-         samples = expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]),
+         outputs = output,
          report = config["output_dir"] + "/report/report.html",
          qc = config["output_dir"] + "/qc.csv"
 

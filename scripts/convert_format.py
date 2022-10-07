@@ -13,6 +13,7 @@ import re
 from functools import reduce
 from bindingcalculator import BindingCalculator
 from itertools import takewhile
+from shutil import rmtree
 
 def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
     if option == "res_ret_esc":
@@ -92,9 +93,12 @@ def main():
         help = "Set input file type to VCF")
     parser.add_argument('--is_filtered', default="False", type=str,
         help = "Specify files come from filtered directory")
+    parser.add_argument('--per_sample_outputs', default = "False", type= str,
+      help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
 
     args = parser.parse_args()
-    Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
+    if args.per_sample_outputs == "True":
+        Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
     if args.is_vcf_input == True:
         if args.is_filtered:
             infiles = f'{args.output_dir}/intermediate_output/masked/*.masked.vcf'
@@ -186,28 +190,30 @@ def main():
         final_vcf.drop(infocols, axis = 1, inplace = True)
         original_cols = [col for col in original_cols if col not in infocols]
         final_vcf = final_vcf[original_cols]
-
-        for sample in sample_list:
-            sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, args.is_vcf_input, args.is_filtered, infiles))
-            np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
-            if sample in final_vcf["sample_id"].values:
-                sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
-                sample_vcf["sample_id"] = "NC_045512.2"
-                sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
-                #append to header created above
-                sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
-            
+        if args.per_sample_outputs == "True":
+            for sample in sample_list:
+                sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, args.is_vcf_input, args.is_filtered, infiles))
+                np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
+                if sample in final_vcf["sample_id"].values:
+                    sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
+                    sample_vcf["sample_id"] = "NC_045512.2"
+                    sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
+                    #append to header created above
+                    sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
+        else:
+            rmtree(f'{args.output_dir}/final_vcfs/')        
 
         cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
         input_file = input_file[cols]
         input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
         input_file[[col for col in input_file.columns if col not in ["refres", "altres", "respos"]]].to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = "\t", index = False)
-        for sample in sample_list:
-            if sample in input_file["sample_id"].values:
-                sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
-                sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
-            else:
-                Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
+        if args.per_sample_outputs == "True":
+            for sample in sample_list:
+                if sample in input_file["sample_id"].values:
+                    sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
+                    sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
+                else:
+                    Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
 
         #now getting summary scores 
         #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
@@ -313,8 +319,9 @@ def main():
         scores_df.rename(columns={'mAb_escape_sum':'mAb_escape_all_classes_sum', 'mAb_escape_min':'mAb_escape_all_classes_min', 'mAb_escape_max':'mAb_escape_all_classes_max', 'cm_mAb_escape_sum':'cm_mAb_escape_all_classes_sum', 'cm_mAb_escape_min':'cm_mAb_escape_all_classes_min', 'cm_mAb_escape_max':'cm_mAb_escape_all_classes_max'}, inplace=True)
         scores_df.to_csv(f'{args.output_dir}/spear_score_summary.tsv' , sep = "\t", index = False)
     else:
-        for sample in sample_list:
-            Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty
+        if args.per_sample_outputs == "True":
+            for sample in sample_list:
+                Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty
         Path(f'{args.output_dir}/spear_score_summary.tsv').touch()
         Path(f'{args.output_dir}/spear_annotation_summary.tsv').touch()
 
