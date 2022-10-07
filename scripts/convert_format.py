@@ -227,7 +227,7 @@ def main():
         if region_counts["region"].isin([""]).all():
             region_counts["region_residues"] = ""
         else:
-            region_counts = region_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "region"])
+            region_counts = region_counts.groupby("sample_id", as_index = False).value_counts(["description", "region"]).reset_index()
             region_counts["region_residues"] = region_counts["description"] + ":" + region_counts["region"] + ":" + region_counts["count"].astype(str)
             region_counts = region_counts[["sample_id" ,"region_residues"]].groupby("sample_id").agg({"region_residues" : lambda x : list(x)})
             region_counts["region_residues"] = region_counts["region_residues"].str.join(",")
@@ -237,7 +237,7 @@ def main():
         if domain_counts["domain"].isin([""]).all():
             domain_counts["domain_residues"] = ""
         else:
-            domain_counts = domain_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "domain"])
+            domain_counts = domain_counts.groupby("sample_id", as_index = False).value_counts(["description", "domain"]).reset_index()
             domain_counts["domain_residues"] = domain_counts["description"] + ":" + domain_counts["domain"] + ":" + domain_counts["count"].astype(str)
             domain_counts = domain_counts[["sample_id" ,"domain_residues"]].groupby("sample_id").agg({"domain_residues" : lambda x : list(x)})
             domain_counts["domain_residues"] = domain_counts["domain_residues"].str.join(",")
@@ -247,7 +247,7 @@ def main():
         if feature_counts["feature"].isin([""]).all():
             feature_counts["feature_residues"] = ""
         else:
-            feature_counts = feature_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "domain", "feature"])
+            feature_counts = feature_counts.groupby("sample_id", as_index = False).value_counts(["description", "domain", "feature"]).reset_index()
             feature_counts["feature_residues"] = feature_counts["description"] + ":" + feature_counts["domain"] + ":" + feature_counts["feature"] + ":" + feature_counts["count"].astype(str)
             feature_counts = feature_counts[["sample_id" ,"feature_residues"]].groupby("sample_id").agg({"feature_residues" : lambda x : list(x)})
             feature_counts["feature_residues"] = feature_counts["feature_residues"].str.join(",")
