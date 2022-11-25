@@ -27,3 +27,4 @@ dependencies:
   - pip:
     - rich
     - plotly
+    - tabulate==0.8.10

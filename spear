@@ -168,7 +168,7 @@ def main():
         Text.assemble(("/_    _\\", "bold")),
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
-        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.0.12", "bold red")),
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.0.13", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2022", "bold red"))]
     
     for item in logo:
@@ -599,7 +599,11 @@ def main():
         if args.per_sample_outputs == True:
             per_sample_outputs = "True"
         else:
-            per_sample_outputs = "False"
+            if single_sample:
+                per_sample_outputs = "True"
+            else:
+                per_sample_outputs = "False"
+
 
         spear_params = f'spear:{args.command},mask-problem-sites:{problem_sites},aligner:{args.aligner},cutoff:{cutoff},global_n:{args.global_n},s_n:{args.s_n},s_contig:{args.s_contig},rbd_n:{args.rbd_n},window:{args.window}'
         args.s_contig = int(args.s_contig)
