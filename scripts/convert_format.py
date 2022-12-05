@@ -15,6 +15,7 @@ from bindingcalculator import BindingCalculator
 from itertools import takewhile
 from joblib import Parallel, delayed
 import multiprocessing
+from shutil import rmtree
 
 def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
     if option == "res_ret_esc":
@@ -127,9 +128,12 @@ def main():
         help = "Specify files come from filtered directory")
     parser.add_argument('--threads', default = 1, type = int,
         help = "Number of threads to use")
+    parser.add_argument('--per_sample_outputs', default = "False", type= str,
+      help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
 
     args = parser.parse_args()
-    Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
+    if args.per_sample_outputs == "True":
+        Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
     if args.is_vcf_input == True:
         if args.is_filtered:
             infiles = f'{args.output_dir}/intermediate_output/masked/*.masked.vcf'
@@ -221,39 +225,30 @@ def main():
         final_vcf.drop(infocols, axis = 1, inplace = True)
         original_cols = [col for col in original_cols if col not in infocols]
         final_vcf = final_vcf[original_cols]
+        if args.per_sample_outputs == "True":
+            for sample in sample_list:
+                sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, args.is_vcf_input, args.is_filtered, infiles))
+                np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
+                if sample in final_vcf["sample_id"].values:
+                    sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
+                    sample_vcf["sample_id"] = "NC_045512.2"
+                    sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
+                    #append to header created above
+                    sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
+        else:
+            rmtree(f'{args.output_dir}/final_vcfs/')        
 
         cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
         input_file = input_file[cols]
         input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
         input_file[[col for col in input_file.columns if col not in ["refres", "altres", "respos"]]].to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = "\t", index = False)
-        
-        num_cores = multiprocessing.cpu_count()
-
-        #with Parallel(n_jobs=num_cores) as parallel:
-        params = [merged_header, args.output_dir, final_vcf, args.is_vcf_input, args.is_filtered, infiles]
-        sample_vcf_params = [([sample] + params) for sample in sample_list]
-        Parallel(n_jobs=num_cores)(delayed(write_sample_vcf)(sample_param) for sample_param in sample_vcf_params)      
-
-        # for sample in sample_list:
-        #     sample_header = merged_header.copy().apply(lambda x : sample_header_format(str(x), sample, args.is_vcf_input, args.is_filtered, infiles))
-        #     np.savetxt(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sample_header.values, fmt = "%s")
-        #     if sample in final_vcf["sample_id"].values:
-        #         sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
-        #         sample_vcf["sample_id"] = "NC_045512.2"
-        #         sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
-        #         #append to header created above
-        #         sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
-
-        params = [input_file, args.output_dir]
-        sample_tsv_params = [([sample] + params) for sample in sample_list]
-        Parallel(n_jobs=num_cores)(delayed(write_sample_tsv)(sample_param) for sample_param in sample_tsv_params)
-
-        # for sample in sample_list:
-        #     if sample in input_file["sample_id"].values:
-        #         sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
-        #         sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
-        #     else:
-        #         Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
+        if args.per_sample_outputs == "True":
+            for sample in sample_list:
+                if sample in input_file["sample_id"].values:
+                    sample_summary = input_file.loc[input_file["sample_id"] == sample].copy()
+                    sample_summary.to_csv(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv', sep = "\t", index = False)
+                else:
+                    Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
 
         #now getting summary scores 
         #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
@@ -267,7 +262,7 @@ def main():
         if region_counts["region"].isin([""]).all():
             region_counts["region_residues"] = ""
         else:
-            region_counts = region_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "region"])
+            region_counts = region_counts.groupby("sample_id", as_index = False).value_counts(["description", "region"]).reset_index()
             region_counts["region_residues"] = region_counts["description"] + ":" + region_counts["region"] + ":" + region_counts["count"].astype(str)
             region_counts = region_counts[["sample_id" ,"region_residues"]].groupby("sample_id").agg({"region_residues" : lambda x : list(x)})
             region_counts["region_residues"] = region_counts["region_residues"].str.join(",")
@@ -277,7 +272,7 @@ def main():
         if domain_counts["domain"].isin([""]).all():
             domain_counts["domain_residues"] = ""
         else:
-            domain_counts = domain_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "domain"])
+            domain_counts = domain_counts.groupby("sample_id", as_index = False).value_counts(["description", "domain"]).reset_index()
             domain_counts["domain_residues"] = domain_counts["description"] + ":" + domain_counts["domain"] + ":" + domain_counts["count"].astype(str)
             domain_counts = domain_counts[["sample_id" ,"domain_residues"]].groupby("sample_id").agg({"domain_residues" : lambda x : list(x)})
             domain_counts["domain_residues"] = domain_counts["domain_residues"].str.join(",")
@@ -287,7 +282,7 @@ def main():
         if feature_counts["feature"].isin([""]).all():
             feature_counts["feature_residues"] = ""
         else:
-            feature_counts = feature_counts.groupby("sample_id", as_index = False).value_counts(["Gene_Name", "domain", "feature"])
+            feature_counts = feature_counts.groupby("sample_id", as_index = False).value_counts(["description", "domain", "feature"]).reset_index()
             feature_counts["feature_residues"] = feature_counts["description"] + ":" + feature_counts["domain"] + ":" + feature_counts["feature"] + ":" + feature_counts["count"].astype(str)
             feature_counts = feature_counts[["sample_id" ,"feature_residues"]].groupby("sample_id").agg({"feature_residues" : lambda x : list(x)})
             feature_counts["feature_residues"] = feature_counts["feature_residues"].str.join(",")
@@ -311,9 +306,11 @@ def main():
         contacts_counts = contacts[["sample_id", "description", "contact_type", "contact"]].groupby(["sample_id","description", "contact"]).count().reset_index()
 
         ace2_contacts_score = contacts_scores.loc[contacts_scores["contact"]=="ACE2",["sample_id", "contact", "score"]].groupby(["sample_id", "contact"]).sum().astype("int")
-        ace2_contacts_score.columns = ["ACE2_contact_score"]
+        if len(ace2_contacts_score) > 0: 
+            ace2_contacts_score.columns = ["ACE2_contact_score"]
         trimer_contacts_score = contacts_scores.loc[contacts_scores["contact"]=="trimer",["sample_id", "contact", "score"]].groupby(["sample_id", "contact"]).sum().astype("int")
-        trimer_contacts_score.columns = ["trimer_contact_score"]
+        if len(trimer_contacts_score) > 0:
+            trimer_contacts_score.columns = ["trimer_contact_score"]
 
         ace2_contacts_sum = contacts_counts.loc[contacts_counts["contact"]=="ACE2",["sample_id", "contact_type"]]
         ace2_contacts_sum.columns = ["sample_id", "ACE2_contact_counts"]
@@ -357,8 +354,9 @@ def main():
         scores_df.rename(columns={'mAb_escape_sum':'mAb_escape_all_classes_sum', 'mAb_escape_min':'mAb_escape_all_classes_min', 'mAb_escape_max':'mAb_escape_all_classes_max', 'cm_mAb_escape_sum':'cm_mAb_escape_all_classes_sum', 'cm_mAb_escape_min':'cm_mAb_escape_all_classes_min', 'cm_mAb_escape_max':'cm_mAb_escape_all_classes_max'}, inplace=True)
         scores_df.to_csv(f'{args.output_dir}/spear_score_summary.tsv' , sep = "\t", index = False)
     else:
-        for sample in sample_list:
-            Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty
+        if args.per_sample_outputs == "True":
+            for sample in sample_list:
+                Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty
         Path(f'{args.output_dir}/spear_score_summary.tsv').touch()
         Path(f'{args.output_dir}/spear_annotation_summary.tsv').touch()
 

@@ -70,6 +70,8 @@ def main():
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     consensus.add_argument('output', metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
+    consensus.add_argument('--per_sample_outputs', default = False, action= "store_true",
+      help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
 
     alignment.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
@@ -111,6 +113,8 @@ def main():
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     alignment.add_argument('output', metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
+    alignment.add_argument('--per_sample_outputs', default = False, action= "store_true",
+        help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
 
     vcf.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
@@ -138,6 +142,8 @@ def main():
         help='Input directory of alignments, consensus fasta sequences or VCF files.')
     vcf.add_argument('output', metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
+    vcf.add_argument('--per_sample_outputs', default = False, action= "store_true",
+        help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
     
     update.add_argument('option', type = str,
         help="Update option : spear, all-data or all")
@@ -162,7 +168,7 @@ def main():
         Text.assemble(("/_    _\\", "bold")),
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
-        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.0.8", "bold red")),
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.0.13", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2022", "bold red"))]
     
     for item in logo:
@@ -194,6 +200,7 @@ def main():
         args.rbd_n = 5000
         args.aligner = None
         args.pangolin = "none"
+        args.per_sample_outputs = True
 
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
@@ -589,6 +596,15 @@ def main():
         else:
             cutoff = args.cutoff/100
 
+        if args.per_sample_outputs == True:
+            per_sample_outputs = "True"
+        else:
+            if single_sample:
+                per_sample_outputs = "True"
+            else:
+                per_sample_outputs = "False"
+
+
         spear_params = f'spear:{args.command},mask-problem-sites:{problem_sites},aligner:{args.aligner},cutoff:{cutoff},global_n:{args.global_n},s_n:{args.s_n},s_contig:{args.s_contig},rbd_n:{args.rbd_n},window:{args.window}'
         args.s_contig = int(args.s_contig)
         config = {
@@ -622,7 +638,8 @@ def main():
             "pangolin" : args.pangolin,
             "threads" : args.threads,
             "max_n" : cutoff, 
-            "spear_params" : spear_params}
+            "spear_params" : spear_params,
+            "per_sample_outputs" : per_sample_outputs}
         
         console.print(table)
 

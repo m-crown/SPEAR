@@ -6,7 +6,7 @@ channels:
   - defaults
 
 dependencies:
-  - bioconda::snakemake-minimal>=6.12
+  - bioconda::snakemake-minimal>=6.12, <7.0
   - bioconda::muscle=3.8
   - bioconda::bcftools>=1.14
   - conda-forge::pip>=21
@@ -27,3 +27,4 @@ dependencies:
   - pip:
     - rich
     - plotly
+    - tabulate==0.8.10
