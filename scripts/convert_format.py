@@ -31,23 +31,32 @@ def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
 
 def summarise_score(summary_df, metric):
     #assumes grouping by sample_id and summarising for each sample
+
     summary_df_info = summary_df.groupby("sample_id").agg({metric: ['sum', 'min', 'max']})
     summary_df_info.columns = summary_df_info.columns.droplevel(0)
     summary_df_info = summary_df_info.reset_index()
     summary_df_info = summary_df_info.rename_axis(None, axis=1)
 
     summary_df_mins = pd.merge(left = summary_df, right = summary_df_info[["sample_id", "min"]], left_on = ["sample_id", metric], right_on = ["sample_id", "min"])
+    if metric in ["bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2"]:
+        summary_df_mins[metric] = np.log10(1/summary_df_mins[metric])
+
     summary_df_mins[metric + "_min"] = summary_df_mins["residues"] + ":" + summary_df_mins[metric].fillna("").astype(str)
     summary_df_mins = summary_df_mins[["sample_id",metric + "_min"]].groupby("sample_id").agg({metric + "_min" : lambda x : list(x)})
     summary_df_mins[metric + "_min"] = summary_df_mins[metric + "_min"].str.join(",")
 
     summary_df_max = pd.merge(left = summary_df, right = summary_df_info[["sample_id", "max"]], left_on = ["sample_id", metric], right_on = ["sample_id", "max"])
+    if metric in ["bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2"]:
+        summary_df_max[metric] = np.log10(1/summary_df_max[metric])
     summary_df_max[metric + "_max"] = summary_df_max["residues"] + ":" + summary_df_max[metric].fillna("").astype(str)
     summary_df_max = summary_df_max[["sample_id",metric + "_max"]].groupby("sample_id").agg({metric + "_max" : lambda x : list(x)})
     summary_df_max[metric + "_max"] = summary_df_max[metric + "_max"].str.join(",")
 
-    summary_df_sum = summary_df.groupby("sample_id").agg({metric: sum})
+    summary_df_sum = summary_df.groupby("sample_id").agg({metric: "sum"})
+
     summary_df_sum.columns = [metric + "_sum"]
+    if metric in ["bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2"]:
+        summary_df_sum[metric + "_sum"] = np.log10(1/summary_df_sum[metric + "_sum"])
 
     summary_df_final = summary_df_sum.merge(summary_df_max,on='sample_id').merge(summary_df_mins,on='sample_id')
 
@@ -143,7 +152,7 @@ def main():
 
         input_file["SPEAR"] = input_file["SPEAR"].str.split(",", expand = False)
         input_file = input_file.explode("SPEAR")
-        input_file[["spear-product", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = input_file["SPEAR"].str.split("|", expand = True)
+        input_file[["spear-product", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = input_file["SPEAR"].str.split("|", expand = True)
         input_file = input_file.loc[input_file["product"] == input_file["spear-product"]]
         pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions.
         input_file["respos"] = input_file["residues"].str.extract(pattern).fillna(-1).astype("int")
@@ -171,7 +180,7 @@ def main():
         input_file["BEC_RES"] = input_file["BEC_RES"].fillna("")
         input_file = input_file.sort_values(by = ["sample_id", "POS", "respos"])
         final_samples = input_file.copy()
-        cols = ['spear-product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2', 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
+        cols = ['spear-product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2", 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
         final_samples["SPEAR"] = final_samples[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
         all_cols = final_samples.columns.tolist()
 
@@ -203,9 +212,9 @@ def main():
         else:
             rmtree(f'{args.output_dir}/final_vcfs/')        
 
-        cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
+        cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
         input_file = input_file[cols]
-        input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
+        input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
         input_file[[col for col in input_file.columns if col not in ["refres", "altres", "respos"]]].to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = "\t", index = False)
         if args.per_sample_outputs == "True":
             for sample in sample_list:
@@ -298,7 +307,7 @@ def main():
             barns_counts_grouped = barns_counts_grouped[["sample_id", "barns_class_variants"]].groupby("sample_id").agg({"barns_class_variants" : lambda x : list(x)})
             barns_counts_grouped["barns_class_variants"] = barns_counts_grouped["barns_class_variants"].str.join(",")
 
-        scores = ["bloom_ACE2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1", "mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4","BEC_EF_sample"]
+        scores = ["bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1", "mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4","BEC_EF_sample"]
         score_df_list = [total_variants, sample_residue_variant_number, type_string, region_counts,domain_counts, feature_counts, ace2_contacts_sum,ace2_contacts_score,trimer_contacts_sum,trimer_contacts_score, barns_counts_grouped]
 
         for score in scores:
