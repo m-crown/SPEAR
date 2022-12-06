@@ -292,12 +292,13 @@ def main():
                 passing_samples = []
                 samples_fail_chrom_name = []
                 for sample in input_samples:
-                    sample_name = subprocess.run(['bcftools', 'query',  '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
-                    sample_name = re.sub('[^a-zA-Z0-9]]', '_', sample_name)
+                    sample_name_old = subprocess.run(['bcftools', 'query',  '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
+                    sample_name = re.sub('[^a-zA-Z0-9]]', '_', sample_name_old)
                     header , vcf = parse_vcf(f'{args.input}/{sample}{extension}', split_info_cols = False)
                     if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
                         Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                         vcf["#CHROM"] = "NC_045512.2"
+                        vcf.rename(columns = {sample_name_old : sample_name})
                         write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
                         passing_samples.append(sample_name)
                     else:
@@ -397,19 +398,20 @@ def main():
                     console.print("[red]No samples to process, exiting.[/red]")
                     sys.exit(1)
             elif args.command == "vcf":
-                sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
-                sample_name = re.sub('[^a-zA-Z0-9]', '_', sample_name)
+                sample_name_old = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
+                sample_name = re.sub('[^a-zA-Z0-9]', '_', sample_name_old)
                 header , vcf = parse_vcf(f'{args.input}', split_info_cols = False)
                 if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                     vcf["#CHROM"] = "NC_045512.2"
+                    vcf.rename(columns = {sample_name_old : sample_name}, inplace = True)
                     write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
                     passing_samples = [sample_name]
                     console.print(f'[green]Passing samples : {len(passing_samples)}')
                     table = ""
                 else:
                     console.print("[red]Sample has incorrect CHROM field, exiting.[/red]")
-                    sys.exit(1)              
+                    sys.exit(1)
             else:
                 passing_samples = []
                 samples_fail_perc_n = 0
@@ -505,10 +507,12 @@ def main():
         
         indir = f'{args.output}/input_files'
 
+        snakefile = f'{SPEAR_PATH}/bin/pipeline.smk'
         if single_sample: 
-            snakefile = f'{SPEAR_PATH}/bin/spear_single.smk'
+            singlesample = "True"
         else:
-            snakefile = f'{SPEAR_PATH}/bin/spear_multi.smk'
+            singlesample = "False"
+
         if args.no_report == True:
             report = False
         else:
@@ -639,7 +643,8 @@ def main():
             "threads" : args.threads,
             "max_n" : cutoff, 
             "spear_params" : spear_params,
-            "per_sample_outputs" : per_sample_outputs}
+            "per_sample_outputs" : per_sample_outputs,
+            "single_sample" : singlesample}
         
         console.print(table)
 
