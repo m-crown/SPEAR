@@ -1016,7 +1016,7 @@ def main():
 
     #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE
     scores_cols = baseline_scores.columns.tolist()
-    non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues','ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barns_class_variants','bloom_ACE2_max', 'bloom_ACE2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_RES_sum']
+    non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues', 'feature_residues', 'ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barns_class_variants','bloom_ACE2_wuhan_max', "bloom_ACE2_wuhan_min", 'bloom_ACE2_BA1_min', 'bloom_ACE2_BA1_max', 'bloom_ACE2_BA1_min', 'bloom_ACE2_BA2_max', 'bloom_ACE2_BA2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_RES_sum']
     displayed_scores_cols = [score for score in scores_cols if score not in non_displayed_scores]
     sample_scores = scores_summary[displayed_scores_cols]
     sample_scores = sample_scores.replace("", np.nan).dropna(axis=1, how = "all") #remove empty cols from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
@@ -1037,6 +1037,7 @@ def main():
             baseline_relative_sample_scores = sample_scores[actual_scores_cols] - sample_scores.loc[sample_scores["sample_id"] == args.baseline, actual_scores_cols].fillna(0).values.squeeze()
         
         baseline_relative_sample_scores = baseline_relative_sample_scores.round(4)
+        
         sample_scores = sample_scores[sample_scores.index.isin(baseline_relative_sample_scores.index)].reset_index(drop = True)
         baseline_relative_sample_truths = np.greater(baseline_relative_sample_scores.fillna(-1).to_numpy(), 0) #all others should be coloured if greater than baseline
         baseline_relative_sample_colours = np.where(baseline_relative_sample_truths == True, "rgb(250,180,174)", "rgb(179,205,227)")
@@ -1053,7 +1054,9 @@ def main():
             "sample_id" : "Sample ID", 
             "lineage" : "Pango-Lineage",
             "VDS_sum" : "Vibrational Difference Score",
-            "bloom_ACE2_sum" : "Bloom ACE2",
+            "bloom_ACE2_wuhan_sum" : "Bloom ACE2 (Wuhan)",
+            "bloom_ACE2_BA1_sum" : "Bloom ACE2 (BA.1)",
+            "bloom_ACE2_BA2_sum" : "Bloom ACE2 (BA.2)",
             "serum_escape_sum" : "Serum Escape",
             "mAb_escape_all_classes_sum" : "mAb Escape",
             "cm_mAb_escape_all_classes_sum" : "Class Masked mAb Escape",
@@ -1178,12 +1181,12 @@ def main():
         score_table_message = ""
 
     #MAKING THE INTERACTIVE PLOTS: 
-    scores_cols = ["bloom_ACE2", "VDS","serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
-    scores_z_max = {"bloom_ACE2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape_all_classes" : 1, "cm_mAb_escape_all_classes" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
-    scores_z_min = {"bloom_ACE2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape_all_classes" : 0, "cm_mAb_escape_all_classes" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}
-    scores_z_mid = {"bloom_ACE2" : 0,"VDS" : 0, "serum_escape" : 0.5, "mAb_escape_all_classes" : 0.5, "cm_mAb_escape_all_classes" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
-    scores_title = {"bloom_ACE2" : "Bloom ACE2", "VDS" : "Vibrational Difference Score","serum_escape" : "Serum Escape", "mAb_escape_all_classes" : "mAb Escape", "cm_mAb_escape_all_classes" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
-    scores_color_scales = {"bloom_ACE2" : "plasma", "VDS" : "rdbu","serum_escape" : "hot_r", "mAb_escape_all_classes" : "hot_r", "cm_mAb_escape_all_classes" : "hot_r", "mAb_escape_class_1" : "hot_r", "mAb_escape_class_2": "hot_r", "mAb_escape_class_3": "hot_r", "mAb_escape_class_4": "hot_r", "BEC_RES" : "purd_r"}
+    scores_cols = ["bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS","serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes", "mAb_escape_class_1", "mAb_escape_class_2", "mAb_escape_class_3", "mAb_escape_class_4", "BEC_RES"]
+    scores_z_max = {"bloom_ACE2_wuhan" : 4.84, "bloom_ACE2_BA1" : 4.84, "bloom_ACE2_BA2" : 4.84, "VDS": 0.712636025 , "serum_escape" : 1 , "mAb_escape_all_classes" : 1, "cm_mAb_escape_all_classes" : 1, "mAb_escape_class_1" : 1, "mAb_escape_class_2" : 1, "mAb_escape_class_3" : 1, "mAb_escape_class_4" : 1, "BEC_RES" : 1}
+    scores_z_min = {"bloom_ACE2_wuhan" : -4.84, "bloom_ACE2_BA1" : -4.84, "bloom_ACE2_BA2" : -4.84, "VDS" : -0.712636025 ,"serum_escape" : 0 , "mAb_escape_all_classes" : 0, "cm_mAb_escape_all_classes" : 0, "mAb_escape_class_1" : 0, "mAb_escape_class_2" : 0, "mAb_escape_class_3" : 0, "mAb_escape_class_4" : 0, "BEC_RES" : 0}
+    scores_z_mid = {"bloom_ACE2_wuhan" : 0, "bloom_ACE2_BA1" : 0, "bloom_ACE2_BA2" : 0, "VDS" : 0, "serum_escape" : 0.5, "mAb_escape_all_classes" : 0.5, "cm_mAb_escape_all_classes" : 0.5, "mAb_escape_class_1" : 0.5, "mAb_escape_class_2" : 0.5, "mAb_escape_class_3" : 0.5, "mAb_escape_class_4" : 0.5, "BEC_RES" : 0.5}
+    scores_title = {"bloom_ACE2_wuhan" : "Bloom ACE2 (Wuhan)", "bloom_ACE2_BA1" : "Bloom ACE2 (BA1)", "bloom_ACE2_BA2" : "Bloom ACE2 (BA2)", "VDS" : "Vibrational Difference Score","serum_escape" : "Serum Escape", "mAb_escape_all_classes" : "mAb Escape", "cm_mAb_escape_all_classes" : "Class Masked mAb Escape", "mAb_escape_class_1" : "mAb Escape Class 1", "mAb_escape_class_2": "mAb Escape Class 2", "mAb_escape_class_3": "mAb Escape Class 3", "mAb_escape_class_4": "mAb Escape Class 4", "BEC_RES" : "BEC Residue Escape Score "}
+    scores_color_scales = {"bloom_ACE2_wuhan" : "plasma", "bloom_ACE2_BA1" : "plasma", "bloom_ACE2_BA2" : "plasma", "VDS" : "rdbu","serum_escape" : "hot_r", "mAb_escape_all_classes" : "hot_r", "cm_mAb_escape_all_classes" : "hot_r", "mAb_escape_class_1" : "hot_r", "mAb_escape_class_2": "hot_r", "mAb_escape_class_3": "hot_r", "mAb_escape_class_4": "hot_r", "BEC_RES" : "purd_r"}
     
     respos_df = pd.read_csv(f'{args.data_dir}/product_mapping.csv')
     orf_boxes = []
@@ -1483,7 +1486,7 @@ def main():
                             "zmax" : scores_z_max[score],
                             "zmid" : scores_z_mid[score]
                         }))
-                elif score == "bloom_ACE2":
+                elif score == "bloom_ACE2_wuhan":
                     heatmap.add_trace(go.Heatmap(
                         {
                             'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
@@ -1506,6 +1509,53 @@ def main():
                             'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
                             'visible' : False,
                         }))
+                elif score == "bloom_ACE2_BA1":
+                    heatmap.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"lineage_sample"].astype("category").values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
+                            "colorscale" : "plasma", 
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False, 
+                        }))
+                    heatmap_all.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"lineage_sample"].astype("category").values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
+                            "colorscale" : "plasma",
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                        }))
+                elif score == "bloom_ACE2_BA2":
+                    heatmap.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"lineage_sample"].astype("category").values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"respos"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["respos"] >= 331) & (anno_merge["respos"] <= 531),"text_var"].values.tolist(),
+                            "colorscale" : "plasma", 
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False, 
+                        }))
+                    heatmap_all.add_trace(go.Heatmap(
+                        {
+                            'z': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531), score].values.tolist(),
+                            'x': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"lineage_sample"].astype("category").values.tolist(),
+                            'y': anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"residue-position"].astype("Int64").astype("str").values.tolist(),
+                            'text' : anno_merge.loc[(anno_merge["product"] == "surface glycoprotein") & (anno_merge["residue-position"] >= 331) & (anno_merge["residue-position"] <= 531),"text_var"].values.tolist(),
+                            "colorscale" : "plasma",
+                            'texttemplate' : "%{text}",
+                            'hovertemplate' : '%{text} <br>Score: %{z}<extra></extra>',
+                            'visible' : False,
+                        }))
+
                 elif score == "cm_mAb_escape_all_classes":                
                     heatmap.add_trace(go.Heatmap(
                         {
