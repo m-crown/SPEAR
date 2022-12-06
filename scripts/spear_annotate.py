@@ -42,9 +42,8 @@ def annotate_residues(vcf, data_dir):
     bloom_escape_class3 = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_class3")
     bloom_escape_class4 = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_class4")
     greaney_serum_escape = pd.read_hdf(f'{data_dir}/spear_data.h5', "greaney_serum_escape")    
-    
-    bloom_ace2_file = pd.read_csv(f'{data_dir}/single_mut_effects.csv')
-    vds = pd.read_csv(f'{data_dir}/vibentropy_occupancy_dmsdata.csv')
+    bloom_ace2_file = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_ACE2")
+    vds = pd.read_hdf(f'{data_dir}/spear_data.h5', "VDS")
 
     bindingcalc = BindingCalculator(csv_or_url = f'{data_dir}/escape_calculator_data.csv')    
     vcf["SUM"] = vcf["SUM"].str.split(",", expand = False) #split SUM field where multiple annotations remain (NSP11 RDRP overlap)
@@ -59,10 +58,10 @@ def annotate_residues(vcf, data_dir):
     vcf["refres"] = vcf["residues"].str.extract(r"([a-zA-Z\*])+[0-9]+")
     vcf = pd.merge(vcf,spear_anno_file[["ORF", "AA_coordinate","region", "domain", "feature", "contact_type", "NAb", "barns_class", "mod_barns_class_mask_sum_gt0.75", "product"]],left_on = ["product", "respos"], right_on = ["product","AA_coordinate"],how="left")
     vcf["mod_barns_class_mask_sum_gt0.75"] = vcf["mod_barns_class_mask_sum_gt0.75"].replace("", -1).fillna(-1).astype(int)
-    bloom_ace2_file["ORF"] = "S"
-    vcf = pd.merge(vcf,bloom_ace2_file[["ORF", "mutation", "bind_avg"]], left_on = ["gene_name", "residues"], right_on = ["ORF", "mutation"], how = "left")
+
+    vcf = pd.merge(vcf,bloom_ace2_file[["ORF", "mutation", "Wuhan_delta_bind", "BA1_delta_bind", "BA2_delta_bind"]], left_on = ["gene_name", "residues"], right_on = ["ORF", "mutation"], how = "left")
     vcf.drop(["ORF_x", "AA_coordinate"], axis = 1, inplace = True)
-    vds["ORF"] = "S"
+
     vds["mutation_residues"] = vds["wildtype"] + vds["site"].astype("str") + vds["mutation"]
     vcf = pd.merge(vcf, vds[["ORF", "mutation_residues", "mut_VDS"]], left_on = ["gene_name","residues"], right_on = ["ORF", "mutation_residues"], how = "left")
     vcf["alt_res"] = vcf["residues"].str.extract("[A-Z\*][0-9]+([A-Z\?\*])")
@@ -126,8 +125,8 @@ def annotate_residues(vcf, data_dir):
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["alt_res"]), ["BEC_EF"]] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["alt_res"]) & (vcf["respos"].isin(bindingcalc.sites))].apply(lambda x: get_bindingcalc_values(x["respos"], bindingcalc, "escape_fraction"), axis=1)
 
     vcf = vcf.fillna("")
-    vcf.loc[(vcf["refres"] == vcf["alt_res"]) | (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"])), ['region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']] = "" #remove scores from residues with same and alt and ref residue.
-    cols = ['product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bind_avg', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
+    vcf.loc[(vcf["refres"] == vcf["alt_res"]) | (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"])), ['region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'Wuhan_delta_bind', 'BA1_delta_bind', 'BA2_delta_bind', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']] = "" #remove scores from residues with same and alt and ref residue.
+    cols = ['product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'Wuhan_delta_bind', 'BA1_delta_bind', 'BA2_delta_bind', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
     vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
     all_cols = vcf.columns.tolist()
     vcf.drop([col for col in all_cols if col not in ["original_index" , '#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'AC','AN', 'ANN', 'SUM', "SPEAR", "problem_exc", "problem_filter" ]], axis = 1, inplace = True)
@@ -157,7 +156,7 @@ def main():
         df = df.replace(np.nan, '', regex=True)
         samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
         samples["original_index"] = df["original_index"]
-        header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'product | residue | region | domain | feature | contact_type | NAb | barns_class | bloom_ace2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
+        header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'product | residue | region | domain | feature | contact_type | NAb | barns_class | bloom_ace2_wuhan | bloom_ace2_BA1 | bloom_ace2_BA2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
         df = annotate_residues(df.copy(), args.data_dir)
 
         cols = [e for e in df.columns.to_list() if e not in ("problem_exc", "problem_filter", "ANN", "SUM", "SPEAR")]
