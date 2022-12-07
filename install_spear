@@ -58,10 +58,8 @@ mkdir -p ${CONDA_PREFIX}/data/ProblematicSites_SARS-CoV2
 wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf
 bgzip -f ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf  ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
 tabix -p vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
-wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O  ${CONDA_PREFIX}/data/single_mut_effects.csv
 wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O ${CONDA_PREFIX}/data/escape_calculator_data.csv
 wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/bindingcalculator.py -O ${CONDA_PREFIX}/bin/bindingcalculator.py
-wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentropy_occupancy_dmsdata.csv -O ${CONDA_PREFIX}/data/vibentropy_occupancy_dmsdata.csv
 
 # Install SPEAR files
 echo " - Installing SPEAR"
