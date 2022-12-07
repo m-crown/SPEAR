@@ -55,9 +55,9 @@ fi
 # Download data from GitHub
 mkdir -p ${CONDA_PREFIX}/data
 mkdir -p ${CONDA_PREFIX}/data/ProblematicSites_SARS-CoV2
-wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf
-bgzip -f ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf  ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
-tabix -p vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
+
+wget -q https://github.com/W-L/ProblematicSites_SARS-CoV2/raw/a36cee5dc5ce8fabcfd23f73b690874c739c2928/compressed_vcf/problematic_sites_sarsCov2.v8.vcf.gz -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
+wget -q https://github.com/W-L/ProblematicSites_SARS-CoV2/raw/a36cee5dc5ce8fabcfd23f73b690874c739c2928/compressed_vcf/problematic_sites_sarsCov2.v8.vcf.gz.tbi -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz.tbi
 wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O ${CONDA_PREFIX}/data/escape_calculator_data.csv
 wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/bindingcalculator.py -O ${CONDA_PREFIX}/bin/bindingcalculator.py
 
