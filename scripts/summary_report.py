@@ -881,7 +881,7 @@ def main():
         contact_counts_table_all["contact_type"] = contact_counts_table_all["contact_type"].str.split("+")
         contact_counts_table_all = contact_counts_table_all.explode("contact_type")
         contact_counts_table_all["contact"] = contact_counts_table_all["contact"].replace("_", " ", regex = True)
-        contact_counts_table_all.loc[contact_counts_table_all["contact_type"].str.match(r"[A-Za-z]+$"), "contact_type"] = contact_counts_table_all.loc[contact_counts_table_all["contact_type"].str.match(r"[A-Za-z]+$"), "contact_type"] + "_" 
+        contact_counts_table_all.loc[contact_counts_table_all["contact_type"].fillna("").str.match(r"[A-Za-z]+$"), "contact_type"] = contact_counts_table_all.loc[contact_counts_table_all["contact_type"].fillna("").str.match(r"[A-Za-z]+$"), "contact_type"] + "_" 
         contact_counts_table_all[["contact_type", "contacting_residues"]] = contact_counts_table_all["contact_type"].str.split("_", n=1, expand = True)
         contact_counts_table_all["contacting_residues"].fillna("", inplace = True)
         contact_counts_table_all["contacting_residues"] = contact_counts_table_all["contacting_residues"].str.replace("_", ",")
@@ -952,7 +952,7 @@ def main():
         all_samples_contacts["contact_type"] = all_samples_contacts["contact_type"].str.split("+")
         all_samples_contacts = all_samples_contacts.explode("contact_type")
         all_samples_contacts["contact"] = all_samples_contacts["contact"].replace("_", " ", regex = True)
-        all_samples_contacts.loc[all_samples_contacts["contact_type"].str.match(r"[A-Za-z]+$"), "contact_type"] = all_samples_contacts.loc[all_samples_contacts["contact_type"].str.match(r"[A-Za-z]+$"), "contact_type"] + "_" 
+        all_samples_contacts.loc[all_samples_contacts["contact_type"].fillna("").str.match(r"[A-Za-z]+$"), "contact_type"] = all_samples_contacts.loc[all_samples_contacts["contact_type"].fillna("").str.match(r"[A-Za-z]+$"), "contact_type"] + "_" 
         all_samples_contacts[["contact_type", "contacting_residues"]] = all_samples_contacts["contact_type"].str.split("_", n=1, expand = True)
         all_samples_contacts["contacting_residues"].fillna("", inplace = True)
         all_samples_contacts["contacting_residues"] = all_samples_contacts["contacting_residues"].str.replace("_", ",")
