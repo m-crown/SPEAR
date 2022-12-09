@@ -175,7 +175,7 @@ rule merge_qc:
 
 rule get_indels:
    input:
-      vcf_file = config["output_dir"] + "/intermediate_output/masked/{id}.masked.vcf" if config["filter"] == True else config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
+      vcf_file = config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
       aln = config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
    output:
       snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
