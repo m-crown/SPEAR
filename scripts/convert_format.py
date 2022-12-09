@@ -52,13 +52,15 @@ def summarise_score(summary_df, metric):
     summary_df_max = summary_df_max[["sample_id",metric + "_max"]].groupby("sample_id").agg({metric + "_max" : lambda x : list(x)})
     summary_df_max[metric + "_max"] = summary_df_max[metric + "_max"].str.join(",")
 
-    summary_df_sum = summary_df.groupby("sample_id").agg({metric: "sum"})
-
-    summary_df_sum.columns = [metric + "_sum"]
     if metric in ["bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2"]:
-        summary_df_sum[metric + "_sum"] = np.log10(1/summary_df_sum[metric + "_sum"])
+        summary_df_agg = summary_df.groupby("sample_id").agg({metric: "mean"})
+        summary_df_agg.columns = [metric + "_mean"]
+        summary_df_agg[metric + "_mean"] = np.log10(1/summary_df_agg[metric + "_mean"])
+    else:
+        summary_df_agg = summary_df.groupby("sample_id").agg({metric: "sum"})
+        summary_df_agg.columns = [metric + "_sum"]
 
-    summary_df_final = summary_df_sum.merge(summary_df_max,on='sample_id').merge(summary_df_mins,on='sample_id')
+    summary_df_final = summary_df_agg.merge(summary_df_max,on='sample_id').merge(summary_df_mins,on='sample_id')
 
     return(summary_df_final)
 
@@ -179,12 +181,13 @@ def main():
             input_file["BEC_RES"] = ""
         input_file["BEC_RES"] = input_file["BEC_RES"].fillna("")
         input_file = input_file.sort_values(by = ["sample_id", "POS", "respos"])
+        bloom_ace2_tmp_cols = input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]]
+        input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]] = np.log10(1/input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]].replace("", np.nan).astype("float64"))
+        input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]] = input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]].fillna("")
         final_samples = input_file.copy()
         cols = ['spear-product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2", 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
         final_samples["SPEAR"] = final_samples[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
         all_cols = final_samples.columns.tolist()
-
-
         final_samples.drop([col for col in all_cols if col not in original_cols], axis = 1, inplace = True)
         cols = [e for e in final_samples.columns.to_list() if e not in ("SUM", "SPEAR")]
 
@@ -224,7 +227,8 @@ def main():
                 else:
                     Path(f'{args.output_dir}/per_sample_annotation/{sample}.spear.annotation.summary.tsv').touch() #touch file if empty    
 
-        #now getting summary scores 
+        #now getting summary scores
+        input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]] = bloom_ace2_tmp_cols
         #subset the dataframe to remove synonymous residue variants (or rather, keep anything that isnt synonymous)
         summary = input_file.loc[((input_file["refres"] != input_file["altres"]) & (input_file["residues"].isin([""]) == False)) | ((input_file["residues"].str.contains("[A-Z\*][0-9]+[A-Z\*\?]", regex = True) == False) & (input_file["residues"].isin([""]) == False))]
         summary.reset_index(inplace = True, drop = True)
