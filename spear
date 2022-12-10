@@ -60,8 +60,8 @@ def main():
         help = "Maximum number of flanking N's around deletion, default 2")
     consensus.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    consensus.add_argument('--baseline' , metavar='', type = str, default = "BA.2",
-        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
+    consensus.add_argument('--baseline' , metavar='', type = str, default = "BA.5",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.5.")
     consensus.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")  
     consensus.add_argument('--pangolin', default="accurate", type = str,
@@ -103,8 +103,8 @@ def main():
         help = "Maximum number of flanking N's around deletion, default 2")
     alignment.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    alignment.add_argument('--baseline' , metavar='', type = str, default = "BA.2",
-        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
+    alignment.add_argument('--baseline' , metavar='', type = str, default = "BA.5",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.5.")
     alignment.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")  
     alignment.add_argument('--pangolin', default="accurate", type = str,
@@ -132,8 +132,8 @@ def main():
         help = "Max number of threads for snakemake job execution.")
     vcf.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    vcf.add_argument('--baseline' , metavar='', type = str, default = "BA.2",
-        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
+    vcf.add_argument('--baseline' , metavar='', type = str, default = "BA.5",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.5.")
     vcf.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")
     vcf.add_argument('--pangolin', default="accurate", type = str,
@@ -181,7 +181,7 @@ def main():
         args.mask_problem_sites = None
         args.no_report = None
         args.baseline_scores = None
-        args.baseline = "BA.1"
+        args.baseline = "BA.5"
         args.no_product_plot = None
         args.debug = True
         args.tmp = False
