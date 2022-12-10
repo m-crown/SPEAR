@@ -14,9 +14,15 @@ The table below outlines the fields in `spear_score_summary.tsv` which is produc
 | `trimer_contact_counts` | Total number of mutated amino acids involved in trimer interface contacts, this is specifically for Spike. |
 | `trimer_contact_score` | Sum of contact scores for Spike trimer interface, slat bridges:3, hydrogen-bonds:2, generic residue contact:1. |
 | `barns_class_variants` | Total number of mutated residues per barns class epitope summarised as comma separated list, as `class:count` additional residues not formally part of epitope but with strong Deep Mutational Scanning (DMS) evidence as having an impact on binding of mAbs of that class are flagged with `*`. |
-| `bloom_ACE2_sum` | Sum of ACE2 binding value Δlog10(KD,app) relative to the "wild-type" (WT) across all mutated residues, data from Starr _et al_.[3] Higher positive values mean binding is stronger than WT, negative values mean binding is weaker then WT. |
-| `bloom_ACE2_max` | Highest scoring residues(s) for ACE2 value out of all mutated residues. |
-| `bloom_ACE2_min` | Lowest scoring residues(s) for ACE2 value out of all mutated residues. |
+| `bloom_ACE2_wuhan_mean` | Mean of ACE2 binding value Δ-log10(KD,app) relative to the "wild-type" (WT) across all mutated residues, data from Starr _et al_.[3] Higher positive values mean binding is stronger than WT, negative values mean binding is weaker than WT. |
+| `bloom_ACE2_wuhan_max` | Highest scoring residues(s) for ACE2 value out of all mutated residues. |
+| `bloom_ACE2_wuhan_min` | Lowest scoring residues(s) for ACE2 value out of all mutated residues. |
+| `bloom_ACE2_BA1_mean` | Mean of ACE2 binding value Δ-log10(KD,app) relative to BA.1. Higher positive values mean binding is stronger than WT, negative values mean binding is weaker than BA.1. |
+| `bloom_ACE2_BA1_max` | Highest scoring residues(s) for ACE2 value out of all mutated residues. |
+| `bloom_ACE2_BA1_min` | Lowest scoring residues(s) for ACE2 value out of all mutated residues. |
+| `bloom_ACE2_BA2_mean` | Mena of ACE2 binding value Δ-log10(KD,app) relative to BA.2. Higher positive values mean binding is stronger than WT, negative values mean binding is weaker than BA.2. |
+| `bloom_ACE2_BA2_max` | Highest scoring residues(s) for ACE2 value out of all mutated residues. |
+| `bloom_ACE2_BA2_min` | Lowest scoring residues(s) for ACE2 value out of all mutated residues. |
 | `VDS_sum` | Sum of all Vibrational Difference Scores (VDS), positive VDS values suggests mutation stabilises the open state of Spike and/or makes the closed state more flexible, favouring the open conformation relative to the WT. Negative values suggest mutation favours the closed state more than WT. Data from Teruel _et al_.[4]. |
 | `VDS_max`| Highest scoring residues(s) for VDS value out of all mutated residues. |
 | `VDS_lowest`| Lowest scoring residues(s) for VDS value out of all mutated residues. |

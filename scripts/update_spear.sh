@@ -34,13 +34,10 @@ elif [[ $COMMAND == "all-data" ]]; then
     cp -r ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data
 
     # Download data from GitHub
-    wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf
-    bgzip -f ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
-    tabix -p vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
-    wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O ${CONDA_PREFIX}/data/single_mut_effects.csv
+    wget -q https://github.com/W-L/ProblematicSites_SARS-CoV2/raw/a36cee5dc5ce8fabcfd23f73b690874c739c2928/compressed_vcf/problematic_sites_sarsCov2.v8.vcf.gz -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
+    wget -q https://github.com/W-L/ProblematicSites_SARS-CoV2/raw/a36cee5dc5ce8fabcfd23f73b690874c739c2928/compressed_vcf/problematic_sites_sarsCov2.v8.vcf.gz.tbi -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz.tbi
     wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O ${CONDA_PREFIX}/data/escape_calculator_data.csv
     wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/bindingcalculator.py -O ${CONDA_PREFIX}/bin/bindingcalculator.py
-    wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentropy_occupancy_dmsdata.csv -O ${CONDA_PREFIX}/data/vibentropy_occupancy_dmsdata.csv
 
 
 elif [[ $COMMAND == "all" ]]; then
@@ -87,13 +84,10 @@ elif [[ $COMMAND == "all" ]]; then
     fi
 
     # Download data from GitHub
-    wget -q https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf
-    bgzip -f ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
-    tabix -p vcf ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
-    wget -q https://media.githubusercontent.com/media/jbloomlab/SARS-CoV-2-RBD_DMS/master/results/single_mut_effects/single_mut_effects.csv -O ${CONDA_PREFIX}/data/single_mut_effects.csv
+    wget -q https://github.com/W-L/ProblematicSites_SARS-CoV2/raw/a36cee5dc5ce8fabcfd23f73b690874c739c2928/compressed_vcf/problematic_sites_sarsCov2.v8.vcf.gz -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz
+    wget -q https://github.com/W-L/ProblematicSites_SARS-CoV2/raw/a36cee5dc5ce8fabcfd23f73b690874c739c2928/compressed_vcf/problematic_sites_sarsCov2.v8.vcf.gz.tbi -O ${CONDA_PREFIX}/data/problematic_sites_sarsCov2.vcf.gz.tbi
     wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/processed_data/escape_calculator_data.csv -O ${CONDA_PREFIX}/data/escape_calculator_data.csv
     wget -q https://raw.githubusercontent.com/jbloomlab/SARS2_RBD_Ab_escape_maps/main/bindingcalculator.py -O ${CONDA_PREFIX}/bin/bindingcalculator.py
-    wget -q https://raw.githubusercontent.com/nataliateruel/data_Spike/main/vibentropy_occupancy_dmsdata.csv -O ${CONDA_PREFIX}/data/vibentropy_occupancy_dmsdata.csv
 
     # Install SPEAR files to data/ and bin/
     cp -r ${CONDA_PREFIX}/repo/data/* ${CONDA_PREFIX}/data

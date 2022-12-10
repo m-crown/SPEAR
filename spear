@@ -60,8 +60,8 @@ def main():
         help = "Maximum number of flanking N's around deletion, default 2")
     consensus.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    consensus.add_argument('--baseline' , metavar='', type = str, default = "BA.2",
-        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
+    consensus.add_argument('--baseline' , metavar='', type = str, default = "BA.5",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.5.")
     consensus.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")  
     consensus.add_argument('--pangolin', default="accurate", type = str,
@@ -103,8 +103,8 @@ def main():
         help = "Maximum number of flanking N's around deletion, default 2")
     alignment.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    alignment.add_argument('--baseline' , metavar='', type = str, default = "BA.2",
-        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
+    alignment.add_argument('--baseline' , metavar='', type = str, default = "BA.5",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.5.")
     alignment.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")  
     alignment.add_argument('--pangolin', default="accurate", type = str,
@@ -132,8 +132,8 @@ def main():
         help = "Max number of threads for snakemake job execution.")
     vcf.add_argument('--baseline_scores' , metavar='', type = str,
         help = "Custom baseline scores file for use in summary report")
-    vcf.add_argument('--baseline' , metavar='', type = str, default = "BA.2",
-        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.2. Built-in options: BA.1 BA.1.1 BA.2 Omicron Delta Alpha")
+    vcf.add_argument('--baseline' , metavar='', type = str, default = "BA.5",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BA.5.")
     vcf.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")
     vcf.add_argument('--pangolin', default="accurate", type = str,
@@ -168,7 +168,7 @@ def main():
         Text.assemble(("/_    _\\", "bold")),
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
-        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.0.13", "bold red")),
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.1.0", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2022", "bold red"))]
     
     for item in logo:
@@ -181,7 +181,7 @@ def main():
         args.mask_problem_sites = None
         args.no_report = None
         args.baseline_scores = None
-        args.baseline = "BA.1"
+        args.baseline = "BA.5"
         args.no_product_plot = None
         args.debug = True
         args.tmp = False
@@ -292,12 +292,13 @@ def main():
                 passing_samples = []
                 samples_fail_chrom_name = []
                 for sample in input_samples:
-                    sample_name = subprocess.run(['bcftools', 'query',  '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
-                    sample_name = re.sub('[^a-zA-Z0-9]]', '_', sample_name)
+                    sample_name_old = subprocess.run(['bcftools', 'query',  '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
+                    sample_name = re.sub('[^a-zA-Z0-9]]', '_', sample_name_old)
                     header , vcf = parse_vcf(f'{args.input}/{sample}{extension}', split_info_cols = False)
                     if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
                         Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                         vcf["#CHROM"] = "NC_045512.2"
+                        vcf.rename(columns = {sample_name_old : sample_name})
                         write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
                         passing_samples.append(sample_name)
                     else:
@@ -397,19 +398,20 @@ def main():
                     console.print("[red]No samples to process, exiting.[/red]")
                     sys.exit(1)
             elif args.command == "vcf":
-                sample_name = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
-                sample_name = re.sub('[^a-zA-Z0-9]', '_', sample_name)
+                sample_name_old = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
+                sample_name = re.sub('[^a-zA-Z0-9]', '_', sample_name_old)
                 header , vcf = parse_vcf(f'{args.input}', split_info_cols = False)
                 if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
                     Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                     vcf["#CHROM"] = "NC_045512.2"
+                    vcf.rename(columns = {sample_name_old : sample_name}, inplace = True)
                     write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
                     passing_samples = [sample_name]
                     console.print(f'[green]Passing samples : {len(passing_samples)}')
                     table = ""
                 else:
                     console.print("[red]Sample has incorrect CHROM field, exiting.[/red]")
-                    sys.exit(1)              
+                    sys.exit(1)
             else:
                 passing_samples = []
                 samples_fail_perc_n = 0
@@ -505,10 +507,12 @@ def main():
         
         indir = f'{args.output}/input_files'
 
+        snakefile = f'{SPEAR_PATH}/bin/pipeline.smk'
         if single_sample: 
-            snakefile = f'{SPEAR_PATH}/bin/spear_single.smk'
+            singlesample = "True"
         else:
-            snakefile = f'{SPEAR_PATH}/bin/spear_multi.smk'
+            singlesample = "False"
+
         if args.no_report == True:
             report = False
         else:
@@ -532,14 +536,21 @@ def main():
             "consequence_type_variants",
             "region_residues",
             "domain_residues",
+            "feature_residues",
             "ACE2_contact_counts",
             "ACE2_contact_score",
             "trimer_contact_counts",
             "trimer_contact_score",
             "barns_class_variants",
-            "bloom_ACE2_sum",
-            "bloom_ACE2_max",
-            "bloom_ACE2_min",
+            "bloom_ACE2_wuhan_mean",
+            "bloom_ACE2_wuhan_max",
+            "bloom_ACE2_wuhan_min",
+            "bloom_ACE2_BA1_mean",
+            "bloom_ACE2_BA1_max",
+            "bloom_ACE2_BA1_min",
+            "bloom_ACE2_BA2_mean",
+            "bloom_ACE2_BA2_max",
+            "bloom_ACE2_BA2_min",
             "VDS_sum",
             "VDS_max",
             "VDS_min",
@@ -639,7 +650,8 @@ def main():
             "threads" : args.threads,
             "max_n" : cutoff, 
             "spear_params" : spear_params,
-            "per_sample_outputs" : per_sample_outputs}
+            "per_sample_outputs" : per_sample_outputs,
+            "single_sample" : singlesample}
         
         console.print(table)
 
@@ -663,7 +675,7 @@ def main():
             
             c = end_time - start_time
 
-            if not args.tmp:
+            if not args.tmp and not args.dag:
                 rmtree(f'{args.output}/intermediate_output/')
                 rmtree(f'{args.output}/input_files/')
             return 0
