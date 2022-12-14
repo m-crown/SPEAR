@@ -541,7 +541,7 @@ def main():
             "ACE2_contact_score",
             "trimer_contact_counts",
             "trimer_contact_score",
-            "barns_class_variants",
+            "barnes_class_variants",
             "bloom_ACE2_wuhan_mean",
             "bloom_ACE2_wuhan_max",
             "bloom_ACE2_wuhan_min",

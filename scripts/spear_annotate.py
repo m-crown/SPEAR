@@ -34,7 +34,7 @@ def annotate_residues(vcf, data_dir):
             return(ab_escape_fraction)
 
     spear_anno_file = pd.read_hdf(f'{data_dir}/spear_data.h5', "spear_anno_file")
-    spear_anno_file["mod_barns_class_mask_sum_gt0.75"] = spear_anno_file["mod_barns_class_mask_sum_gt0.75"].replace(["", np.nan], -1).astype(int)
+    spear_anno_file["mod_barnes_class_mask_sum_gt0.75"] = spear_anno_file["mod_barnes_class_mask_sum_gt0.75"].replace(["", np.nan], -1).astype(int)
     
     bloom_escape_all = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_all")
     bloom_escape_class1 = pd.read_hdf(f'{data_dir}/spear_data.h5', "bloom_escape_class1")
@@ -56,8 +56,8 @@ def annotate_residues(vcf, data_dir):
     pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions. 
     vcf["respos"] = vcf["residues"].str.extract(pattern).fillna(-1).astype("int")
     vcf["refres"] = vcf["residues"].str.extract(r"([a-zA-Z\*])+[0-9]+")
-    vcf = pd.merge(vcf,spear_anno_file[["ORF", "AA_coordinate","region", "domain", "feature", "contact_type", "NAb", "barns_class", "mod_barns_class_mask_sum_gt0.75", "product"]],left_on = ["product", "respos"], right_on = ["product","AA_coordinate"],how="left")
-    vcf["mod_barns_class_mask_sum_gt0.75"] = vcf["mod_barns_class_mask_sum_gt0.75"].replace("", -1).fillna(-1).astype(int)
+    vcf = pd.merge(vcf,spear_anno_file[["ORF", "AA_coordinate","region", "domain", "feature", "contact_type", "NAb", "barnes_class", "mod_barnes_class_mask_sum_gt0.75", "product"]],left_on = ["product", "respos"], right_on = ["product","AA_coordinate"],how="left")
+    vcf["mod_barnes_class_mask_sum_gt0.75"] = vcf["mod_barnes_class_mask_sum_gt0.75"].replace("", -1).fillna(-1).astype(int)
 
     vcf = pd.merge(vcf,bloom_ace2_file[["ORF", "mutation", "Wuhan_delta_bind", "BA1_delta_bind", "BA2_delta_bind"]], left_on = ["gene_name", "residues"], right_on = ["ORF", "mutation"], how = "left")
     vcf.drop(["ORF_x", "AA_coordinate"], axis = 1, inplace = True)
@@ -69,40 +69,40 @@ def annotate_residues(vcf, data_dir):
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) , "bloom_escape_all"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: extract_df_scores(bloom_escape_all, x["respos"], x["alt_res"]), axis=1)
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) , "serum_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["respos"] >= 331) & (vcf["respos"] <= 531)].apply(lambda x: extract_df_scores(greaney_serum_escape, x["respos"], x["alt_res"]), axis=1)
     
-    #make a copy of the barns classes to explode on
-    vcf["mod_barns_class"] = vcf["mod_barns_class_mask_sum_gt0.75"].replace(-1, "").fillna("").astype("str")
-    vcf["mod_barns_class"] = vcf["mod_barns_class"].fillna("")
-    vcf["mod_barns_class"] = vcf["mod_barns_class"].astype("str")
-    vcf.loc[vcf["mod_barns_class"] != "", "mod_barns_class"] = vcf.loc[vcf["mod_barns_class"] != "", "mod_barns_class"] + "*"
-    vcf.loc[(vcf["barns_class"] != "") & (vcf["mod_barns_class"] != ""), "mod_barns_class"] = vcf.loc[(vcf["barns_class"] != "") & (vcf["mod_barns_class"] != ""),"barns_class"] + "+" + vcf.loc[(vcf["barns_class"] != "") & (vcf["mod_barns_class"] != ""),"mod_barns_class"]
-    vcf.loc[vcf["mod_barns_class"] == "", "mod_barns_class"] = vcf.loc[vcf["mod_barns_class"] == "", "barns_class"]
-    vcf.loc[(vcf["barns_class"] == "") & (vcf["mod_barns_class"] != ""), "mod_barns_class"] = vcf["mod_barns_class"]
-    vcf["mod_barns_class"] = vcf["mod_barns_class"].str.split("+", expand = False)
-    vcf.loc[vcf["mod_barns_class"].notna() , "mod_barns_class"] = vcf.loc[vcf["mod_barns_class"].notna() , "mod_barns_class"].apply(lambda x: sorted(x, key = natural_key))
-    vcf.loc[vcf["mod_barns_class"].notna(), "mod_barns_class"] = vcf.loc[vcf["mod_barns_class"].notna(), "mod_barns_class"].str.join("+")
+    #make a copy of the barnes classes to explode on
+    vcf["mod_barnes_class"] = vcf["mod_barnes_class_mask_sum_gt0.75"].replace(-1, "").fillna("").astype("str")
+    vcf["mod_barnes_class"] = vcf["mod_barnes_class"].fillna("")
+    vcf["mod_barnes_class"] = vcf["mod_barnes_class"].astype("str")
+    vcf.loc[vcf["mod_barnes_class"] != "", "mod_barnes_class"] = vcf.loc[vcf["mod_barnes_class"] != "", "mod_barnes_class"] + "*"
+    vcf.loc[(vcf["barnes_class"] != "") & (vcf["mod_barnes_class"] != ""), "mod_barnes_class"] = vcf.loc[(vcf["barnes_class"] != "") & (vcf["mod_barnes_class"] != ""),"barnes_class"] + "+" + vcf.loc[(vcf["barnes_class"] != "") & (vcf["mod_barnes_class"] != ""),"mod_barnes_class"]
+    vcf.loc[vcf["mod_barnes_class"] == "", "mod_barnes_class"] = vcf.loc[vcf["mod_barnes_class"] == "", "barnes_class"]
+    vcf.loc[(vcf["barnes_class"] == "") & (vcf["mod_barnes_class"] != ""), "mod_barnes_class"] = vcf["mod_barnes_class"]
+    vcf["mod_barnes_class"] = vcf["mod_barnes_class"].str.split("+", expand = False)
+    vcf.loc[vcf["mod_barnes_class"].notna() , "mod_barnes_class"] = vcf.loc[vcf["mod_barnes_class"].notna() , "mod_barnes_class"].apply(lambda x: sorted(x, key = natural_key))
+    vcf.loc[vcf["mod_barnes_class"].notna(), "mod_barnes_class"] = vcf.loc[vcf["mod_barnes_class"].notna(), "mod_barnes_class"].str.join("+")
     
-    vcf["barns_class"] = vcf["barns_class"].str.split("+")
-    vcf = vcf.explode("barns_class")
-    vcf["barns_class"] = vcf["barns_class"].replace("", -1).fillna(-1).astype("int")
+    vcf["barnes_class"] = vcf["barnes_class"].str.split("+")
+    vcf = vcf.explode("barnes_class")
+    vcf["barnes_class"] = vcf["barnes_class"].replace("", -1).fillna(-1).astype("int")
 
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barns_class"] == 1), "mAb_class_1_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barns_class"] == 1)].apply(lambda x: extract_df_scores(bloom_escape_class1, x["respos"], x["alt_res"]), axis=1).fillna("")
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barns_class"] == 2), "mAb_class_2_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barns_class"] == 2)].apply(lambda x: extract_df_scores(bloom_escape_class2, x["respos"], x["alt_res"]), axis=1).fillna("")
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barns_class"] == 3), "mAb_class_3_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barns_class"] == 3)].apply(lambda x: extract_df_scores(bloom_escape_class3, x["respos"], x["alt_res"]), axis=1).fillna("")
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barns_class"] == 4), "mAb_class_4_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barns_class"] == 4)].apply(lambda x: extract_df_scores(bloom_escape_class4, x["respos"], x["alt_res"]), axis=1).fillna("")
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barnes_class"] == 1), "mAb_class_1_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barnes_class"] == 1)].apply(lambda x: extract_df_scores(bloom_escape_class1, x["respos"], x["alt_res"]), axis=1).fillna("")
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barnes_class"] == 2), "mAb_class_2_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barnes_class"] == 2)].apply(lambda x: extract_df_scores(bloom_escape_class2, x["respos"], x["alt_res"]), axis=1).fillna("")
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barnes_class"] == 3), "mAb_class_3_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barnes_class"] == 3)].apply(lambda x: extract_df_scores(bloom_escape_class3, x["respos"], x["alt_res"]), axis=1).fillna("")
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barnes_class"] == 4), "mAb_class_4_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["barnes_class"] == 4)].apply(lambda x: extract_df_scores(bloom_escape_class4, x["respos"], x["alt_res"]), axis=1).fillna("")
 
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barns_class_mask_sum_gt0.75"] == 1), "mAb_class_1_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barns_class_mask_sum_gt0.75"] == 1)].apply(lambda x: extract_df_scores(bloom_escape_class1, x["respos"], x["alt_res"]), axis=1).fillna("")
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barns_class_mask_sum_gt0.75"] == 2), "mAb_class_2_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barns_class_mask_sum_gt0.75"] == 2)].apply(lambda x: extract_df_scores(bloom_escape_class2, x["respos"], x["alt_res"]), axis=1).fillna("")
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barns_class_mask_sum_gt0.75"] == 3), "mAb_class_3_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barns_class_mask_sum_gt0.75"] == 3)].apply(lambda x: extract_df_scores(bloom_escape_class3, x["respos"], x["alt_res"]), axis=1).fillna("")
-    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barns_class_mask_sum_gt0.75"] == 4), "mAb_class_4_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barns_class_mask_sum_gt0.75"] == 4)].apply(lambda x: extract_df_scores(bloom_escape_class4, x["respos"], x["alt_res"]), axis=1)    
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barnes_class_mask_sum_gt0.75"] == 1), "mAb_class_1_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barnes_class_mask_sum_gt0.75"] == 1)].apply(lambda x: extract_df_scores(bloom_escape_class1, x["respos"], x["alt_res"]), axis=1).fillna("")
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barnes_class_mask_sum_gt0.75"] == 2), "mAb_class_2_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barnes_class_mask_sum_gt0.75"] == 2)].apply(lambda x: extract_df_scores(bloom_escape_class2, x["respos"], x["alt_res"]), axis=1).fillna("")
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barnes_class_mask_sum_gt0.75"] == 3), "mAb_class_3_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barnes_class_mask_sum_gt0.75"] == 3)].apply(lambda x: extract_df_scores(bloom_escape_class3, x["respos"], x["alt_res"]), axis=1).fillna("")
+    vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barnes_class_mask_sum_gt0.75"] == 4), "mAb_class_4_escape"] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["mod_barnes_class_mask_sum_gt0.75"] == 4)].apply(lambda x: extract_df_scores(bloom_escape_class4, x["respos"], x["alt_res"]), axis=1)    
     
     vcf["mAb_class_1_escape"] = vcf["mAb_class_1_escape"].fillna("").astype("str")
     vcf["mAb_class_2_escape"] = vcf["mAb_class_2_escape"].fillna("").astype("str")
     vcf["mAb_class_3_escape"] = vcf["mAb_class_3_escape"].fillna("").astype("str")
     vcf["mAb_class_4_escape"] = vcf["mAb_class_4_escape"].fillna("").astype("str")
 
-    vcf["mod_barns_class_mask_sum_gt0.75"] = vcf["mod_barns_class_mask_sum_gt0.75"].replace(-1, "").astype("str")
+    vcf["mod_barnes_class_mask_sum_gt0.75"] = vcf["mod_barnes_class_mask_sum_gt0.75"].replace(-1, "").astype("str")
 
-    cols = [e for e in vcf.columns.to_list() if e not in ("barns_class","mAb_class_1_escape", "mAb_class_2_escape", "mAb_class_3_escape", "mAb_class_4_escape")]
+    cols = [e for e in vcf.columns.to_list() if e not in ("barnes_class","mAb_class_1_escape", "mAb_class_2_escape", "mAb_class_3_escape", "mAb_class_4_escape")]
     vcf = vcf.groupby(cols, as_index = False, dropna = False).agg(set)
 
     vcf["mAb_class_1_escape"] = [''.join(map(str, l)) for l in vcf["mAb_class_1_escape"]]
@@ -116,8 +116,8 @@ def annotate_residues(vcf, data_dir):
     vcf["mAb_class_4_escape"] = vcf["mAb_class_4_escape"].replace("", np.nan).astype("float")
     
     
-    vcf["barns_class"] = vcf["mod_barns_class"]
-    vcf.drop(["mod_barns_class"], axis = 1 , inplace = True)
+    vcf["barnes_class"] = vcf["mod_barnes_class"]
+    vcf.drop(["mod_barnes_class"], axis = 1 , inplace = True)
 
     vcf["cm_mab_escape"] = vcf[["mAb_class_1_escape","mAb_class_2_escape","mAb_class_3_escape","mAb_class_4_escape"]].mean(axis=1)
     
@@ -125,8 +125,8 @@ def annotate_residues(vcf, data_dir):
     vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["alt_res"]), ["BEC_EF"]] = vcf.loc[(vcf["gene_name"] == "S") & (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"]) == False) & (vcf["respos"] >= 331) & (vcf["respos"] <= 531) & (vcf["refres"] != vcf["alt_res"]) & (vcf["respos"].isin(bindingcalc.sites))].apply(lambda x: get_bindingcalc_values(x["respos"], bindingcalc, "escape_fraction"), axis=1)
 
     vcf = vcf.fillna("")
-    vcf.loc[(vcf["refres"] == vcf["alt_res"]) | (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"])), ['region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'Wuhan_delta_bind', 'BA1_delta_bind', 'BA2_delta_bind', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']] = "" #remove scores from residues with same and alt and ref residue.
-    cols = ['product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'Wuhan_delta_bind', 'BA1_delta_bind', 'BA2_delta_bind', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
+    vcf.loc[(vcf["refres"] == vcf["alt_res"]) | (vcf["alt_res"].isin([np.nan, "del", "fs", "*", "?"])), ['region', 'domain', 'feature', 'contact_type', 'NAb', 'barnes_class', 'Wuhan_delta_bind', 'BA1_delta_bind', 'BA2_delta_bind', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']] = "" #remove scores from residues with same and alt and ref residue.
+    cols = ['product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barnes_class', 'Wuhan_delta_bind', 'BA1_delta_bind', 'BA2_delta_bind', 'mut_VDS', 'serum_escape', 'bloom_escape_all', 'cm_mab_escape', 'mAb_class_1_escape', 'mAb_class_2_escape', 'mAb_class_3_escape', 'mAb_class_4_escape', 'BEC_RES', 'BEC_EF']
     vcf["SPEAR"] = vcf[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
     all_cols = vcf.columns.tolist()
     vcf.drop([col for col in all_cols if col not in ["original_index" , '#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'AC','AN', 'ANN', 'SUM', "SPEAR", "problem_exc", "problem_filter" ]], axis = 1, inplace = True)
@@ -156,7 +156,7 @@ def main():
         df = df.replace(np.nan, '', regex=True)
         samples = vcf.iloc[:,vcf.columns.get_loc("FORMAT"):] #split format and sample columns into separate dataframe to prevent fragmentation whilst annotating
         samples["original_index"] = df["original_index"]
-        header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'product | residue | region | domain | feature | contact_type | NAb | barns_class | bloom_ace2_wuhan | bloom_ace2_BA1 | bloom_ace2_BA2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
+        header.append(f'##INFO=<ID=SPEAR,Number=.,Type=String,Description="SPEAR Tool Annotations: \'product | residue | region | domain | feature | contact_type | NAb | barnes_class | bloom_ace2_wuhan | bloom_ace2_BA1 | bloom_ace2_BA2 | VDS | serum_escape | mAb_escape | cm_mAb_escape | mAb_escape_class_1 | mAb_escape_class_2 | mAb_escape_class_3 | mAb_escape_class_4 | BEC_RES | BEC_EF | BEC_EF_sample  \'">') #MAKE VARIANT HEADER HGVS
         df = annotate_residues(df.copy(), args.data_dir)
 
         cols = [e for e in df.columns.to_list() if e not in ("problem_exc", "problem_filter", "ANN", "SUM", "SPEAR")]
