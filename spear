@@ -168,7 +168,7 @@ def main():
         Text.assemble(("/_    _\\", "bold")),
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
-        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.1.1", "bold red")),
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.1.2", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2022", "bold red"))]
     
     for item in logo:
