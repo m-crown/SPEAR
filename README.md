@@ -14,7 +14,7 @@ The SPEAR scoring system identifies both the potential immune escape and reduced
 
 ## Citation
 
-SPEAR is now published in *Bionformatics*, if you use SPEAR in your work please cite our paper:
+SPEAR is now published in *Bioinformatics*, if you use SPEAR in your work please cite our paper:
 
 Crown M, Teruel N, Najmanovich R, Basthon M. SPEAR: Systematic ProtEin AnnotatoR *Bioinformatics*, btac391, [https://doi.org/10.1093/bioinformatics/btac391](https://doi.org/10.1093/bioinformatics/btac391)
 
