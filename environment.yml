@@ -18,7 +18,7 @@ dependencies:
   - conda-forge::openjdk>=11.0.9.1
   - conda-forge::sed
   - conda-forge::unzip
-  - bioconda::grep
+  - grep
   - wget
   - conda-forge::pytables
   - pip
