@@ -316,15 +316,20 @@ def main():
 
         for score in scores:
             if score == "BEC_EF_sample":
-                score_subset = summary.loc[summary[score].isin([""]) == False, ["sample_id", "description", "residues", score]].copy()
-                score_subset[score] = score_subset[score].astype(float)
-                score_subset_df_sum = score_subset.groupby("sample_id").mean()
-                score_subset_df_sum.columns = [score]
-                score_df_list.append(score_subset_df_sum)
+                if not score_subset.empty:
+                    score_subset[score] = score_subset[score].astype(float)
+                    score_subset_df_sum = score_subset.groupby("sample_id")[score].mean()
+                    score_subset_df_sum.columns = [score]
+                    print(score_subset_df_sum)
+                    score_df_list.append(score_subset_df_sum)
+                else:
+                    score_subset_df_sum = pd.DataFrame({"sample_id": [], score:[]})
+                    score_df_list.append(score_subset_df_sum)
             else: 
                 score_subset = summary.loc[summary[score].isin([""]) == False, ["sample_id", "description", "residues", score]].copy()
                 score_subset[score] = score_subset[score].astype(float)
                 score_summary = summarise_score(score_subset, score)
+                print(score_summary)
                 score_df_list.append(score_summary)
 
         scores_df = reduce(lambda left,right: pd.merge(left,right,on="sample_id", how = "outer"), score_df_list)

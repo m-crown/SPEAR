@@ -629,6 +629,7 @@ def main():
                             A full table of protein feature mutation in each sample can be found <a href="plots/samples_feature_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
 
     else:
+        final_feature_counts = pd.DataFrame({"sample_id" : [] , "description" : [], "respos" : []})
         feature_table_plt = "No domain mutations present in any samples."
         feature_message = ""
     
@@ -1883,7 +1884,7 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 1.1.2 </p>
+                            <p> SPEAR Version 1.1.3 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
