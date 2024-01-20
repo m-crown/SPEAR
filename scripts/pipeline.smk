@@ -7,6 +7,7 @@ filter_sites_log = config["output_dir"] + "/intermediate_output/logs/filter_prob
 pangolin_input = expand(config["output_dir"] + "/input_files/{id}" + config["extension"], id = config["samples"]) if config["vcf"] == False else expand(config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa", id = config["samples"])
 annotate_out = config["output_dir"] + "/intermediate_output/snpeff/merged.ann.vcf"
 annotate_log = config["output_dir"] + "/intermediate_output/logs/snpeff/snpeff.log"
+summarise_out = config["output_dir"] + "/intermediate_output/merged.summary.tsv"
 spear_out = config["output_dir"] + "/all_samples.spear.vcf"
 spear_log = config["output_dir"] + "/intermediate_output/logs/spear/spear.log"
 summary_in = spear_out
@@ -120,10 +121,11 @@ rule spear_annotate:
    input:
       annotate_out
    output:
-      spear_out
+      summarise_out = summarise_out,
+      spear_out = spear_out
    log: spear_log
    shell:
-      "summarise_snpeff.py {output} {input} {config[data_dir]} ; spear_annotate.py {output} {output} {config[data_dir]} 2> {log}"
+      "summarise_snpeff.py {output.summarise_out} {input} {config[data_dir]} ; spear_annotate.py {output.spear_out} {output.summarise_out} {config[data_dir]} 2> {log}"
 
 rule annotate_variants:
    input:
