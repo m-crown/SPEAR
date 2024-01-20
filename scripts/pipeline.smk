@@ -164,25 +164,22 @@ rule merge_vcfs:
    shell:
       '''find {vcf_loc} -type f -name "*{vcf_ext}" > {config[output_dir]}/intermediate_output/merge_list.txt ; bcftools merge --no-index -m none -o {output} -l {config[output_dir]}/intermediate_output/merge_list.txt 2> {log}'''
 
-rule merge_qc:
-   input:
-      expand(config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv", id=config["samples"])
-   output:
       qc_file = config["output_dir"] + "/qc.csv"
-   log: config["output_dir"] + "/intermediate_output/logs/qc/qc.log"
-   shell:
-      '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  find {config[output_dir]}/intermediate_output/indels/ -type f -name "*.nperc.csv" -exec cat {{}} + >> {config[output_dir]}/qc.csv'''
-
 rule get_indels:
    input:
-      vcf_file = config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
-      aln = config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      vcf_file = expand(config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf"),
+      aln = expand(config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"])
    output:
-      snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
-      sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
+      snps_indels = expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf"),
+      qc_file = config["output_dir"] + "/qc.csv"
+   params:
+      vcf_dir = config["output_dir"] + "/intermediate_output/fatovcf/",
+      aln_dir = config["output_dir"] + "/intermediate_output/align/",
+      out_dir = config["output_dir"] + "/intermediate_output/indels/",
+      out_suffix = ".indels.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
    shell:
-      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.aln} NC_045512.2 {output.snps_indels} 2> {log}"
+      "get_indels.py --vcf-dir {params.vcf_dir} --alignments-dir {params.aln_dir} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.qc_file} --ref NC_045512.2 --output_dir {params.out_dir} --out-suffix {params.out_suffix} 2> {log}"
 
 rule get_snps:
    input:
