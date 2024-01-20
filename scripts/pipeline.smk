@@ -168,19 +168,19 @@ rule merge_vcfs:
 
 rule get_indels:
    input:
-      vcf_file = expand(config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf"),
-      aln = expand(config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"])
+      vcf_file = expand(config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf", id=cponfig["samples"]),
+      aln = expand(config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"], id=config["samples"])
    output:
-      snps_indels = expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf"),
+      snps_indels = expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf", id=config["samples"]),
       qc_file = config["output_dir"] + "/qc.csv"
    params:
       vcf_dir = config["output_dir"] + "/intermediate_output/fatovcf/",
       aln_dir = config["output_dir"] + "/intermediate_output/align/",
       out_dir = config["output_dir"] + "/intermediate_output/indels/",
       out_suffix = ".indels.vcf"
-   log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
+   log: config["output_dir"] + "/intermediate_output/logs/indels/indels.log"
    shell:
-      "get_indels.py --vcf-dir {params.vcf_dir} --alignments-dir {params.aln_dir} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.qc_file} --ref NC_045512.2 --output_dir {params.out_dir} --out-suffix {params.out_suffix} 2> {log}"
+      "get_indels.py --vcf-dir {params.vcf_dir} --alignments-dir {params.aln_dir} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.qc_file} --ref NC_045512.2 --out-dir {params.out_dir} --out-suffix {params.out_suffix} 2> {log}"
 
 rule get_snps:
    input:
