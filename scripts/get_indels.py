@@ -71,7 +71,7 @@ def get_indels(reference, sample, window, allow_ambiguous):
     vcf = pd.DataFrame.from_records([sub.split("\t") for sub in vcf[1:]], columns = vcf[0].split(sep="\t"))
     return vcf
 
-def calculate_n_coverage(ref, sample, sample_name, outpath):
+def calculate_n_coverage(ref, sample, sample_name):
     #first need to work out where S gene begins and ends in the sample (may be different due to insertions compared to ref length)
     pre_s = str(ref.seq[:21562])
     pre_s_ref_indels = pre_s.count("-")
@@ -93,7 +93,7 @@ def calculate_n_coverage(ref, sample, sample_name, outpath):
     rbd_n_nts = sample_rbd.count("N")
     ncov = {"sample" : sample_name , "global_n" : global_n_perc, "s_n" : s_n_perc, "longest_continuous_s_n": contig_S_n_len, "rbd_n_nts" : rbd_n_nts}
     n_cov_info = pd.DataFrame([ncov])
-    n_cov_info.to_csv(outpath, index = False, header = False)
+    return n_cov_info
     #22520 - 23186
 def main():
     parser = argparse.ArgumentParser(description='')
