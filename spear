@@ -18,6 +18,25 @@ from rich import box
 import datetime
 import pandas as pd
 
+def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_list_only = False):
+    anno_file["nt_aa_compound"] = anno_file.REF + anno_file.POS.astype("str") + anno_file.ALT + "_" + anno_file.residues
+
+    lineage_counts = anno_file.loc[anno_file.lineage == lineage, "sample_id"].nunique()
+    mutation_counts = anno_file.loc[anno_file.lineage == lineage].groupby("description").nt_aa_compound.value_counts().rename("count").reset_index()
+
+    if mutation_list_only:
+        representative_mutations = mutation_counts.loc[(mutation_counts["count"] >= (lineage_counts * cutoff)), "nt_aa_compound"]
+        representative_mutations[["nucleotide_mutation", "residue_mutation"]] = representative_mutations.nt_aa_compound.str.split("_", expand = True)
+        representative_mutations.drop(columns = "nt_aa_compound", inplace = True)
+    else:
+        representative_mutations = mutation_counts.loc[(mutation_counts["count"] >= (lineage_counts * cutoff))].copy()
+        representative_mutations[["nucleotide_mutation", "residue_mutation"]] = representative_mutations.nt_aa_compound.str.split("_", expand = True)
+        representative_mutations.drop(columns = "nt_aa_compound", inplace = True)
+        representative_mutations["sample_count"] = lineage_counts
+        representative_mutations["lineage"] = lineage
+
+    return(representative_mutations)
+
 def main():
     parser = argparse.ArgumentParser('spear')   
 
@@ -26,6 +45,7 @@ def main():
     alignment = subparsers.add_parser('alignment', help='Run SPEAR on alignment in FASTA format (skip alignment).')  
     vcf = subparsers.add_parser('vcf', help='Run SPEAR on existing VCF file(s) - skip alignment and SNP/indel identification and ambiguous SNP filtering.') 
     update = subparsers.add_parser('update', help='Update [spear,data,all]') 
+    representative = subparsers.add_parser('representative', help='Obtain representative mutations for a given set of sequences (requires SPEAR annotation file)') 
     demo = subparsers.add_parser('demo', help='Run SPEAR demo on lineage VCFs') 
 
     consensus.add_argument('--debug', default = True, action='store_false',
@@ -148,6 +168,16 @@ def main():
     update.add_argument('option', type = str,
         help="Update option : spear, all-data or all")
     
+    representative.add_argument('--anno_file', metavar = '', type = str, required = True)
+    representative.add_argument('--lineage_file', metavar = '', type = str, required = True, 
+                                help = "Lineage file from pangolin lineage assignment or user-defined. Must contain column headers taxon (sample_id in SPEAR annotation) and lineage.")
+    representative.add_argument('--lineage', metavar = '', type = str)
+    representative.add_argument('--cutoff', metavar = '', type = float, default = 0.85)
+    representative.add_argument('--mutation_list_only', default=False, action='store_true')
+    representative.add_argument('--output_dir', metavar = '', type = str, default = "representative_mutations",
+                                help= "Output file name for representative mutations")
+    representative.add_argument('--output_suffix', metavar = '', type = str, default = "representative_mutations",
+                                help= "Output file name suffix")
 
     args = parser.parse_args()
     start_time = datetime.datetime.now()
@@ -169,7 +199,7 @@ def main():
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
         Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.1.3", "bold red")),
-        Text.assemble(("Matt Crown, Matt Bashton 2021-2022", "bold red"))]
+        Text.assemble(("Matt Crown, Matt Bashton 2021-2024", "bold red"))]
     
     for item in logo:
         grid.add_row(item)
@@ -205,9 +235,46 @@ def main():
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
 
-    elif args.command not in ["alignment", "consensus", "vcf", "demo"]:
+    elif args.command == "representative":
+        #add some intro text to describe what is happening, sample counts etc.
+        Path(f'{args.output_dir}').mkdir(parents=True, exist_ok=True)
+        anno_file = pd.read_csv(args.anno_file, sep = '\t')
+        lineage_file = pd.read_csv(args.lineage_file)
+        lineage_file = lineage_file[["taxon", "lineage"]].copy()
+        anno_file = anno_file.merge(lineage_file, left_on = "sample_id", right_on = "taxon", how = "left")
+        if anno_file.lineage.isna().any():
+            console.print("[red]Warning : some samples do not have a lineage assignment. These will be excluded from representative mutation analysis.[/red]")
+            anno_file = anno_file.loc[~anno_file.lineage.isna()].copy()
+        lineage_sample_counts = anno_file.groupby("lineage").sample_id.nunique()
+        if any(lineage_sample_counts < 5):
+            console.print("[red]Warning : some lineages have less than 5 samples. These will be excluded from representative mutation analysis.[/red]")
+            anno_file = anno_file.loc[anno_file.lineage.isin(lineage_sample_counts.index[lineage_sample_counts >= 5])].copy()
+        if len(anno_file) == 0:
+            console.print("[red]Error : no samples found with lineage assignment. Exiting.[/red]")
+            sys.exit(1)
+        if args.lineage != None:
+            mutations = get_representative_mutations(anno_file, args.lineage, cutoff = args.cutoff, mutation_list_only = args.mutation_list_only)
+            mutations.to_csv(f'{args.output_dir}/{lineage.replace(".", "_")}_{args.output_suffix}.tsv', sep = '\t', index = False)
+        else:
+            for lineage in anno_file.lineage.unique():
+                mutations = get_representative_mutations(anno_file, lineage, cutoff = args.cutoff, mutation_list_only = args.mutation_list_only)
+                mutations.to_csv(f'{args.output_dir}/{lineage.replace(".", "_")}_{args.output_suffix}.tsv', sep = '\t', index = False)
+
+            if args.mutation_list_only:
+                mutations.to_csv(f'{args.output_dir}/{lineage.replace(".", "_")}_{args.output_suffix}.tsv', sep = '\t', index = False)
+            else:
+                mutations.to_csv(f'{args.output_dir}/{lineage.replace(".", "_")}_{args.output_suffix}.tsv', sep = '\t', index = False)
+        table = Table(show_header=True, header_style="bold magenta", title = "Test", caption = "test", caption_justify = "center")
+        mutations = mutations.applymap(str)
+        for column in mutations.columns:
+            table.add_column(column)
+        for row in mutations.itertuples(index = False):
+            table.add_row(*row)
+        console.print(table)
+
+    elif args.command not in ["alignment", "consensus", "vcf", "demo", "representative"]:
         parser.print_help()
-        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'update', 'demo')")
+        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'representative', 'update', 'demo')")
         sys.exit(1)
 
     else:
@@ -243,6 +310,10 @@ def main():
             extension = args.extension
 
         #setting the sample list for input to snakemake. Filtering based on N percentage and ensuring inputs have correct number of sequences. 
+        #run seqkit fx2tab {input_file} -B  N --name on file to get N perc and output to file, as subsystem command and retrieve stdout to pandas df.
+        #subprocess.run(['seqkit', 'fx2tab', f'{args.input}/*{extension}', '-B', 'N', '--name'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
+        
+        
         if os.path.isdir(args.input):
             single_sample = False
             input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
