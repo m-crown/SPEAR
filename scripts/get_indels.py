@@ -96,89 +96,80 @@ def calculate_n_coverage(ref, sample, sample_name):
     n_cov_info = pd.DataFrame([ncov])
     return n_cov_info
     #22520 - 23186
-def main():
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument('alignment', metavar='sample.muscle.aln', type=str,
-        help='input alignment in fasta format')
-    parser.add_argument('ref', metavar='MN908947.3', type=str,
-        help='reference sequence')
-    parser.add_argument('outfile', metavar="", type = str,
-        help="output filename") #HAVE AN INITIAL CHECK AFTER READING IN SAMPLE, default is sample name as read from muscle alignment
-    parser.add_argument('--vcf', metavar="", type = str,
-        help="input vcf file for merging snps and indels")
-    parser.add_argument('--window', metavar="", type = int, default = 2,
-        help="flanking N filter for indels, set to 0 for off")
-    parser.add_argument('--tsv', metavar="sample.indels.tsv", type = str,
-        help="output file path for indels in tsv format")
-    parser.add_argument('--nperc', metavar="sample.nperc.csv", type = str,
-        help="output file path for n-percentage csv")   
-    parser.add_argument('--allowAmbiguous', default=False, action='store_true',
-        help = "Toggle whether to exclude ambiguous bases in SNPs and insertions")
-    args = parser.parse_args()
 
+def process_sample(alignment_file, ref, outdir, vcf_dir, window, allow_ambiguous, out_suffix):
     ref_aliases = ["NC_045512.2", "MN908947.3"]
-    if args.ref in ref_aliases:
+    if ref in ref_aliases:
         ref = "NC_045512.2"
     else:
-        ref = args.ref
+        ref = ref
 
-    for record in SeqIO.parse(args.alignment, "fasta"):
-        if record.id == args.ref:
+    for record in SeqIO.parse(alignment_file, "fasta"):
+        if record.id == ref:
             reference = record
         else:
             sample = record
-
+    outfile = os.path.join(outdir, f"{sample.id}{out_suffix}")
     sample = mask_trimmed_sequence(sample)
-    indels = get_indels(reference, sample, args.window, args.allowAmbiguous)
-    calculate_n_coverage(reference,sample, sample.id, args.nperc)
-    if args.tsv:
-        indels.to_csv(args.tsv, mode='w', index = False, sep = "\t")
-    if args.vcf:
-        snps_header, snps = parse_vcf(args.vcf, split_info_cols=False)
-        snps["POS"] = snps["POS"].astype(int)
-        mnps_index = []
-        mnps_pos = []
-        for i in range(1, len(snps)):
-            x = 0
-            mnp_index = []
-            mnp_pos = []
-            if any((i + x) in sl for sl in mnps_index): #check if 
-                continue
-            else:
-                while ((i + x) < len(snps)) and (snps.loc[i + x, "POS"] - snps.loc[i + x -1, "POS"] == 1): #while not at end of snps and snps are consecutive positions
-                    if x == 0: #if this is the first snp in an mnp
-                        mnp_index.append(i + x -1)
-                        mnp_pos.append(snps.loc[i + x -1, "POS"])
-                        mnp_index.append(i + x)
-                        mnp_pos.append(snps.loc[i + x, "POS"])
-                    else: #if not the first snp in the mnp
-                        mnp_index.append(i + x)
-                        mnp_pos.append(snps.loc[i + x, "POS"])
-                    x += 1
-            if len(mnp_index) > 0:
-                mnps_index.append(mnp_index)
-                mnps_pos.append(mnp_pos)
-        for index, pos in zip(mnps_index, mnps_pos):
-            #set the first snp to be the MNP and then drop all the others
-            snps.loc[index[0],["ID"]] = "."
-            #join together the ref and alt alleles from multiple rows in VCF using list comprehension after converting the pandas subset to list of lists. Then turn into string. 
-            snps.loc[index[0],["REF"]] = ''.join([item for sublist in snps.loc[[ind for ind in index],["REF"]].values.tolist() for item in sublist])
-            snps.loc[index[0],["ALT"]] = ''.join([item for sublist in snps.loc[[ind for ind in index],["ALT"]].values.tolist() for item in sublist])
-            snps = snps.drop(index[1:])
+    indels = get_indels(reference, sample, window, allow_ambiguous)
+    sample_n_cov_info = calculate_n_coverage(reference, sample, sample.id)
 
-        snps = snps.loc[snps["POS"].astype("int").isin(indels["POS"].astype("int").values.tolist()) == False]              
-        fatovcf = pd.concat([indels,snps])
+    if vcf_dir is not None:
+        vcf_file = os.path.join(vcf_dir, f"{sample.id}.vcf")
+        snps_header, snps = parse_vcf(vcf_file, split_info_cols=False)
+        snps["POS"] = snps["POS"].astype(int)
+        snps["group"] = (snps["POS"].diff() != 1).cumsum()
+        agg_cols = {"POS": "first", "REF": lambda x: ''.join(x), "ALT": lambda x: ''.join(x),
+                    "QUAL": "first", "INFO": "first", sample.id: "first", "FILTER": "first", "FORMAT": "first"}
+        snps = snps.groupby("group").agg(agg_cols)
+        snps["ID"] = snps["REF"] + snps["POS"].astype("str") + snps["ALT"]
+
+        snps = snps.loc[snps["POS"].astype("int").isin(indels["POS"].astype("int").values.tolist()) == False]
+        fatovcf = pd.concat([indels, snps])
         fatovcf["POS"] = fatovcf["POS"].astype(int)
-        fatovcf = fatovcf.sort_values(by = ["POS"], ascending = True)
+        fatovcf = fatovcf.sort_values(by=["POS"], ascending=True)
         fatovcf["#CHROM"] = ref
-        write_vcf(snps_header, fatovcf,args.outfile) #output the vcf header and body to file 
+        write_vcf(snps_header, fatovcf, outfile)
     else:
         indels["POS"] = indels["POS"].astype(int)
-        indels = indels.sort_values(by = ["POS"], ascending = True)
+        indels = indels.sort_values(by=["POS"], ascending=True)
         csv_vcf = indels
         csv_vcf["#CHROM"] = sample.id
-        csv_vcf.to_csv(args.outfile, mode='w', index = False, sep = "\t") #this file is only really necessary for comparison exercise
-        write_vcf([], indels, args.outfile) #output the vcf header and body to file 
+        write_vcf([], indels, outfile)
+    return sample_n_cov_info
 
+def main():
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--alignments-dir', metavar='path/to/alignments', type=str,
+                        help='Directory containing alignment files in fasta format')
+    parser.add_argument('--vcf-dir', metavar='path/to/vcfs', type=str,
+                        help='Directory containing VCF files for merging SNPs and indels')
+    parser.add_argument('--ref', metavar='MN908947.3', type=str,
+                        help='Reference sequence')
+    parser.add_argument('--out-dir', metavar='output_dir', type=str,
+                        help="Output directory for processed files")
+    parser.add_argument('--window', metavar="", type=int, default=2,
+                        help="Flanking N filter for indels, set to 0 for off")
+    parser.add_argument('--nperc', metavar="sample.nperc.csv", type=str,
+                        help="Output file path for n-percentage csv")
+    parser.add_argument('--allowAmbiguous', default=False, action='store_true',
+                        help="Toggle whether to exclude ambiguous bases in SNPs and insertions")
+    parser.add_argument('--out-suffix', metavar="", type=str, default = ".indels.vcf")
+    args = parser.parse_args()
+
+    alignments_dir = args.alignments_dir
+    vcf_dir = args.vcf_dir
+    ref = args.ref
+    out_dir = args.out_dir
+    all_sample_n_cov_info = []
+    for alignment_file in os.listdir(alignments_dir):
+        if alignment_file.endswith(".fasta") or alignment_file.endswith(".fa"):
+            sample_n_cov_info = process_sample(os.path.join(alignments_dir, alignment_file), ref, out_dir, vcf_dir,
+                           args.window, args.allowAmbiguous, args.out_suffix)
+            all_sample_n_cov_info.append(sample_n_cov_info)
+    n_cov_info_df = pd.concat(all_sample_n_cov_info)
+    
+    n_cov_info_df.to_csv(args.nperc, index = False)
+            
 if __name__ == "__main__":
     main()
