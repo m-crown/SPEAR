@@ -5,6 +5,7 @@ from Bio import SeqIO
 import re
 from summarise_snpeff import parse_vcf, write_vcf
 import pandas as pd
+import os
 
 #need to have a flag to exclude ambiguous indels in get_indels to go alongside excluding ambiguous snps from fatovcf
 def mask_trimmed_sequence(sample):

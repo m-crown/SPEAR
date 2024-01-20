@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 import re
 from shutil import copy
+import os
 
 def convert_snpeff_annotation(vcf, gb_mapping, locus_tag_mapping, respos_df):
 
@@ -188,10 +189,14 @@ def write_vcf(header,body, output_filename):
   Function writes a vcf file. Two-step process writes header first, then appends a
   vcf file body parsed with parse_vcf using df.to_csv.
   '''
-  with open(output_filename, 'w') as f:
-      for item in header:
-          f.write("%s\n" % item)
-  body.to_csv(output_filename, mode='a', index = False, sep = "\t")
+  #if file exists already raise warning and exit
+  if os.path.exists(output_filename):
+    raise Exception("Error: file already exists, try again with a different filename")
+  else:
+    with open(output_filename, 'a') as f:
+        for item in header:
+            f.write("%s\n" % item)
+        body.to_csv(f, index = False, sep = "\t")
 
 def main():
   parser = argparse.ArgumentParser(description='')
