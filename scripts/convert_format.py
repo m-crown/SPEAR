@@ -154,7 +154,7 @@ def main():
 
         input_file["SPEAR"] = input_file["SPEAR"].str.split(",", expand = False)
         input_file = input_file.explode("SPEAR")
-        input_file[["spear-product", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = input_file["SPEAR"].str.split("|", expand = True)
+        input_file[["spear-product", "residues","region", "domain", "feature", "contact_type", "NAb", "barnes_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF"]] = input_file["SPEAR"].str.split("|", expand = True)
         input_file = input_file.loc[input_file["product"] == input_file["spear-product"]]
         pattern = re.compile(r"[a-zA-Z\*]+([0-9]+)") #matches any point mutations or deletions , not insertions.
         input_file["respos"] = input_file["residues"].str.extract(pattern).fillna(-1).astype("int")
@@ -185,7 +185,7 @@ def main():
         input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]] = np.log10(1/input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]].replace("", np.nan).astype("float64"))
         input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]] = input_file[['bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2"]].fillna("")
         final_samples = input_file.copy()
-        cols = ['spear-product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barns_class', 'bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2", 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
+        cols = ['spear-product', 'residues', 'region', 'domain', 'feature', 'contact_type', 'NAb', 'barnes_class', 'bloom_ACE2_wuhan', "bloom_ACE2_BA1", "bloom_ACE2_BA2", 'VDS', 'serum_escape', 'mAb_escape_all_classes', 'cm_mAb_escape_all_classes', 'mAb_escape_class_1', 'mAb_escape_class_2', 'mAb_escape_class_3', 'mAb_escape_class_4', 'BEC_RES', 'BEC_EF', 'BEC_EF_sample']
         final_samples["SPEAR"] = final_samples[cols].apply(lambda row: '|'.join(row.values.astype(str)), axis=1)
         all_cols = final_samples.columns.tolist()
         final_samples.drop([col for col in all_cols if col not in original_cols], axis = 1, inplace = True)
@@ -215,9 +215,9 @@ def main():
         else:
             rmtree(f'{args.output_dir}/final_vcfs/')        
 
-        cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
+        cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barnes_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
         input_file = input_file[cols]
-        input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "feature", "contact_type", "NAb", "barns_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
+        input_file.columns = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.nt", "consequence_type", "HGVS", "description", "RefSeq_acc", "residues","region", "domain", "feature", "contact_type", "NAb", "barnes_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES", "BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"] 
         input_file[[col for col in input_file.columns if col not in ["refres", "altres", "respos"]]].to_csv(f'{args.output_dir}/spear_annotation_summary.tsv', sep = "\t", index = False)
         if args.per_sample_outputs == "True":
             for sample in sample_list:
@@ -295,32 +295,37 @@ def main():
         trimer_contacts_sum = contacts_counts.loc[contacts_counts["contact"]=="trimer",["sample_id", "contact_type"]]
         trimer_contacts_sum.columns = ["sample_id", "trimer_contact_counts"]
 
-        barns = summary[["sample_id", "description","barns_class"]].copy()
+        barnes = summary[["sample_id", "description","barnes_class"]].copy()
 
-        if barns["barns_class"].isin([""]).all():
-            barns_counts_grouped = pd.DataFrame(data = {"sample_id" : barns["sample_id"].unique()})
-            barns_counts_grouped["barns_class_variants"] = ""
+        if barnes["barnes_class"].isin([""]).all():
+            barnes_counts_grouped = pd.DataFrame(data = {"sample_id" : barnes["sample_id"].unique()})
+            barnes_counts_grouped["barnes_class_variants"] = ""
         else: 
-            barns["barns_class"] = barns["barns_class"].str.split(",")
-            barns = barns.explode(["barns_class"])
-            barns["barns_class"] = barns["barns_class"].str.split("+")
-            barns_counts = barns.explode(["barns_class"]).replace(r'^\s*$', np.nan, regex=True).dropna()
-            barns_counts["barns_class_name"] = "class_" + barns_counts['barns_class']
-            barns_counts_grouped = barns_counts[["sample_id", "barns_class_name", "barns_class"]].groupby(["sample_id", "barns_class_name"]).count().reset_index().sort_values(["sample_id", "barns_class"], ascending = [True, False])
-            barns_counts_grouped["barns_class_variants"] = barns_counts_grouped["barns_class_name"] + ":" + barns_counts_grouped["barns_class"].astype("str")
-            barns_counts_grouped = barns_counts_grouped[["sample_id", "barns_class_variants"]].groupby("sample_id").agg({"barns_class_variants" : lambda x : list(x)})
-            barns_counts_grouped["barns_class_variants"] = barns_counts_grouped["barns_class_variants"].str.join(",")
+            barnes["barnes_class"] = barnes["barnes_class"].str.split(",")
+            barnes = barnes.explode(["barnes_class"])
+            barnes["barnes_class"] = barnes["barnes_class"].str.split("+")
+            barnes_counts = barnes.explode(["barnes_class"]).replace(r'^\s*$', np.nan, regex=True).dropna()
+            barnes_counts["barnes_class_name"] = "class_" + barnes_counts['barnes_class']
+            barnes_counts_grouped = barnes_counts[["sample_id", "barnes_class_name", "barnes_class"]].groupby(["sample_id", "barnes_class_name"]).count().reset_index().sort_values(["sample_id", "barnes_class"], ascending = [True, False])
+            barnes_counts_grouped["barnes_class_variants"] = barnes_counts_grouped["barnes_class_name"] + ":" + barnes_counts_grouped["barnes_class"].astype("str")
+            barnes_counts_grouped = barnes_counts_grouped[["sample_id", "barnes_class_variants"]].groupby("sample_id").agg({"barnes_class_variants" : lambda x : list(x)})
+            barnes_counts_grouped["barnes_class_variants"] = barnes_counts_grouped["barnes_class_variants"].str.join(",")
 
         scores = ["bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1", "mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4","BEC_EF_sample"]
-        score_df_list = [total_variants, sample_residue_variant_number, type_string, region_counts,domain_counts, feature_counts, ace2_contacts_sum,ace2_contacts_score,trimer_contacts_sum,trimer_contacts_score, barns_counts_grouped]
+        score_df_list = [total_variants, sample_residue_variant_number, type_string, region_counts,domain_counts, feature_counts, ace2_contacts_sum,ace2_contacts_score,trimer_contacts_sum,trimer_contacts_score, barnes_counts_grouped]
 
         for score in scores:
             if score == "BEC_EF_sample":
                 score_subset = summary.loc[summary[score].isin([""]) == False, ["sample_id", "description", "residues", score]].copy()
-                score_subset[score] = score_subset[score].astype(float)
-                score_subset_df_sum = score_subset.groupby("sample_id").mean()
-                score_subset_df_sum.columns = [score]
-                score_df_list.append(score_subset_df_sum)
+                if not score_subset.empty:
+                    score_subset[score] = score_subset[score].astype(float)
+                    score_subset_df_sum = score_subset.groupby("sample_id")[score].mean()
+                    score_subset_df_sum.columns = [score]
+                    
+                    score_df_list.append(score_subset_df_sum)
+                else:
+                    score_subset_df_sum = pd.DataFrame({"sample_id": [], score:[]})
+                    score_df_list.append(score_subset_df_sum)
             else: 
                 score_subset = summary.loc[summary[score].isin([""]) == False, ["sample_id", "description", "residues", score]].copy()
                 score_subset[score] = score_subset[score].astype(float)
@@ -329,7 +334,7 @@ def main():
 
         scores_df = reduce(lambda left,right: pd.merge(left,right,on="sample_id", how = "outer"), score_df_list)
         scores_df = scores_df.sort_values(by = ["sample_id"], ascending = True).fillna("")
-        scores_df.rename(columns={'mAb_escape_sum':'mAb_escape_all_classes_sum', 'mAb_escape_min':'mAb_escape_all_classes_min', 'mAb_escape_max':'mAb_escape_all_classes_max', 'cm_mAb_escape_sum':'cm_mAb_escape_all_classes_sum', 'cm_mAb_escape_min':'cm_mAb_escape_all_classes_min', 'cm_mAb_escape_max':'cm_mAb_escape_all_classes_max'}, inplace=True)
+        scores_df.rename(columns={'barnes_class_variants' : 'barnes_class_variants', 'mAb_escape_sum':'mAb_escape_all_classes_sum', 'mAb_escape_min':'mAb_escape_all_classes_min', 'mAb_escape_max':'mAb_escape_all_classes_max', 'cm_mAb_escape_sum':'cm_mAb_escape_all_classes_sum', 'cm_mAb_escape_min':'cm_mAb_escape_all_classes_min', 'cm_mAb_escape_max':'cm_mAb_escape_all_classes_max'}, inplace=True)
         scores_df.to_csv(f'{args.output_dir}/spear_score_summary.tsv' , sep = "\t", index = False)
     else:
         if args.per_sample_outputs == "True":

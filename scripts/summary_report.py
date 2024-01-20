@@ -629,6 +629,7 @@ def main():
                             A full table of protein feature mutation in each sample can be found <a href="plots/samples_feature_table.html">here</a> and in <code>spear_annotation_summary.tsv</code>'''
 
     else:
+        final_feature_counts = pd.DataFrame({"sample_id" : [] , "description" : [], "respos" : []})
         feature_table_plt = "No domain mutations present in any samples."
         feature_message = ""
     
@@ -1016,7 +1017,7 @@ def main():
 
     #MAKING A SCORES TABLE COLOURED WHERE SAMPLE SCORE SUM EXCEEDS BASELINE
     scores_cols = baseline_scores.columns.tolist()
-    non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues', 'feature_residues', 'ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barns_class_variants','bloom_ACE2_wuhan_max', "bloom_ACE2_wuhan_min", 'bloom_ACE2_BA1_min', 'bloom_ACE2_BA1_max', 'bloom_ACE2_BA1_min', 'bloom_ACE2_BA2_max', 'bloom_ACE2_BA2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_RES_sum']
+    non_displayed_scores = ['total_variants', 'total_residue_variants','consequence_type_variants', 'region_residues', 'domain_residues', 'feature_residues', 'ACE2_contact_counts', 'ACE2_contact_score', 'trimer_contact_counts','trimer_contact_score', 'barnes_class_variants','bloom_ACE2_wuhan_max', "bloom_ACE2_wuhan_min", 'bloom_ACE2_BA1_min', 'bloom_ACE2_BA1_max', 'bloom_ACE2_BA1_min', 'bloom_ACE2_BA2_max', 'bloom_ACE2_BA2_min', 'VDS_max', 'VDS_min', 'serum_escape_max', 'serum_escape_min', 'cm_mAb_escape_all_classes_max','cm_mAb_escape_all_classes_min','mAb_escape_all_classes_max', 'mAb_escape_all_classes_min', 'mAb_escape_class_1_max', 'mAb_escape_class_1_min', 'mAb_escape_class_2_max', 'mAb_escape_class_2_min', 'mAb_escape_class_3_max', 'mAb_escape_class_3_min', 'mAb_escape_class_4_max', 'mAb_escape_class_4_min', 'BEC_RES_max', 'BEC_RES_min', 'BEC_RES_sum']
     displayed_scores_cols = [score for score in scores_cols if score not in non_displayed_scores]
     sample_scores = scores_summary[displayed_scores_cols]
     sample_scores = sample_scores.replace("", np.nan).dropna(axis=1, how = "all") #remove empty cols from table to be displayed (do this later for the graph table to allow subtraction of baseline array)
@@ -1883,7 +1884,7 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 1.1.0 </p>
+                            <p> SPEAR Version 1.1.3 </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
