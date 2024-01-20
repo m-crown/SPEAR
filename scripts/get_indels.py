@@ -2,8 +2,6 @@
 
 import argparse
 from Bio import SeqIO
-from pathlib import Path
-from re import finditer
 import re
 from summarise_snpeff import parse_vcf, write_vcf
 import pandas as pd
@@ -20,7 +18,7 @@ def get_indels(reference, sample, window, allow_ambiguous):
     offset = 0 #offset used when insertions detected, subsequent indels should be shifted by this offset
     indels = []
     #find insertions from reference sequence
-    for match in finditer("-+", str(reference.seq)):
+    for match in re.finditer("-+", str(reference.seq)):
         ref = match.start() - 1 #the 0 based index position of the last ref base before indel
         length = len(match.group()) #length of the indel itself
         ins_end = ref + length + 1
@@ -29,7 +27,7 @@ def get_indels(reference, sample, window, allow_ambiguous):
         indel = {"type": "insertion","pos": ref, "ref_base": ref_base, "alt_base": alt_base, "length": length}
         indels.append(indel)
     #find deletions from sample
-    for match in finditer("-+", str(sample.seq)):
+    for match in re.finditer("-+", str(sample.seq)):
         ref = match.start() - 1
         length = len(match.group())
         ins_end = ref + length + 1
@@ -38,30 +36,22 @@ def get_indels(reference, sample, window, allow_ambiguous):
         indel = {"type": "deletion","pos": ref, "ref_base": ref_base, "alt_base": alt_base, "length": length}
         indels.append(indel)
     indels = sorted(indels, key=lambda d: d['pos'])
+    if allow_ambiguous:
+        iupac_chars = ["N"]
+    else:
+        iupac_chars = ["R", "Y", "S", "W", "K", "M", "B", "D", "H", "V", "N"]
     for indel in indels:
         current_offset = offset
-        if allow_ambiguous:
-            iupac_chars = ["N"]
-            if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
-                offset += indel["length"] #still have to iterate the offset but dont mark the variant
-                if any(char in indel["alt_base"][1:] for char in iupac_chars): 
-                    continue
-                if indel["alt_base"][0] in iupac_chars: #if the reference base is N in the sample convert to ref in the alt description (ignore N snp)
-                    indel["alt_base"] = indel["ref_base"][0] + indel["alt_base"][1:]
-            if indel["type"] == "deletion":
-                if indel["alt_base"][0] in iupac_chars: #if the reference base is IUPAC ambiguous in the sample convert to ref in the alt description (ignore N snp)
-                    indel["alt_base"] = indel["ref_base"][0]
-        else:
-            iupac_chars = ["R", "Y", "S", "W", "K", "M", "B", "D", "H", "V", "N"]
-            if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
-                offset += indel["length"] #still have to iterate the offset but dont mark the variant
-                if any(char in indel["alt_base"][1:] for char in iupac_chars): 
-                    continue
-                if indel["alt_base"][0] in iupac_chars: #if the reference base is IUPAC ambiguous in the sample convert to ref in the alt description (ignore N snp)
-                    indel["alt_base"] = indel["ref_base"][0] + indel["alt_base"][1:]
-            if indel["type"] == "deletion":
-                if indel["alt_base"][0] in iupac_chars: #if the reference base is IUPAC ambiguous in the sample convert to ref in the alt description (ignore N snp)
-                    indel["alt_base"] = indel["ref_base"][0]
+        if indel["type"] == "insertion": #filtering insertions that consist of only N characters , as these are interpreted as any nucletide downstream and are not reliable for annotation anyway. 
+            offset += indel["length"] #still have to iterate the offset but dont mark the variant
+            if any(char in indel["alt_base"][1:] for char in iupac_chars): 
+                continue
+            if indel["alt_base"][0] in iupac_chars: #if the reference base is N in the sample convert to ref in the alt description (ignore N snp)
+                indel["alt_base"] = indel["ref_base"][0] + indel["alt_base"][1:]
+        if indel["type"] == "deletion":
+            if indel["alt_base"][0] in iupac_chars: #if the reference base is IUPAC ambiguous in the sample convert to ref in the alt description (ignore N snp)
+                indel["alt_base"] = indel["ref_base"][0]
+
         if (window != 0 and ((sample.seq[indel["pos"] +1 - window: indel["pos"] + 1 ] == "N" * window) or (sample.seq[indel["pos"] +1 + indel["length"]: indel["pos"] +1 + indel["length"] + window] == "N" * window))):
             continue
         else:
