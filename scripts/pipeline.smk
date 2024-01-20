@@ -164,7 +164,6 @@ rule merge_vcfs:
    shell:
       '''find {vcf_loc} -type f -name "*{vcf_ext}" > {config[output_dir]}/intermediate_output/merge_list.txt ; bcftools merge --no-index -m none -o {output} -l {config[output_dir]}/intermediate_output/merge_list.txt 2> {log}'''
 
-      qc_file = config["output_dir"] + "/qc.csv"
 rule get_indels:
    input:
       vcf_file = expand(config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf"),
