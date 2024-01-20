@@ -168,7 +168,7 @@ rule merge_vcfs:
 
 rule get_indels:
    input:
-      vcf_file = expand(config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf", id=cponfig["samples"]),
+      vcf_file = expand(config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf", id=config["samples"]),
       aln = expand(config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"], id=config["samples"])
    output:
       snps_indels = expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf", id=config["samples"]),
