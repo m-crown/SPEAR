@@ -92,7 +92,7 @@ def calculate_n_coverage(ref, sample, sample_name):
     contig_S_n_len = len(max(re.compile("N+").findall(str(sample_s)),default=""))
     sample_rbd = sample.seq[s_start + (319 * 3): s_start + (541*3)]
     rbd_n_nts = sample_rbd.count("N")
-    ncov = {"sample" : sample_name , "global_n" : global_n_perc, "s_n" : s_n_perc, "longest_continuous_s_n": contig_S_n_len, "rbd_n_nts" : rbd_n_nts}
+    ncov = {"sample" : sample_name , "global_n" : global_n_perc, "s_n" : s_n_perc, "s_n_contig": contig_S_n_len, "rbd_n_nts" : rbd_n_nts}
     n_cov_info = pd.DataFrame([ncov])
     return n_cov_info
     #22520 - 23186
