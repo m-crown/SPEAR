@@ -18,7 +18,7 @@ if config["vcf"] == False:
    vcf_ext = ".indels.vcf"
 else:
    qc_file = config["output_dir"] + "/spear_score_summary.tsv"
-   vcf_loc = config["input_dir"] + "/"
+   vcf_loc = config["output_dir"] + "/input_files/"
    vcf_ext = config["extension"]
 
 if config["per_sample_outputs"] == "True":
@@ -169,13 +169,13 @@ rule merge_vcfs:
 rule get_indels:
    input:
       vcf_file = expand(config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf", id=config["samples"]),
-      aln = expand(config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"], id=config["samples"])
+      aln = expand(config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["output_dir"] + "/input_files/{id}" + config["extension"], id=config["samples"])
    output:
       snps_indels = expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf", id=config["samples"]),
       qc_file = config["output_dir"] + "/qc.csv"
    params:
       vcf_dir = config["output_dir"] + "/intermediate_output/fatovcf/",
-      aln_dir = config["output_dir"] + "/intermediate_output/align/",
+      aln_dir = config["output_dir"] + "/intermediate_output/align/" if config["align"] == True else config["output_dir"] + "/input_files/",
       out_dir = config["output_dir"] + "/intermediate_output/indels/",
       out_suffix = ".indels.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/indels/indels.log"
@@ -184,7 +184,7 @@ rule get_indels:
 
 rule get_snps:
    input:
-      config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["output_dir"] + "/input_files/{id}" + config["extension"]
    output:
       snps = config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/get_snps/{id}.get_snps.log"
@@ -195,16 +195,16 @@ if config["align"]:
    if config["aligner"] == "minimap2":
       rule align:
          input:
-            config["input_dir"] + "/{id}" + config["extension"]
+            config["output_dir"] + "/input_files/input.fasta.gz"
          output:
-            alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 
-         log: config["output_dir"] + "/intermediate_output/logs/vcf/{id}.vcf.log"
+            alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta"
+         log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
          shell:
             "minimap2 -ax asm20 --cs {config[reference_sequence]} {input} > {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam 2> {log} ;  gofasta sam toPairAlign -r {config[reference_sequence]} -s {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam --outpath {config[output_dir]}/intermediate_output/align 2> {log}"
    elif config["aligner"] == "muscle":
       rule align:
          input:
-            config["input_dir"] + "/{id}" + config["extension"]
+            config["output_dir"] + "/input_files/input.fasta.gz"
          output:
             plus_ref = config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
             alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 

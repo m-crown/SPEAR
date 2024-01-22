@@ -566,8 +566,6 @@ def main():
                         sys.exit(1)
                 exclusions = "|".join(exclusion_statements)
                 filter_statement = f"problem_filter = 'mask' & ({exclusions})"
-        
-        indir = f'{args.output}/input_files'
 
         snakefile = f'{SPEAR_PATH}/bin/pipeline.smk'
         if single_sample: 
@@ -684,7 +682,6 @@ def main():
         
         args.s_contig = int(args.s_contig)
         config = {
-            "input_dir" : indir,
             "samples" : passing_samples, 
             "output_dir" : args.output,
             "data_dir" : f'{SPEAR_PATH}/data',
