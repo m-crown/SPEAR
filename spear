@@ -17,6 +17,7 @@ from rich.text import Text
 from rich import box
 import datetime
 import pandas as pd
+import io 
 
 def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_list_only = False):
     anno_file["nt_aa_compound"] = anno_file.REF + anno_file.POS.astype("str") + anno_file.ALT + "_" + anno_file.residues
@@ -372,84 +373,113 @@ def main():
         else:
             extension = args.extension
 
-        #setting the sample list for input to snakemake. Filtering based on N percentage and ensuring inputs have correct number of sequences. 
-        #run seqkit fx2tab {input_file} -B  N --name on file to get N perc and output to file, as subsystem command and retrieve stdout to pandas df.
-        #subprocess.run(['seqkit', 'fx2tab', f'{args.input}/*{extension}', '-B', 'N', '--name'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
-        
-        
-        if os.path.isdir(args.input):
-            single_sample = False
-            input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
-            if len(input_samples) == 0:
-                parser.print_help()
-                print("Error : no samples found")
+        passing_samples = []
+        Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
+        if args.command == "consensus":
+            #input should be a single file, regardless of number of samples. file can be gzipped or not.
+            #verify input is a file not a dir
+            nperc = subprocess.run(['seqkit', 'fx2tab', f'{args.input}', '-B', 'N', '--name'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
+            input_samples = pd.read_csv(io.StringIO(nperc), sep='\t', names = ["sample_id", "perc_n"])
+            samples_fail_perc_n = len(input_samples.loc[input_samples.perc_n >= args.cutoff])
+            input_samples["sample_id_clean"] = input_samples["sample_id"].str.replace('[^a-zA-Z0-9.]', '_', regex = True)
+            passing_samples = input_samples.loc[input_samples.perc_n < args.cutoff]
+            
+            passing_samples[["sample_id", "sample_id_clean"]].to_csv(f"{args.output}/input_files/pattern_file.tsv", sep = "\t", header = None, index = False)
+            passing_samples[["sample_id"]].to_csv(f"{args.output}/input_files/name_pattern_file.tsv", sep = "\t", header = None, index = False)
+            passing_samples = passing_samples.sample_id_clean.values.tolist()
+            if len(passing_samples) == 1:
+                    single_sample = True
+            elif len(passing_samples) > 1:
+                    single_sample = False
+            else:
+                console.print("[red]No samples to process, exiting.[\red]")
                 sys.exit(1)
-            if args.command == "consensus":
+            grep_command = ['seqkit', 'grep', '--quiet', '-f', f'{args.output}/input_files/name_pattern_file.tsv', f'{args.input}']
+            replace_command = [
+                'seqkit', 'replace', '--quiet',
+                '-p', '(.+)$',
+                '-k', f'{args.output}/input_files/pattern_file.tsv',
+                '-r', '{kv}',
+                '-o', f'{args.output}/input_files/input.fasta.gz'
+                ]
+            
+            grep_process = subprocess.Popen(grep_command, stdout=subprocess.PIPE)
+            replace_process = subprocess.run(replace_command, stdin=grep_process.stdout, check=True)
+            grep_process.stdout.close()
+            grep_process.wait()
+            samples_fail_count = 0 #only relevent when looking at non concat fa files - where ref may exist
+            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff)
+
+        elif args.command == "vcf":
+            header , vcf = parse_vcf(f'{args.input}', split_info_cols = False)
+            sample_names_old = vcf.columns[9:]
+            if len(sample_names_old) == 0:
+                parser.print_help()
+                console.print("[red]Error : no samples found[\red]")
+                sys.exit(1)
+            elif len(sample_names_old) == 1:
+                single_sample = True
+            else:
+                single_sample = False
+
+            sample_names = sample_names_old.str.replace('[^a-zA-Z0-9]', '_')
+            input_samples = sample_names.values.tolist()
+            colnames = vcf.columns[0:9].values.tolist() + sample_names.values.tolist()
+            vcf.columns = colnames
+            if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
+                Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
+                vcf["#CHROM"] = "NC_045512.2"
+                write_vcf(header, vcf, f'{args.output}/input_files/input.vcf')
+                passing_samples = sample_names.values.tolist()
+            else:
+                samples_fail_chrom_name = sample_names #however with combined file this is all
+            if len(passing_samples) == 0:
+                console.print("[red]No samples found with matching CHROM field, exiting.[\red]")
+                sys.exit(1)      
+            samples_fail_perc_n = "Not applicable, VCF input"
+            samples_fail_count = "Not applicable, VCF input"
+            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, "NA")
+        elif args.command == "alignment":
+            if os.path.isfile(args.input):
+                single_sample = True
                 passing_samples = []
                 samples_fail_perc_n = 0
                 samples_fail_count = 0
-                for sample in input_samples:
-                    count = 0
-                    sample_file = list(SeqIO.parse(f'{args.input}/{sample}{extension}', "fasta"))
-                    for record in sample_file:
-                        record.seq = record.seq.upper()
-                        count +=1
-                        if len(record.seq) == 0:
-                            perc_n = 100
-                        else:
-                            perc_n = (record.seq.count("N")/len(record.seq)) * 100 #factor indels in this count ? 
-                    if count > 1:
-                        samples_fail_count += 1
-                    elif perc_n >= args.cutoff:
-                        samples_fail_perc_n += 1
+                samples_fail_no_ref = 0
+                count = 0
+                sample_file = list(SeqIO.parse(f'{args.input}', "fasta"))
+                found_ref = False
+                ref_regex = re.compile(r'NC_045512\.2|MN908947\.3')
+                for record in sample_file:
+                    count +=1
+                    if ref_regex.search(record.id):
+                        record.id = "NC_045512.2"
+                        found_ref = True
+                        continue
+                    elif len(record.seq) == 0:
+                        perc_n = 100
                     else:
-                        Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                        sample_file[0].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].id)
-                        sample_file[0].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].name)
-                        sample_file[0].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].description)
-                        with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
-                            SeqIO.write(sample_file, output_handle, "fasta")
-                        passing_samples.append(sample_file[0].id)
-                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
-                table.add_column("Samples")
-                table.add_column("Count")
-                table.add_row("Input samples", str(len(input_samples)))
-                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
-                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
-                table.add_row("Incorrect format", str(samples_fail_count))
-                if len(passing_samples) == 1:
-                    single_sample = True
-                elif len(passing_samples) == 0:
+                        perc_n = (record.seq.count("N")/len(record.seq)) * 100
+                if count != 2:
+                    samples_fail_count += 1
+                elif perc_n >= float(args.cutoff):
+                    samples_fail_perc_n += 1
+                elif not found_ref:
+                    samples_fail_no_ref += 1
+                else:
+                    sample_file[1].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].id)
+                    sample_file[1].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].name)
+                    sample_file[1].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].description)
+                    with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
+                        SeqIO.write(sample_file, output_handle, "fasta")
+                    passing_samples = [sample_file[1].id]
+                table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff)
+                if len(passing_samples) == 0:
                     print("No samples to process, exiting.")
-                    sys.exit(1) 
-            elif args.command == "vcf":
-                passing_samples = []
-                samples_fail_chrom_name = []
-                for sample in input_samples:
-                    sample_name_old = subprocess.run(['bcftools', 'query',  '-l', f'{args.input}/{sample}{extension}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
-                    sample_name = re.sub('[^a-zA-Z0-9]]', '_', sample_name_old)
-                    header , vcf = parse_vcf(f'{args.input}/{sample}{extension}', split_info_cols = False)
-                    if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
-                        Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                        vcf["#CHROM"] = "NC_045512.2"
-                        vcf.rename(columns = {sample_name_old : sample_name})
-                        write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
-                        passing_samples.append(sample_name)
-                    else:
-                        samples_fail_chrom_name.append(sample_name)
-                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
-                table.add_column("Samples")
-                table.add_column("Count")
-                table.add_row("Input samples", str(len(input_samples)))
-                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
-                table.add_row("[red]Incorrect reference[/red]", Text(str(len(samples_fail_chrom_name)), "red"))
-                #adding this in pre-emptively for when VCF pre-filtering implemented
-                if len(passing_samples) == 1:
-                    single_sample = True
-                elif len(passing_samples) == 0:
-                    print("No samples found with matching CHROM field, exiting.")
-                    sys.exit(1)          
+                    sys.exit(1)
             else:
+                single_sample = False
+                input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
                 passing_samples = []
                 samples_fail_perc_n = 0
                 samples_fail_count = 0
@@ -476,122 +506,21 @@ def main():
                     elif not found_ref:
                         samples_fail_no_ref += 1
                     else:
-                        Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
                         sample_file[1].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].id)
                         sample_file[1].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].name)
                         sample_file[1].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].description)
                         with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[1].id)
-                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
-                table.add_column("Samples")
-                table.add_column("Count")
-                table.add_row("Input samples", str(len(input_samples)))
-                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
-                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
-                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count + samples_fail_no_ref),"red"))
+                table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff)
                 if len(passing_samples) == 1:
                     single_sample = True
                 elif len(passing_samples) == 0:
                     console.print("[red]No samples to process, exiting.[/red]")
                     sys.exit(1)
-        elif os.path.isfile(args.input):
-            single_sample = True
-            if args.command == "consensus": 
-                passing_samples = []
-                samples_fail_perc_n = 0
-                samples_fail_count = 0
-                count = 0
-                sample_file = list(SeqIO.parse(f'{args.input}', "fasta"))
-                for record in sample_file:
-                    count += 1
-                    if len(record.seq) == 0:
-                        perc_n = 100
-                    else:
-                        perc_n = (record.seq.count("N")/len(record.seq)) * 100 #factor indels in this count ? 
-                if count > 1:
-                    samples_fail_count += 1
-                elif perc_n >= args.cutoff:
-                    samples_fail_perc_n += 1   
-                else:
-                    Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                    sample_file[0].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].id)
-                    sample_file[0].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].name)
-                    sample_file[0].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[0].description)
-                    with open(f'{args.output}/input_files/{sample_file[0].id}{extension}', "w") as output_handle:
-                        SeqIO.write(sample_file, output_handle, "fasta")
-                    passing_samples = [sample_file[0].id]
-                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
-                table.add_column("Samples")
-                table.add_column("Count")
-                table.add_row("Input samples", "1")
-                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
-                table.add_row(f'[red]%N > {str(args.cutoff)}[red]', Text(str(samples_fail_perc_n),"red"))
-                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count), "red"))
-                if len(passing_samples) == 0:
-                    console.print("[red]No samples to process, exiting.[/red]")
-                    sys.exit(1)
-            elif args.command == "vcf":
-                sample_name_old = subprocess.run(['bcftools', 'query', '-l', f'{args.input}'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
-                sample_name = re.sub('[^a-zA-Z0-9]', '_', sample_name_old)
-                header , vcf = parse_vcf(f'{args.input}', split_info_cols = False)
-                if vcf["#CHROM"].str.contains("NC_045512\.2|MN908947\.3").all():
-                    Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                    vcf["#CHROM"] = "NC_045512.2"
-                    vcf.rename(columns = {sample_name_old : sample_name}, inplace = True)
-                    write_vcf(header, vcf, f'{args.output}/input_files/{sample_name}{extension}')
-                    passing_samples = [sample_name]
-                    console.print(f'[green]Passing samples : {len(passing_samples)}')
-                    table = ""
-                else:
-                    console.print("[red]Sample has incorrect CHROM field, exiting.[/red]")
-                    sys.exit(1)
-            else:
-                passing_samples = []
-                samples_fail_perc_n = 0
-                samples_fail_count = 0
-                samples_fail_no_ref = 0
-                count = 0
-                sample_file = list(SeqIO.parse(f'{args.input}', "fasta"))
-                found_ref = False
-                ref_regex = re.compile(r'NC_045512\.2|MN908947\.3')
-                for record in sample_file:
-                    count +=1
-                    if ref_regex.search(record.id):
-                        record.id = "NC_045512.2"
-                        found_ref = True
-                        continue
-                    elif len(record.seq) == 0:
-                        perc_n = 100
-                    else:
-                        perc_n = (record.seq.count("N")/len(record.seq)) * 100
-                if count != 2:
-                    samples_fail_count += 1
-                elif perc_n >= float(args.cutoff):
-                    samples_fail_perc_n += 1
-                elif not found_ref:
-                    samples_fail_no_ref += 1
-                else:
-                    Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
-                    sample_file[1].id = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].id)
-                    sample_file[1].name = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].name)
-                    sample_file[1].description = re.sub('[^a-zA-Z0-9\.]', '_', sample_file[1].description)
-                    with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
-                        SeqIO.write(sample_file, output_handle, "fasta")
-                    passing_samples = [sample_file[1].id]
-                table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
-                table.add_column("Samples")
-                table.add_column("Count")
-                table.add_row("Input samples", "1")
-                table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
-                table.add_row(f'[red]%N > {str(args.cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
-                table.add_row("[red]Incorrect format[/red]", Text(str(samples_fail_count + samples_fail_no_ref), "red"))
-                if len(passing_samples) == 0:
-                    print("No samples to process, exiting.")
-                    sys.exit(1)
-        else:  
-            print("Input is not a file or directory" )
+        else:
             parser.print_help()
+            print("Error : invalid command")
             sys.exit(1)
 
 
