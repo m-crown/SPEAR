@@ -523,7 +523,6 @@ def main():
             print("Error : invalid command")
             sys.exit(1)
 
-
         # if args.allowAmbiguous:
         #     exclude = ""
         #     allow_ambiguous = "--allowAmbiguous"
@@ -680,6 +679,9 @@ def main():
 
 
         spear_params = f'spear:{args.command},mask-problem-sites:{problem_sites},aligner:{args.aligner},cutoff:{cutoff},global_n:{args.global_n},s_n:{args.s_n},s_contig:{args.s_contig},rbd_n:{args.rbd_n},window:{args.window}'
+        with open(f'{args.output}/spear_params.txt', 'w') as f:
+            f.write(spear_params)
+        
         args.s_contig = int(args.s_contig)
         config = {
             "input_dir" : indir,
