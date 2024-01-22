@@ -1,4 +1,4 @@
-problem_sites_in = config["output_dir"] + "/intermediate_output/merged.vcf"
+problem_sites_in = config["output_dir"] + "/intermediate_output/merged.vcf" if not config["vcf"] else config["output_dir"] + "/input_files/input.vcf"
 problem_sites_out = config["output_dir"] + "/intermediate_output/masked/merged.problem.vcf"
 problem_sites_log = config["output_dir"] + "/intermediate_output/logs/mark_problem_sites/mark_problem_sites.log"
 filter_sites_in = config["output_dir"] + "/intermediate_output/masked/merged.problem.vcf"
