@@ -48,6 +48,9 @@ def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, sam
     return table
 
 def main():
+
+    SPEAR_PATH = os.environ.get('CONDA_PREFIX')
+    
     parser = argparse.ArgumentParser('spear')   
 
     subparsers = parser.add_subparsers(dest='command')
@@ -56,7 +59,9 @@ def main():
     vcf = subparsers.add_parser('vcf', help='Run SPEAR on existing VCF file(s) - skip alignment and SNP/indel identification and ambiguous SNP filtering.') 
     update = subparsers.add_parser('update', help='Update [spear,data,all]') 
     representative = subparsers.add_parser('representative', help='Obtain representative mutations for a given set of sequences (requires SPEAR annotation file)') 
-    demo = subparsers.add_parser('demo', help='Run SPEAR demo on lineage VCFs') 
+    report = subparsers.add_parser("report", help = "Generate HTML report from SPEAR output (requires SPEAR annotation file)")
+    demo = subparsers.add_parser('demo', help='Run SPEAR demo on lineage VCFs')
+
 
     consensus.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
@@ -189,6 +194,40 @@ def main():
     representative.add_argument('--output_suffix', metavar = '', type = str, default = "representative_mutations",
                                 help= "Output file name suffix")
 
+    
+    report.add_argument('--no-product-plot', default=False, action='store_true',
+        help = "Do not produce individual sample product plots (for fastest operation)")
+    report.add_argument('--spear_summary', metavar = '', type = str, required = True,
+        help = "SPEAR score summary file")
+    report.add_argument('--spear_annotation', metavar = '', type = str, required = True,
+        help = "SPEAR annotation file")
+    report.add_argument('--baseline_scores' , metavar='', type = str, default = f'{SPEAR_PATH}/data/baseline_scores.tsv',
+        help = "Baseline scores file for use in summary report")
+    report.add_argument('--input_sample_num' , metavar='', type = int, required=True,
+        help = "Number of input samples")
+    report.add_argument('--qc_sample_num' , metavar='', type = int, required=True,
+        help = "Number of samples passing QC")
+    report.add_argument('--n_perc', metavar = '', type = str, default = "spear_score_summary.tsv",
+        help = "qc.csv file if produced by SPEAR)")
+    report.add_argument('--lineage_report', metavar = '', type = str, default = "lineage_report.csv",
+        help= "Lineage report file from pangolin lineage assignment or user-defined. Must contain column headers taxon (sample_id in SPEAR annotation) and lineage. If pangolin not run, pass empty file")
+    report.add_argument('--baseline', metavar = '', type = str, default = "BQ.1",
+        help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BQ.1.")
+    report.add_argument('--global_n', metavar = '', type = float,
+        help = "Minimum percentage of N in sample to flag as poor coverage. Default half of cutoff.")
+    report.add_argument('--s_n', metavar = '', type = float, default = 0.05,
+        help = "Minimum percentage of N in S gene to flag as poor coverage. Default 5.")
+    report.add_argument('--s_contig', metavar = '', type = float, default = 150,
+        help = "Minimum length of contig to flag sample as potential S gene dropout. Default 150nt")
+    report.add_argument('--rbd_n', metavar = '', type = float, default = 12,
+        help = "Number of N's in sample spike RBD to flag as poor. Default 12nt")
+    report.add_argument('--pangolin_command', metavar = '', type = str, default = "pangolin_command.txt",
+        help = "File containing pangolin command used to generate lineage report")
+    report.add_argument("--output_dir", metavar = '', type = str, default = "report",
+        help = "Output directory for report files")
+    report.add_argument("--spear_params", metavar = '', type = str, default = "spear_params.txt",
+        help = "File containing spear params used to generate original annotations")
+    
     args = parser.parse_args()
     start_time = datetime.datetime.now()
 
@@ -282,9 +321,23 @@ def main():
             table.add_row(*row)
         console.print(table)
 
-    elif args.command not in ["alignment", "consensus", "vcf", "demo", "representative"]:
+    elif args.command == "report":
+        images_dir = f'{SPEAR_PATH}/images'
+        scripts_dir = f'{SPEAR_PATH}/bin'
+        data_dir = f'{SPEAR_PATH}/data'
+        #read spear params from file - single line
+        with open(args.spear_params, 'r') as f:
+            spear_params = f.readline().rstrip('\n')
+        
+        Path(f'{args.output_dir}').mkdir(parents=True, exist_ok=True)
+
+        #run spear report command in subprocess: 
+        subprocess.run(['summary_report.py', '--n_perc', args.n_perc, args.spear_summary, args.spear_annotation, args.baseline_scores, str(args.input_sample_num), str(args.qc_sample_num), images_dir, scripts_dir, data_dir, args.output_dir, args.baseline, str(args.global_n), str(args.s_n), str(args.s_contig), str(args.rbd_n), args.lineage_report, args.pangolin_command, spear_params], check = True)
+        
+
+    elif args.command not in ["alignment", "consensus", "vcf", "demo", "representative", "report"]:
         parser.print_help()
-        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'representative', 'update', 'demo')")
+        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'representative', 'update', 'demo', 'report')")
         sys.exit(1)
 
     else:
