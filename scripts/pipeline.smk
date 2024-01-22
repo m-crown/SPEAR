@@ -4,7 +4,7 @@ problem_sites_log = config["output_dir"] + "/intermediate_output/logs/mark_probl
 filter_sites_in = config["output_dir"] + "/intermediate_output/masked/merged.problem.vcf"
 filter_sites_out = config["output_dir"] + "/intermediate_output/masked/merged.masked.vcf"
 filter_sites_log = config["output_dir"] + "/intermediate_output/logs/filter_problem_sites/filter_problem_sites.log"
-pangolin_input = expand(config["output_dir"] + "/input_files/{id}" + config["extension"], id = config["samples"]) if config["vcf"] == False else expand(config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa", id = config["samples"])
+pangolin_input = config["output_dir"] + "/input_files/input.fasta.gz" if config["align"] else config["output_dir"] + "/intermediate_output/all_consensus.fa"
 annotate_out = config["output_dir"] + "/intermediate_output/snpeff/merged.ann.vcf"
 annotate_log = config["output_dir"] + "/intermediate_output/logs/snpeff/snpeff.log"
 summarise_out = config["output_dir"] + "/intermediate_output/merged.summary.tsv"
@@ -56,7 +56,8 @@ if config["per_sample_outputs"] == "True":
    rule summarise_vcfs:
       input:
          all_samples = expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"]), 
-         merged_samples = spear_out
+         merged_samples = spear_out,
+         lineages = config["output_dir"] + "/lineage_report.csv"
       output:
          config["output_dir"] + "/spear_annotation_summary.tsv",
          config["output_dir"] + "/spear_score_summary.tsv",
@@ -68,7 +69,8 @@ else:
    rule summarise_vcfs:
       input:
          all_samples = expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"]),
-         merged_samples = spear_out
+         merged_samples = spear_out,
+         lineages = config["output_dir"] + "/lineage_report.csv"
       output:
          config["output_dir"] + "/spear_annotation_summary.tsv",
          config["output_dir"] + "/spear_score_summary.tsv"
@@ -85,23 +87,44 @@ if config["pangolin"] != "none":
       log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin.log"
       threads: workflow.cores
       shell:
-         """for i in {input}; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.*}}; sed -n '/>'"${{BNAME2}}"'/, />/{{ />NC_045512\.2/!p ;}}' ${{i}} ; done > {config[output_dir]}/intermediate_output/consensus.fa ; run_pango.sh {config[output_dir]}/intermediate_output/consensus.fa {config[pangolin]} {config[output_dir]} {config[max_n]} {config[threads]} {log} 2> {log} """
+         """run_pango.sh {input} {config[pangolin]} {config[output_dir]} {config[max_n]} {config[threads]} {log} 2> {log}"""
 
-   rule vcf_consensus:
-      input:
-         config["input_dir"] + "/{id}" + config["extension"]
-      output:
-         config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa"
-      log: config["output_dir"] + "/intermediate_output/logs/vcf_consensus/{id}.vcf_cons.log"
-      shell:
-         """BNAME={wildcards.id} ; bgzip -k {config[input_dir]}/{wildcards.id}{config[extension]} ; tabix {config[input_dir]}/{wildcards.id}{config[extension]}.gz ; cat {config[reference_sequence]} | bcftools consensus {config[input_dir]}/{wildcards.id}{config[extension]}.gz > {output} ; sed -i "s|NC_045512\.2|${{BNAME}}|g" {output}"""
+   if config["vcf"]:
+      rule vcf_consensus:
+         input:
+            config["output_dir"] + "/final_vcfs/{id}.spear.vcf"
+         output:
+            config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa"
+         log: config["output_dir"] + "/intermediate_output/logs/vcf_consensus/{id}.vcf_cons.log"
+         shell:
+            """BNAME={wildcards.id} ; bgzip -k {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf ; tabix {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf.gz ; cat {config[reference_sequence]} | bcftools consensus {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf.gz > {output} ; sed -i "s|NC_045512\.2|${{BNAME}}|g" {output}"""
+
+      rule combine_vcf_consensus:
+         input:
+            expand(config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa", id = config["samples"])
+         output:
+            config["output_dir"] + "/intermediate_output/all_consensus.fa"
+         log: config["output_dir"] + "/intermediate_output/logs/vcf_consensus/combine.log"
+         shell:
+            """cat {input} > {output}"""
+
+   elif config["align"] == False:
+      rule combine_samples_for_pango:
+         input:
+            expand(config["output_dir"] + "/input_files/{id}" + config["extension"], id = config["samples"])
+         output:
+            config["output_dir"] + "/intermediate_output/consensus.fa"
+         log: config["output_dir"] + "/intermediate_output/logs/pre_align_consensus/combine.log"
+         shell:
+            """for i in {input}; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.*}}; sed -n '/>'"${{BNAME2}}"'/, />/{{ />NC_045512\.2/!p ;}}' ${{i}} ; done > {config[output_dir]}/intermediate_output/consensus.fa"""
+   
 else:
    rule pangolin_touch_file:
       input:
-         config["output_dir"] + "/spear_score_summary.tsv"
+         pangolin_input
       output:
          report = config["output_dir"] + "/lineage_report.csv",
-         command = config["output_dir"] + "/intermediate_output/pangolin_command.txt"
+         command = config["output_dir"] + "/pangolin_command.txt"
       log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin_touch.log"
       shell:
          """touch {output.report} ; echo "Pangolin not run\nNA" > {output.command}"""
