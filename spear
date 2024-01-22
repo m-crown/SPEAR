@@ -45,7 +45,7 @@ def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_lis
         representative_mutations_vcf["FORMAT"] = "."
         representative_mutations_vcf["INFO"] = "AC=1;AN=1"
         representative_mutations_vcf["FORMAT"] = "GT"
-        representative_mutations_vcf[lineage] = lineage
+        representative_mutations_vcf[lineage] = 1
         representative_mutations_vcf = representative_mutations_vcf[["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", lineage]]
         return(representative_mutations_df, representative_mutations_vcf)
 
