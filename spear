@@ -20,23 +20,34 @@ import pandas as pd
 import io 
 
 def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_list_only = False):
-    anno_file["nt_aa_compound"] = anno_file.REF + anno_file.POS.astype("str") + anno_file.ALT + "_" + anno_file.residues
+    anno_file = anno_file.loc[anno_file.lineage == lineage].copy()
+    anno_file.residues = anno_file.residues.fillna("intergenic")
+    anno_file["nt_aa_compound"] = anno_file.REF + anno_file.POS.astype("int").astype("str") + anno_file.ALT + "_" + anno_file.residues.fillna("intergenic")
 
-    lineage_counts = anno_file.loc[anno_file.lineage == lineage, "sample_id"].nunique()
-    mutation_counts = anno_file.loc[anno_file.lineage == lineage].groupby("description").nt_aa_compound.value_counts().rename("count").reset_index()
-
+    lineage_counts = anno_file.sample_id.nunique()
+    anno_file["mutation_count"] = anno_file.loc[anno_file.lineage == lineage].groupby("nt_aa_compound").transform("size")
+    
     if mutation_list_only:
-        representative_mutations = mutation_counts.loc[(mutation_counts["count"] >= (lineage_counts * cutoff)), "nt_aa_compound"]
-        representative_mutations[["nucleotide_mutation", "residue_mutation"]] = representative_mutations.nt_aa_compound.str.split("_", expand = True)
-        representative_mutations.drop(columns = "nt_aa_compound", inplace = True)
+        representative_mutations_df = anno_file.loc[anno_file.mutation_count >= (lineage_counts * cutoff), ["REF", "POS", "ALT", "residues", "lineage", "mutation_count"]].drop_duplicates()
+        representative_mutations_df["sample_count"] = lineage_counts
+        return(representative_mutations_df, None)
     else:
-        representative_mutations = mutation_counts.loc[(mutation_counts["count"] >= (lineage_counts * cutoff))].copy()
-        representative_mutations[["nucleotide_mutation", "residue_mutation"]] = representative_mutations.nt_aa_compound.str.split("_", expand = True)
-        representative_mutations.drop(columns = "nt_aa_compound", inplace = True)
-        representative_mutations["sample_count"] = lineage_counts
-        representative_mutations["lineage"] = lineage
-
-    return(representative_mutations)
+        representative_mutations_df = anno_file.loc[anno_file.mutation_count >= (lineage_counts * cutoff), ["REF", "POS", "ALT", "residues", "lineage", "mutation_count"]].drop_duplicates()
+        representative_mutations_df["sample_count"] = lineage_counts
+        
+        representative_mutations_vcf = representative_mutations_df[["REF", "POS", "ALT"]].copy()    
+        #convert representative mutations into vcf format.
+        representative_mutations_vcf["#CHROM"] = "NC_045512.2"
+        representative_mutations_vcf["ID"] = representative_mutations_vcf["REF"] + representative_mutations_vcf["POS"].astype("int").astype("str") + representative_mutations_vcf["ALT"]
+        representative_mutations_vcf["QUAL"] = "."
+        representative_mutations_vcf["FILTER"] = "."
+        representative_mutations_vcf["INFO"] = "."
+        representative_mutations_vcf["FORMAT"] = "."
+        representative_mutations_vcf["INFO"] = "AC=1;AN=1"
+        representative_mutations_vcf["FORMAT"] = "GT"
+        representative_mutations_vcf[lineage] = lineage
+        representative_mutations_vcf = representative_mutations_vcf[["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", lineage]]
+        return(representative_mutations_df, representative_mutations_vcf)
 
 def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, cutoff):
     table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
@@ -184,10 +195,10 @@ def main():
     update.add_argument('option', type = str,
         help="Update option : spear, all-data or all")
     
-    representative.add_argument('--anno_file', metavar = '', type = str, required = True)
-    representative.add_argument('--lineage_file', metavar = '', type = str, required = True, 
+    representative.add_argument('--anno_file', metavar = '', type = str, default = "spear_annotation_summary.tsv")
+    representative.add_argument('--lineage_file', metavar = '', type = str, default = "lineage_report.csv", 
                                 help = "Lineage file from pangolin lineage assignment or user-defined. Must contain column headers taxon (sample_id in SPEAR annotation) and lineage.")
-    representative.add_argument('--lineage', metavar = '', type = str)
+    representative.add_argument('--lineage', metavar = '', default = None, type = str)
     representative.add_argument('--cutoff', metavar = '', type = float, default = 0.85)
     representative.add_argument('--mutation_list_only', default=False, action='store_true')
     representative.add_argument('--output_dir', metavar = '', type = str, default = "representative_mutations",
@@ -198,9 +209,9 @@ def main():
     
     report.add_argument('--no-product-plot', default=False, action='store_true',
         help = "Do not produce individual sample product plots (for fastest operation)")
-    report.add_argument('--spear_summary', metavar = '', type = str, required = True,
+    report.add_argument('--spear_summary', metavar = '', type = str, default = "spear_score_summary.tsv",
         help = "SPEAR score summary file")
-    report.add_argument('--spear_annotation', metavar = '', type = str, required = True,
+    report.add_argument('--spear_annotation', metavar = '', type = str, default = "spear_annotation_summary.tsv",
         help = "SPEAR annotation file")
     report.add_argument('--baseline_scores' , metavar='', type = str, default = f'{SPEAR_PATH}/data/baseline_scores.tsv',
         help = "Baseline scores file for use in summary report")
@@ -289,12 +300,15 @@ def main():
         #add some intro text to describe what is happening, sample counts etc.
         Path(f'{args.output_dir}').mkdir(parents=True, exist_ok=True)
         anno_file = pd.read_csv(args.anno_file, sep = '\t')
+        in_samples = anno_file.sample_id.nunique()
+        console.print(f"[bold green]Loaded {in_samples} samples from annotation file[/bold green]")
         lineage_file = pd.read_csv(args.lineage_file)
         lineage_file = lineage_file[["taxon", "lineage"]].copy()
         anno_file = anno_file.merge(lineage_file, left_on = "sample_id", right_on = "taxon", how = "left")
         if anno_file.lineage.isna().any():
             console.print("[red]Warning : some samples do not have a lineage assignment. These will be excluded from representative mutation analysis.[/red]")
             anno_file = anno_file.loc[~anno_file.lineage.isna()].copy()
+        console.print(f"[bold green]Analysing {anno_file.sample_id.nunique()} samples with lineage assignment[/bold green]")
         lineage_sample_counts = anno_file.groupby("lineage").sample_id.nunique()
         if any(lineage_sample_counts < 5):
             console.print("[red]Warning : some lineages have less than 5 samples. These will be excluded from representative mutation analysis.[/red]")
@@ -302,30 +316,49 @@ def main():
         if len(anno_file) == 0:
             console.print("[red]Error : no samples found with lineage assignment. Exiting.[/red]")
             sys.exit(1)
+        representative_info = []
         if args.lineage != None:
-            mutations = get_representative_mutations(anno_file, args.lineage, cutoff = args.cutoff, mutation_list_only = args.mutation_list_only)
-            mutations.to_csv(f'{args.output_dir}/{lineage.replace(".", "_")}_{args.output_suffix}.tsv', sep = '\t', index = False)
+            mutations, mutations_vcf = get_representative_mutations(anno_file, args.lineage, cutoff = args.cutoff, mutation_list_only = args.mutation_list_only)
+            mutations.to_csv(f'{args.output_dir}/{args.lineage}.{args.output_suffix}.tsv', sep = '\t', index = False)
+            if not args.mutation_list_only:
+                mutations_header = ["##fileformat=VCFv4.2", f"##source=SPEAR Representative", "##contig=<ID=NC_045512.2,length=29903,md5=837a7a2974dd01bd66ab6a4acf830b68,URL=https://github.com/m-crown/SPEAR/blob/main/data/reference.fasta>",
+'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">','##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">'
+'##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">']
+                write_vcf(mutations_header , mutations_vcf, f"{args.output_dir}/{args.lineage}.{args.output_suffix}.vcf")
+                representative_info.append([args.lineage, str(mutations.sample_count.head(1).values[0]), str(len(mutations))])
         else:
             for lineage in anno_file.lineage.unique():
-                mutations = get_representative_mutations(anno_file, lineage, cutoff = args.cutoff, mutation_list_only = args.mutation_list_only)
-                mutations.to_csv(f'{args.output_dir}/{lineage.replace(".", "_")}_{args.output_suffix}.tsv', sep = '\t', index = False)
+                mutations,mutations_vcf = get_representative_mutations(anno_file, lineage, cutoff = args.cutoff, mutation_list_only = args.mutation_list_only)
+                mutations.to_csv(f'{args.output_dir}/{lineage}_{args.output_suffix}.tsv', sep = '\t', index = False)
+                if not args.mutation_list_only:
+                    mutations_header = ["##fileformat=VCFv4.2", f"##source=SPEAR Representative", "##contig=<ID=NC_045512.2,length=29903,md5=837a7a2974dd01bd66ab6a4acf830b68,URL=https://github.com/m-crown/SPEAR/blob/main/data/reference.fasta>",
+    '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">','##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">'
+    '##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">']
+                    write_vcf(mutations_header , mutations_vcf, f"{args.output_dir}/{lineage}.{args.output_suffix}.vcf")
+                representative_info.append([lineage, str(mutations.sample_count.head(1).values[0]), str(len(mutations))])
+        console.print("[bold green]Representative mutations generated[/bold green]")
 
-            if args.mutation_list_only:
-                mutations.to_csv(f'{args.output_dir}/{lineage.replace(".", "_")}_{args.output_suffix}.tsv', sep = '\t', index = False)
-            else:
-                mutations.to_csv(f'{args.output_dir}/{lineage.replace(".", "_")}_{args.output_suffix}.tsv', sep = '\t', index = False)
-        table = Table(show_header=True, header_style="bold magenta", title = "Test", caption = "test", caption_justify = "center")
+        table = Table(show_header=True, header_style="bold magenta", title = "Representative Mutations Summary", caption = "Representative mutations identified in each lineage, with min {args.cutoff} lineage presence", caption_justify = "center")
         mutations = mutations.applymap(str)
-        for column in mutations.columns:
-            table.add_column(column)
-        for row in mutations.itertuples(index = False):
+        table.add_column("Lineage")
+        table.add_column("# Samples")
+        table.add_column("# Representative Mutations")
+        for row in representative_info:
             table.add_row(*row)
         console.print(table)
 
     elif args.command == "report":
+        #add some intro text to describe what is happening, sample counts etc.
+        console.print("[bold green]Generating HTML report[/bold green]")
+
+
         images_dir = f'{SPEAR_PATH}/images'
         scripts_dir = f'{SPEAR_PATH}/bin'
         data_dir = f'{SPEAR_PATH}/data'
+        if not args.no_product_plot:
+            product_plot = "--product_plots"
+        else:
+            product_plot = ""
         #read spear params from file - single line
         with open(args.spear_params, 'r') as f:
             spear_params = f.readline().rstrip('\n')
@@ -333,7 +366,7 @@ def main():
         Path(f'{args.output_dir}').mkdir(parents=True, exist_ok=True)
 
         #run spear report command in subprocess: 
-        subprocess.run(['summary_report.py', '--n_perc', args.n_perc, args.spear_summary, args.spear_annotation, args.baseline_scores, str(args.input_sample_num), str(args.qc_sample_num), images_dir, scripts_dir, data_dir, args.output_dir, args.baseline, str(args.global_n), str(args.s_n), str(args.s_contig), str(args.rbd_n), args.lineage_report, args.pangolin_command, spear_params], check = True)
+        subprocess.run(['summary_report.py', '--n_perc', args.n_perc, product_plot, args.spear_summary, args.spear_annotation, args.baseline_scores, str(args.input_sample_num), str(args.qc_sample_num), images_dir, scripts_dir, data_dir, args.output_dir, args.baseline, str(args.global_n), str(args.s_n), str(args.s_contig), str(args.rbd_n), args.lineage_report, args.pangolin_command, spear_params], check = True)
         
 
     elif args.command not in ["alignment", "consensus", "vcf", "demo", "representative", "report"]:
