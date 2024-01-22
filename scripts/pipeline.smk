@@ -223,7 +223,7 @@ if config["align"]:
             alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta"
          log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
          shell:
-            "minimap2 -ax asm20 --cs {config[reference_sequence]} {input} > {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam 2> {log} ;  gofasta sam toPairAlign -r {config[reference_sequence]} -s {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam --outpath {config[output_dir]}/intermediate_output/align 2> {log}"
+            "seqkit grep {input} -p {wildcards.id} | minimap2 -ax asm20 --cs {config[reference_sequence]} - > {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam 2> {log} ;  gofasta sam toPairAlign -r {config[reference_sequence]} -s {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam --outpath {config[output_dir]}/intermediate_output/align 2> {log}"
    elif config["aligner"] == "muscle":
       rule align:
          input:
@@ -233,4 +233,4 @@ if config["align"]:
             alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 
          log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
          shell:
-            "cat {config[reference_sequence]} {input} > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
+            "seqkit grep -p {wildcards.id} {input} | seqkit seq {config[reference_sequence]} - > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
