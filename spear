@@ -37,6 +37,16 @@ def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_lis
 
     return(representative_mutations)
 
+def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, cutoff):
+    table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
+    table.add_column("Samples")
+    table.add_column("Count")
+    table.add_row("Input samples", str(len(input_samples)))
+    table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
+    table.add_row(f'[red]%N > {str(cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
+    table.add_row("Incorrect format", str(samples_fail_count))
+    return table
+
 def main():
     parser = argparse.ArgumentParser('spear')   
 
@@ -198,7 +208,7 @@ def main():
         Text.assemble(("/_    _\\", "bold")),
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
-        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v1.1.3", "bold red")),
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v2.0.0", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2024", "bold red"))]
     
     for item in logo:
