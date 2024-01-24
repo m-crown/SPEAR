@@ -202,8 +202,9 @@ rule get_indels:
       out_dir = config["output_dir"] + "/intermediate_output/indels/",
       out_suffix = ".indels.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/indels/indels.log"
+   threads: workflow.cores
    shell:
-      "get_indels.py --vcf-dir {params.vcf_dir} --alignments-dir {params.aln_dir} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.qc_file} --ref NC_045512.2 --out-dir {params.out_dir} --out-suffix {params.out_suffix} 2> {log}"
+      "get_indels.py --threads {threads} --vcf-dir {params.vcf_dir} --alignments-dir {params.aln_dir} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.qc_file} --ref NC_045512.2 --out-dir {params.out_dir} --out-suffix {params.out_suffix} 2> {log}"
 
 rule get_snps:
    input:

@@ -7,6 +7,7 @@ import re
 from summarise_snpeff import parse_vcf, write_vcf
 import pandas as pd
 import os
+import multiprocessing
 
 #need to have a flag to exclude ambiguous indels in get_indels to go alongside excluding ambiguous snps from fatovcf
 def mask_trimmed_sequence(sample):
@@ -143,6 +144,10 @@ def process_sample(alignment_file, ref, outdir, vcf_dir, window, allow_ambiguous
         write_vcf([], indels, outfile)
     return sample_n_cov_info
 
+def process_alignment_file(alignment_file, ref, out_dir, vcf_dir, window, allow_ambiguous, out_suffix):
+    return process_sample(alignment_file, ref, out_dir, vcf_dir,
+                          window, allow_ambiguous, out_suffix)
+
 def main():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--alignments-dir', metavar='path/to/alignments', type=str,
@@ -160,6 +165,7 @@ def main():
     parser.add_argument('--allowAmbiguous', default=False, action='store_true',
                         help="Toggle whether to exclude ambiguous bases in SNPs and insertions")
     parser.add_argument('--out-suffix', metavar="", type=str, default = ".indels.vcf")
+    parser.add_argument('--threads', metavar="", type=int, default = 1)
     args = parser.parse_args()
 
     alignments_dir = args.alignments_dir
@@ -167,14 +173,22 @@ def main():
     ref = args.ref
     out_dir = args.out_dir
     all_sample_n_cov_info = []
-    for alignment_file in os.listdir(alignments_dir):
-        if alignment_file.endswith(".fasta") or alignment_file.endswith(".fa"):
-            sample_n_cov_info = process_sample(os.path.join(alignments_dir, alignment_file), ref, out_dir, vcf_dir,
-                           args.window, args.allowAmbiguous, args.out_suffix)
-            all_sample_n_cov_info.append(sample_n_cov_info)
+
+    pool = multiprocessing.Pool(processes=args.threads)
+
+    results = pool.starmap(process_alignment_file, [(os.path.join(alignments_dir, alignment_file), ref, out_dir, vcf_dir,
+                                                     args.window, args.allowAmbiguous, args.out_suffix)
+                                                    for alignment_file in os.listdir(alignments_dir)
+                                                    if alignment_file.endswith(".fasta") or alignment_file.endswith(".fa")])
+
+    all_sample_n_cov_info.extend(results)
+
+    pool.close()
+    pool.join()
+
     n_cov_info_df = pd.concat(all_sample_n_cov_info)
-    
-    n_cov_info_df.to_csv(args.nperc, index = False)
+
+    n_cov_info_df.to_csv(args.nperc, index=False)
             
 if __name__ == "__main__":
     main()
