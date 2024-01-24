@@ -2,6 +2,7 @@
 
 import argparse
 from Bio import SeqIO
+from Bio.Seq import Seq
 import re
 from summarise_snpeff import parse_vcf, write_vcf
 import pandas as pd
@@ -9,9 +10,11 @@ import os
 
 #need to have a flag to exclude ambiguous indels in get_indels to go alongside excluding ambiguous snps from fatovcf
 def mask_trimmed_sequence(sample):
+    sample_seq = str(sample.seq)
     def repl(m):
         return 'N' * len(m.group())
-    sample.seq = re.sub(r'^-+|-+$', repl, str(sample.seq))
+    sample_seq = re.sub(r'^-+|-+$', repl, sample_seq)
+    sample.seq = Seq(sample_seq)
     return sample
 
 def get_indels(reference, sample, window, allow_ambiguous):
@@ -74,23 +77,25 @@ def get_indels(reference, sample, window, allow_ambiguous):
 
 def calculate_n_coverage(ref, sample, sample_name):
     #first need to work out where S gene begins and ends in the sample (may be different due to insertions compared to ref length)
-    pre_s = str(ref.seq[:21562])
+    ref_seq = str(ref.seq)
+    sample_seq = str(sample.seq)
+    pre_s = ref_seq[:21562]
     pre_s_ref_indels = pre_s.count("-")
-    ref_s = str(ref.seq[21563 + pre_s_ref_indels : 25385]) #position of s gene in 0-index
+    ref_s = ref_seq[21563 + pre_s_ref_indels : 25385] #position of s gene in 0-index
     ref_indels = ref_s.count("-")
     refdiff = ref_indels
     s_start = 21563 + pre_s_ref_indels
     s_end = 25385 + ref_indels
     while refdiff != 0:
-        ref_s = str(ref.seq[s_start : s_end])
+        ref_s = ref_seq[s_start : s_end]
         ref_indels = ref_s.count("-")
         refdiff -= ref_indels
         s_end = 25385 + refdiff
-    sample_s = sample.seq[s_start: s_end]
-    global_n_perc = sample.seq.count("N") / len(sample.seq)
+    sample_s = sample_seq[s_start: s_end]
+    global_n_perc = sample_seq.count("N") / len(sample_seq)
     s_n_perc = sample_s.count("N") / len(sample_s)
     contig_S_n_len = len(max(re.compile("N+").findall(str(sample_s)),default=""))
-    sample_rbd = sample.seq[s_start + (319 * 3): s_start + (541*3)]
+    sample_rbd = sample_seq[s_start + (319 * 3): s_start + (541*3)]
     rbd_n_nts = sample_rbd.count("N")
     ncov = {"sample_id" : sample_name , "global_n" : global_n_perc, "s_n" : s_n_perc, "s_n_contig": contig_S_n_len, "rbd_n" : rbd_n_nts}
     n_cov_info = pd.DataFrame([ncov])
