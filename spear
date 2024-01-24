@@ -65,13 +65,12 @@ def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, sam
     with open(outfile, "w") as f:
         for row in file_rows:
             f.write(f"{row}\n")
-            
+
     return table
 
 def main():
 
     SPEAR_PATH = os.environ.get('CONDA_PREFIX')
-    
     SPEAR_VERSION = "2.0.0"
 
     parser = argparse.ArgumentParser('spear')   
@@ -84,7 +83,7 @@ def main():
     representative = subparsers.add_parser('representative', help='Obtain representative mutations for a given set of sequences (requires SPEAR annotation file)') 
     report = subparsers.add_parser("report", help = "Generate HTML report from SPEAR output (requires SPEAR annotation file)")
     demo = subparsers.add_parser('demo', help='Run SPEAR demo on lineage VCFs')
-
+    vcf_merge = subparsers.add_parser('utilities vcf-merge', help='Merge VCFs from different lineages into a single VCF')
 
     consensus.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
@@ -366,8 +365,16 @@ def main():
         with open(f'{args.output_dir}/representative_mutations_summary.txt', 'w') as f:
             f.write("Lineage,samples,num_representative_mutations\n")
             for row in representative_info:
-                f.write(f"{",".join(row)}\n")
+                f.write(f"""{",".join(row)}\n""")
         console.print(table)
+
+##add vcf merge command - runs the find and bcftools.
+    elif args.command == "vcf-merge":
+        #add some intro text to describe what is happening, sample counts etc.
+        console.print("[bold green]Merging VCFs[/bold green]")
+        #run find command and send output to merge_list.txt
+        subprocess.run(['find', f'{args.input}', '-name', '*.vcf', '>', 'merge_list.txt'], check = True)
+
 
     elif args.command == "report":
         #add some intro text to describe what is happening, sample counts etc.
@@ -505,7 +512,6 @@ def main():
             table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, "NA", outfile, SPEAR_VERSION)
         elif args.command == "alignment":
             if os.path.isfile(args.input):
-                single_sample = True
                 passing_samples = []
                 samples_fail_perc_n = 0
                 samples_fail_count = 0
