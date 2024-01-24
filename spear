@@ -420,6 +420,10 @@ def main():
         passing_samples = []
         Path(f'{args.output}/input_files').mkdir(parents=True, exist_ok=True)
         if args.command == "consensus":
+            #if directory, fail with info 
+            if os.path.isdir(args.input):
+                console.print("[red]Error : input is a directory, please provide a single file.[\red]")
+                sys.exit(1)
             #input should be a single file, regardless of number of samples. file can be gzipped or not.
             #verify input is a file not a dir
             nperc = subprocess.run(['seqkit', 'fx2tab', f'{args.input}', '-B', 'N', '--name'], stdout=subprocess.PIPE).stdout.decode('utf-8').rstrip('\n')
@@ -455,6 +459,9 @@ def main():
             table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff)
 
         elif args.command == "vcf":
+            if os.path.isdir(args.input):
+                console.print("[red]Error : input is a directory, please provide a single file, or use spear vcf-merge command to produce a single vcf from a vcf directory.[\red]")
+                sys.exit(1)
             header , vcf = parse_vcf(f'{args.input}', split_info_cols = False)
             sample_names_old = vcf.columns[9:]
             if len(sample_names_old) == 0:
