@@ -35,7 +35,7 @@ def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_lis
         representative_mutations_df = anno_file.loc[anno_file.mutation_count >= (lineage_counts * cutoff), ["REF", "POS", "ALT", "residues", "lineage", "mutation_count"]].drop_duplicates()
         representative_mutations_df["sample_count"] = lineage_counts
         
-        representative_mutations_vcf = representative_mutations_df[["REF", "POS", "ALT"]].copy()    
+        representative_mutations_vcf = representative_mutations_df[["REF", "POS", "ALT"]].drop_duplicates().copy() #drop duplicates where genomic mutation alters multiple residues e.g. 106/7/8 del    
         #convert representative mutations into vcf format.
         representative_mutations_vcf["#CHROM"] = "NC_045512.2"
         representative_mutations_vcf["ID"] = representative_mutations_vcf["REF"] + representative_mutations_vcf["POS"].astype("int").astype("str") + representative_mutations_vcf["ALT"]
@@ -47,6 +47,7 @@ def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_lis
         representative_mutations_vcf["FORMAT"] = "GT"
         representative_mutations_vcf[lineage] = 1
         representative_mutations_vcf = representative_mutations_vcf[["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", lineage]]
+        representative_mutations_vcf = representative_mutations_vcf.sort_values(by = "REF")
         return(representative_mutations_df, representative_mutations_vcf)
 
 def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, cutoff):
@@ -322,20 +323,26 @@ def main():
             mutations.to_csv(f'{args.output_dir}/{args.lineage}.{args.output_suffix}.tsv', sep = '\t', index = False)
             if not args.mutation_list_only:
                 mutations_header = ["##fileformat=VCFv4.2", f"##source=SPEAR Representative", "##contig=<ID=NC_045512.2,length=29903,md5=837a7a2974dd01bd66ab6a4acf830b68,URL=https://github.com/m-crown/SPEAR/blob/main/data/reference.fasta>",
-'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">','##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">'
+'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">','##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">',
 '##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">']
                 write_vcf(mutations_header , mutations_vcf, f"{args.output_dir}/{args.lineage}.{args.output_suffix}.vcf")
-                representative_info.append([args.lineage, str(mutations.sample_count.head(1).values[0]), str(len(mutations))])
+                if len(mutations) != 0:
+                    representative_info.append([args.lineage, str(mutations.sample_count.head(1).values[0]), str(len(mutations))])
+                else:
+                    representative_info.append([args.lineage, "no mutations identified", "not mutations identified"])
         else:
             for lineage in anno_file.lineage.unique():
                 mutations,mutations_vcf = get_representative_mutations(anno_file, lineage, cutoff = args.cutoff, mutation_list_only = args.mutation_list_only)
                 mutations.to_csv(f'{args.output_dir}/{lineage}_{args.output_suffix}.tsv', sep = '\t', index = False)
                 if not args.mutation_list_only:
                     mutations_header = ["##fileformat=VCFv4.2", f"##source=SPEAR Representative", "##contig=<ID=NC_045512.2,length=29903,md5=837a7a2974dd01bd66ab6a4acf830b68,URL=https://github.com/m-crown/SPEAR/blob/main/data/reference.fasta>",
-    '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">','##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">'
+    '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">','##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">',
     '##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">']
                     write_vcf(mutations_header , mutations_vcf, f"{args.output_dir}/{lineage}.{args.output_suffix}.vcf")
-                representative_info.append([lineage, str(mutations.sample_count.head(1).values[0]), str(len(mutations))])
+                if len(mutations) != 0:
+                    representative_info.append([lineage, str(mutations.sample_count.head(1).values[0]), str(len(mutations))])
+                else:
+                    representative_info.append([lineage, "no mutations identified", "not mutations identified"])
         console.print("[bold green]Representative mutations generated[/bold green]")
 
         table = Table(show_header=True, header_style="bold magenta", title = "Representative Mutations Summary", caption = "Representative mutations identified in each lineage, with min {args.cutoff} lineage presence", caption_justify = "center")
@@ -345,6 +352,10 @@ def main():
         table.add_column("# Representative Mutations")
         for row in representative_info:
             table.add_row(*row)
+        with open(f'{args.output_dir}/representative_mutations_summary.txt', 'w') as f:
+            f.write("Lineage,samples,num_representative_mutations\n")
+            for row in representative_info:
+                f.write(f"{",".join(row)}\n")
         console.print(table)
 
     elif args.command == "report":
