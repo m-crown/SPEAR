@@ -28,12 +28,12 @@ def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_lis
     anno_file["mutation_count"] = anno_file.loc[anno_file.lineage == lineage].groupby("nt_aa_compound").transform("size")
     
     if mutation_list_only:
-        representative_mutations_df = anno_file.loc[anno_file.mutation_count >= (lineage_counts * cutoff), ["REF", "POS", "ALT", "residues", "lineage", "mutation_count"]].drop_duplicates()
+        representative_mutations_df = anno_file.loc[anno_file.mutation_count >= (lineage_counts * cutoff), ["REF", "POS", "ALT", "description", "residues", "lineage", "mutation_count"]].drop_duplicates()
         representative_mutations_df.sort_values(by = "POS", inplace = True)
         representative_mutations_df["sample_count"] = lineage_counts
         return(representative_mutations_df, None)
     else:
-        representative_mutations_df = anno_file.loc[anno_file.mutation_count >= (lineage_counts * cutoff), ["REF", "POS", "ALT", "residues", "lineage", "mutation_count"]].drop_duplicates()
+        representative_mutations_df = anno_file.loc[anno_file.mutation_count >= (lineage_counts * cutoff), ["REF", "POS", "ALT", "description", "residues", "lineage", "mutation_count"]].drop_duplicates()
         representative_mutations_df["sample_count"] = lineage_counts
         
         representative_mutations_vcf = representative_mutations_df[["REF", "POS", "ALT"]].drop_duplicates().copy() #drop duplicates where genomic mutation alters multiple residues e.g. 106/7/8 del    
