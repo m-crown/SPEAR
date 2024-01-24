@@ -366,7 +366,7 @@ def main():
         with open(f'{args.output_dir}/representative_mutations_summary.txt', 'w') as f:
             f.write("Lineage,samples,num_representative_mutations\n")
             for row in representative_info:
-                f.write(f"{",".join(row)}\n")
+                f.write(f'{",".join(row)}\n')
         console.print(table)
 
     elif args.command == "report":
