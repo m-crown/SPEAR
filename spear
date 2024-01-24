@@ -89,7 +89,7 @@ def main():
     consensus.add_argument('--mask-problem-sites', metavar = 'AB AM HA', nargs='+', 
         help = "Filter problematic sides with these codes: [AB AM HA HH HO IC NA NS NL SS AD BR all]")     
     consensus.add_argument('--threads' , metavar='', type = int, default = 1,
-        help = "Max number of threads for snakemake job execution.") 
+        help = "Max number of threads for snakemake job execution.")
     consensus.add_argument('--aligner', metavar = '', default = "minimap2", type = str,
         help = "Alignment method to use for alignment to SARS-CoV-2 reference, 'minimap2' or 'muscle', default minimap2")  
     #consensus.add_argument('--allowAmbiguous', default=False, action='store_true',
@@ -114,12 +114,13 @@ def main():
         help = "Do not produce individual sample product plots (for fastest operation)")  
     consensus.add_argument('--pangolin', default="accurate", type = str,
         help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")  
-    consensus.add_argument('input', metavar='input', type=str,
-        help='Input directory of alignments, consensus fasta sequences or VCF files.')
-    consensus.add_argument('output', metavar='output', type=str,
-        help='Destination dir for SPEAR annotated VCFs')
     consensus.add_argument('--per_sample_outputs', default = False, action= "store_true",
       help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
+    consensus.add_argument('input', metavar='input', type=str,
+        help='Input FASTA file (may be gzip compressed)')
+    consensus.add_argument('output', metavar='output', type=str,
+        help='Destination dir for SPEAR annotated VCFs')
+    
 
     alignment.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
@@ -158,7 +159,7 @@ def main():
     alignment.add_argument('--pangolin', default="accurate", type = str,
         help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")        
     alignment.add_argument('input', metavar='input', type=str,
-        help='Input directory of alignments, consensus fasta sequences or VCF files.')
+        help='Input directory alignment file, or directory of alignments.')
     alignment.add_argument('output', metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
     alignment.add_argument('--per_sample_outputs', default = False, action= "store_true",
@@ -187,7 +188,7 @@ def main():
     vcf.add_argument('--pangolin', default="accurate", type = str,
         help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")  
     vcf.add_argument('input', metavar='input', type=str,
-        help='Input directory of alignments, consensus fasta sequences or VCF files.')
+        help='Input VCF file - can be a single or multisample VCF. Prepare VCF directories into single file using "spear vcf-merge"')
     vcf.add_argument('output', metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
     vcf.add_argument('--per_sample_outputs', default = False, action= "store_true",
@@ -216,9 +217,9 @@ def main():
         help = "SPEAR annotation file")
     report.add_argument('--baseline_scores' , metavar='', type = str, default = f'{SPEAR_PATH}/data/baseline_scores.tsv',
         help = "Baseline scores file for use in summary report")
-    report.add_argument('--input_sample_num' , metavar='', type = int, required=True,
+    report.add_argument('--input_sample_num' , metavar='', type = int,
         help = "Number of input samples")
-    report.add_argument('--qc_sample_num' , metavar='', type = int, required=True,
+    report.add_argument('--qc_sample_num' , metavar='', type = int,
         help = "Number of samples passing QC")
     report.add_argument('--n_perc', metavar = '', type = str, default = "spear_score_summary.tsv",
         help = "qc.csv file if produced by SPEAR)")
