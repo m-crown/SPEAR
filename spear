@@ -29,6 +29,7 @@ def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_lis
     
     if mutation_list_only:
         representative_mutations_df = anno_file.loc[anno_file.mutation_count >= (lineage_counts * cutoff), ["REF", "POS", "ALT", "residues", "lineage", "mutation_count"]].drop_duplicates()
+        representative_mutations_df.sort_values(by = "POS", inplace = True)
         representative_mutations_df["sample_count"] = lineage_counts
         return(representative_mutations_df, None)
     else:
@@ -47,7 +48,7 @@ def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_lis
         representative_mutations_vcf["FORMAT"] = "GT"
         representative_mutations_vcf[lineage] = 1
         representative_mutations_vcf = representative_mutations_vcf[["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", lineage]]
-        representative_mutations_vcf = representative_mutations_vcf.sort_values(by = "REF")
+        representative_mutations_vcf.sort_values(by = "POS", inplace = True)
         return(representative_mutations_df, representative_mutations_vcf)
 
 def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, cutoff, spear_version, outfile):
