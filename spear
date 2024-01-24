@@ -50,7 +50,7 @@ def get_representative_mutations(anno_file, lineage, cutoff = 0.85, mutation_lis
         representative_mutations_vcf = representative_mutations_vcf.sort_values(by = "REF")
         return(representative_mutations_df, representative_mutations_vcf)
 
-def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, cutoff):
+def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, cutoff, spear_version, outfile):
     table = Table(show_header=True, header_style="bold magenta", box = box.HORIZONTALS)
     table.add_column("Samples")
     table.add_column("Count")
@@ -58,12 +58,22 @@ def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, sam
     table.add_row("[green]Passing Samples[/green]", Text(str(len(passing_samples)), "green"))
     table.add_row(f'[red]%N > {str(cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
     table.add_row("Incorrect format", str(samples_fail_count))
+
+    file_rows = [f"#{spear_version}","input_samples,passing_samples,samples_fail_perc_n,samples_fail_count, cutoff",
+                 f"{str(len(input_samples))},{str(len(passing_samples))},{str(samples_fail_perc_n)},{str(samples_fail_count)},{str(cutoff)}"]
+
+    with open(outfile, "w") as f:
+        for row in file_rows:
+            f.write(f"{row}\n")
+            
     return table
 
 def main():
 
     SPEAR_PATH = os.environ.get('CONDA_PREFIX')
     
+    SPEAR_VERSION = "2.0.0"
+
     parser = argparse.ArgumentParser('spear')   
 
     subparsers = parser.add_subparsers(dest='command')
@@ -457,7 +467,8 @@ def main():
             grep_process.stdout.close()
             grep_process.wait()
             samples_fail_count = 0 #only relevent when looking at non concat fa files - where ref may exist
-            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff)
+            outfile = f'{args.output}/spear_program_summary.csv'
+            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff, outfile, SPEAR_VERSION)
 
         elif args.command == "vcf":
             if os.path.isdir(args.input):
@@ -490,7 +501,8 @@ def main():
                 sys.exit(1)      
             samples_fail_perc_n = "Not applicable, VCF input"
             samples_fail_count = "Not applicable, VCF input"
-            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, "NA")
+            outfile = f'{args.output}/spear_program_summary.csv'
+            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, "NA", outfile, SPEAR_VERSION)
         elif args.command == "alignment":
             if os.path.isfile(args.input):
                 single_sample = True
@@ -525,10 +537,6 @@ def main():
                     with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                         SeqIO.write(sample_file, output_handle, "fasta")
                     passing_samples = [sample_file[1].id]
-                table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff)
-                if len(passing_samples) == 0:
-                    print("No samples to process, exiting.")
-                    sys.exit(1)
             else:
                 single_sample = False
                 input_samples = [(f.split(f'{extension}'))[0] for f in os.listdir(args.input) if f.endswith(extension)]
@@ -564,12 +572,13 @@ def main():
                         with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[1].id)
-                table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff)
-                if len(passing_samples) == 1:
-                    single_sample = True
-                elif len(passing_samples) == 0:
-                    console.print("[red]No samples to process, exiting.[/red]")
-                    sys.exit(1)
+            outfile = f'{args.output}/spear_program_summary.csv'
+            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff, outfile = f'{args.output}/spear_program_summary.csv')
+            if len(passing_samples) == 1:
+                single_sample = True
+            elif len(passing_samples) == 0:
+                console.print("[red]No samples to process, exiting.[/red]")
+                sys.exit(1)
         else:
             parser.print_help()
             print("Error : invalid command")
