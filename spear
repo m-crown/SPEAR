@@ -742,6 +742,11 @@ def main():
         with open(f'{args.output}/spear_params.txt', 'w') as f:
             f.write(spear_params)
         
+        #save the passing samples to a csv file for use in pipeline
+        with open(f'{args.output}/passing_samples.csv', 'w') as f:
+            for sample in passing_samples:
+                f.write(f'{sample}\n')
+
         args.s_contig = int(args.s_contig)
         config = {
             "samples" : passing_samples, 
