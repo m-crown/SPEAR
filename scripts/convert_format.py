@@ -89,9 +89,9 @@ def sample_header_format(item,sample,vcf,filtered,vcf_loc):
     return(item)
 
 def process_sample(args):
-    index, sample, merged_vcf, sample_array = args
+    sample_col, sample, merged_vcf = args
     sample_vcf = merged_vcf.copy()
-    sample_vcf["sample"] = sample_array[index]
+    sample_vcf["sample"] = sample_col
     sample_vcf = sample_vcf.loc[sample_vcf["sample"] == 1]
     sample_vcf["#CHROM"] = sample
     sample_vcf.rename(columns={"#CHROM": "sample_id"}, inplace=True)
@@ -154,7 +154,7 @@ def main():
     
     # use multiprocessing to speed up the parsing of each sample.
     with multiprocessing.Pool(args.threads) as pool:
-        arguments = [(index, sample, merged_vcf, sample_array) for index, sample in enumerate(sample_list)]
+        arguments = [(sample_array[index], sample, merged_vcf) for index, sample in enumerate(sample_list)]
         results = pool.map(process_sample, arguments)
         all_sample_vcfs.extend(results)
 
