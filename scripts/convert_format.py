@@ -14,6 +14,7 @@ from functools import reduce
 from bindingcalculator import BindingCalculator
 from itertools import takewhile
 from shutil import rmtree
+import multiprocessing
 
 def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
     if option == "res_ret_esc":
@@ -87,6 +88,15 @@ def sample_header_format(item,sample,vcf,filtered,vcf_loc):
     
     return(item)
 
+def process_sample(args):
+    index, sample, merged_vcf, sample_array = args
+    sample_vcf = merged_vcf.copy()
+    sample_vcf["sample"] = sample_array[index]
+    sample_vcf = sample_vcf.loc[sample_vcf["sample"] == 1]
+    sample_vcf["#CHROM"] = sample
+    sample_vcf.rename(columns={"#CHROM": "sample_id"}, inplace=True)
+    sample_vcf.drop(columns="sample", inplace=True)
+    return sample_vcf
 
 def main():
     parser = argparse.ArgumentParser(description='')
@@ -108,6 +118,8 @@ def main():
         help ='Sample columns list from input vcf')
     parser.add_argument('--spear_samples', default = "passing_samples.csv", type= str,
         help ='Sample list from spear pipeline')
+    parser.add_argument('--threads', default = 1, type= int,
+        help ='Number of threads to use')
 
     args = parser.parse_args()
 
@@ -129,7 +141,7 @@ def main():
     else:
         infiles = f'{args.output_dir}/intermediate_output/indels/*.indels.vcf'
 
-    merged_header , merged_vcf = parse_vcf(args.input_vcf, split_info_cols=True, samples = False)
+    merged_header , merged_vcf = parse_vcf(args.input_vcf, split_info_cols=False, samples = False)
     with open(args.sample_list, "r") as file:
         sample_list = file.readline().rstrip()
     # Split the line into a list using tab as delim
@@ -139,16 +151,15 @@ def main():
     sample_array = sample_array.T
 
     all_sample_vcfs = []
-    for index, sample in enumerate(sample_list):
-        sample_vcf = merged_vcf.copy()
-        sample_vcf["sample"] = sample_array[index]
-        sample_vcf = sample_vcf.loc[sample_vcf["sample"] == 1]
-        sample_vcf["#CHROM"] = sample
-        sample_vcf.rename(columns = {"#CHROM": "sample_id"}, inplace = True)
-        sample_vcf.drop(columns = "sample", inplace = True)
-        all_sample_vcfs.append(sample_vcf)
-        
+    
+    # use multiprocessing to speed up the parsing of each sample.
+    with multiprocessing.Pool(args.threads) as pool:
+        arguments = [(index, sample, merged_vcf, sample_array) for index, sample in enumerate(sample_list)]
+        results = pool.map(process_sample, arguments)
+        all_sample_vcfs.extend(results)
+
     input_file = pd.concat(all_sample_vcfs)
+
     
     #read the passing samples from spear pipeline into a list.    
     with open(args.spear_samples, "r") as file:
