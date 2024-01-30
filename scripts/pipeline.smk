@@ -52,31 +52,18 @@ rule produce_report:
    shell:
       """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {config[global_n]} {config[s_n]} {config[s_contig]} {config[rbd_n]} {input.lineage_report} {config[output_dir]}/pangolin_command.txt {config[spear_params]} 2> {log}"""
 
-if config["per_sample_outputs"] == "True":
-   rule summarise_vcfs:
-      input:
-         all_samples = expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"]), 
-         merged_samples = spear_out,
-         lineages = config["output_dir"] + "/lineage_report.csv"
-      output:
-         config["output_dir"] + "/spear_annotation_summary.tsv",
-         config["output_dir"] + "/spear_score_summary.tsv",
-         expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
-      log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
-      shell:
-         """echo "{config[samples]}" > {config[output_dir]}/intermediate_output/sample_list.txt ; for i in $(find {config[output_dir]}/final_vcfs/ -type f -exec grep -lP '^NC_045512\.2' {{}} \;) ; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} --per_sample_outputs {config[per_sample_outputs]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {input.merged_samples} {config[output_dir]}/intermediate_output/sample_list.txt 2> {log} """
-else:
-   rule summarise_vcfs:
-      input:
-         all_samples = expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"]),
-         merged_samples = spear_out,
-         lineages = config["output_dir"] + "/lineage_report.csv"
-      output:
-         config["output_dir"] + "/spear_annotation_summary.tsv",
-         config["output_dir"] + "/spear_score_summary.tsv"
-      log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
-      shell:
-         """echo "{config[samples]}" > {config[output_dir]}/intermediate_output/sample_list.txt ; for i in $(find {config[output_dir]}/final_vcfs/ -type f -exec grep -lP '^NC_045512\.2' {{}} \;) ; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} --per_sample_outputs {config[per_sample_outputs]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {input.merged_samples} {config[output_dir]}/intermediate_output/sample_list.txt 2> {log} """
+
+rule summarise_vcfs:
+   input: 
+      merged_samples = spear_out,
+      lineages = config["output_dir"] + "/lineage_report.csv"
+   output:
+      config["output_dir"] + "/spear_annotation_summary.tsv",
+      config["output_dir"] + "/spear_score_summary.tsv",
+      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]) if config["per_sample_outputs"] == True else config["output_dir"] + "/spear_annotation_summary.tsv"
+   log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
+   shell:
+      """cut -f10- -s all_samples.spear.vcf > {config[output_dir]}/intermediate_output/sample_positions.tsv ; head -n 1 {config[output_dir]}/sample_positions.tsv > {config[output_dir]}/sample_positions_header.tsv ; awk '{if (NR!=1) {gsub(/\./, "0"); print}}' {config[output_dir]}/sample_positions.tsv > {config[output_dir]}/sample_positions_filtered.tsv ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} --per_sample_outputs {config[per_sample_outputs]} --input_vcf {input.merged_samples} --output_dir {config[output_dir]} --data_dir {config[data_dir]} --sample_list {config[output_dir]}/intermediate_output/sample_positions_header.tsv --sample_array {config[output_dir]}/intermediate_output/sample_positions_filtered.tsv --spear_samples {config[output_dir]}/passing_samples.csv 2> {log} """
 
 if config["pangolin"] != "none":
    rule pangolin:
@@ -90,6 +77,17 @@ if config["pangolin"] != "none":
          """run_pango.sh {input} {config[pangolin]} {config[output_dir]} {config[max_n]} {config[threads]} {log} 2> {log}"""
 
    if config["vcf"]:
+      rule split_vcfs:
+         input:
+            config["output_dir"] + "/all_samples.spear.vcf"
+         output:
+            config["output_dir"] + "/final_vcfs/{id}.spear.vcf"
+         log: config["output_dir"] + "/intermediate_output/logs/split/{id}.split.log"
+         shell:
+            """
+            bcftools view -Ov -c 1 -s {wildcards.id} -o {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf {input} 2> {log}
+            """
+
       rule vcf_consensus:
          input:
             config["output_dir"] + "/final_vcfs/{id}.spear.vcf"
@@ -128,17 +126,6 @@ else:
       log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin_touch.log"
       shell:
          """touch {output.report} ; echo "Pangolin not run\nNA" > {output.command}"""
-
-rule split_vcfs:
-   input:
-      config["output_dir"] + "/all_samples.spear.vcf"
-   output:
-      config["output_dir"] + "/final_vcfs/{id}.spear.vcf"
-   log: config["output_dir"] + "/intermediate_output/logs/split/{id}.split.log"
-   shell:
-      """
-      bcftools view -Ov -c 1 -s {wildcards.id} -o {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf {input} 2> {log}
-      """
 
 rule spear_annotate:
    input:
