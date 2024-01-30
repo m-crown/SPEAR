@@ -90,11 +90,11 @@ def sample_header_format(item,sample,vcf,filtered,vcf_loc):
 
 def main():
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('input_vcf', metavar='merged.spear.vcf', type=str,
+    parser.add_argument('--input_vcf', metavar='merged.spear.vcf', type=str,
         help='Concatenated SPEAR anno file')
-    parser.add_argument('output_dir', metavar='spear_vcfs/', type=str,
+    parser.add_argument('--output_dir', metavar='spear_vcfs/', type=str,
         help='Destination dir for summary tsv files')
-    parser.add_argument('data_dir', metavar='data/', type=str,
+    parser.add_argument('--data_dir', metavar='data/', type=str,
         help='Data dir for binding calculator data files')  
     parser.add_argument('--is_vcf_input', default="False", type=str,
         help = "Set input file type to VCF")
@@ -136,6 +136,7 @@ def main():
     sample_list = sample_list.split("\t")
     
     sample_array = np.loadtxt(args.sample_array, delimiter='\t')
+    sample_array = sample_array.T
 
     all_sample_vcfs = []
     for index, sample in enumerate(sample_list):
@@ -240,9 +241,7 @@ def main():
                     sample_vcf["sample_id"] = "NC_045512.2"
                     sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
                     #append to header created above
-                    sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
-        else:
-            rmtree(f'{args.output_dir}/final_vcfs/')        
+                    sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)       
 
         cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barnes_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
         input_file = input_file[cols]
