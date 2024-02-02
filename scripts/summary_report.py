@@ -179,7 +179,8 @@ def main():
     rbd_n = int(spear_params_dict["rbd_n"])
     
     spear_qc_info = pd.read_csv(f"{args.spear_qc_info}", sep = "\t")
-    spear_version = spear_qc_info["spear_version"].values[0]
+    spear_version = spear_qc_info.spear_version.values[0]
+    qc_samples = spear_qc_info.passing_samples.values[0]
 
     annotation_summary["compound_nt_var"] = annotation_summary["description"] + annotation_summary["REF"] + annotation_summary["POS"].astype("str") + annotation_summary["ALT"]
     annotation_summary["compound_res_var"] = annotation_summary["description"] + annotation_summary["residues"]
@@ -196,7 +197,7 @@ def main():
     variants_counts_table.columns = ["count"]
     variants_counts_table = variants_counts_table.sort_values("count", axis = 0 , ascending = False)
     variants_counts_table = variants_counts_table.reset_index()
-    variants_counts_table["percentage_samples"] = (variants_counts_table["count"] / int(args.qc_samples)) * 100
+    variants_counts_table["percentage_samples"] = (variants_counts_table["count"] / int(qc_samples)) * 100
     variants_counts_table["percentage_samples"] = variants_counts_table["percentage_samples"].round(2)
      
     variants_table = go.Figure(data=[go.Table(
@@ -330,7 +331,7 @@ def main():
     residues_counts_table_respos["description"] = residues_counts_table_respos["description"].cat.set_categories(products)
     residues_counts_table_respos["order"] = residues_counts_table_respos["description"].apply(lambda x: product_order.index(x))
     residues_counts_table_respos = residues_counts_table_respos.sort_values(by = ["count", "order", "respos"], ascending = [False, True, True]) #default
-    residues_counts_table_respos["percentage_samples"] = (residues_counts_table_respos["count"] / int(args.qc_samples)) * 100
+    residues_counts_table_respos["percentage_samples"] = (residues_counts_table_respos["count"] / int(qc_samples)) * 100
     residues_counts_table_respos["percentage_samples"] = residues_counts_table_respos["percentage_samples"].round(2)
 
     residues_table = go.Figure(data=[go.Table(
