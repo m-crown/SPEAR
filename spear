@@ -61,7 +61,7 @@ def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, sam
     table.add_row("Incorrect format", str(samples_fail_count))
 
     file_rows = [f"spear_version\tinput_samples\tpassing_samples\tsamples_fail_perc_n\tsamples_fail_count\tcutoff",
-                 f"{spear_version}  {str(len(input_samples))}\t{str(len(passing_samples))}\t{str(samples_fail_perc_n)}\t{str(samples_fail_count)}\t{str(cutoff)}"]
+                 f"{spear_version}\t{str(len(input_samples))}\t{str(len(passing_samples))}\t{str(samples_fail_perc_n)}\t{str(samples_fail_count)}\t{str(cutoff)}"]
 
     with open(outfile, "w") as f:
         for row in file_rows:

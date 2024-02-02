@@ -171,8 +171,8 @@ def main():
     with open(args.spear_params) as file:
         spear_params = file.readline().rstrip()
 
-    spear_params = spear_params.split(',')
-    spear_params_dict = {param.split(':')[0]: param.split(':')[1] for param in spear_params}
+    spear_params_list = spear_params.split(',')
+    spear_params_dict = {param.split(':')[0]: param.split(':')[1] for param in spear_params_list}
     global_n = float(spear_params_dict["global_n"])
     s_n = float(spear_params_dict["s_n"])
     s_contig = int(spear_params_dict["s_contig"])
@@ -180,7 +180,7 @@ def main():
     
     spear_qc_info = pd.read_csv(f"{args.spear_qc_info}", sep = "\t")
     spear_version = spear_qc_info.spear_version.values[0]
-    qc_samples = spear_qc_info.passing_samples.values[0]
+    qc_samples = spear_qc_info.passing_samples.astype(int).values[0]
 
     annotation_summary["compound_nt_var"] = annotation_summary["description"] + annotation_summary["REF"] + annotation_summary["POS"].astype("str") + annotation_summary["ALT"]
     annotation_summary["compound_res_var"] = annotation_summary["description"] + annotation_summary["residues"]
@@ -1723,7 +1723,6 @@ def main():
         heatmap_message  = ""
     
     #################### HTML FORMATTING #####################
-    
     html_string = '''
     <html>
         <head>
@@ -1755,7 +1754,7 @@ def main():
                     <div class = "col-12">
                         <div class="card">
                             <div class="card-body">
-                            <p class="p1 text-justify">From a total of ''' + str(spear_qc_info["input_samples"].values[0]) + ''' input samples, ''' + str(spear_qc_info["qc_samples"].values[0]) + ''' passed QC and were annotated by SPEAR. A total of ''' + str(total_genomic_variants) + ''' nucleotide variants were identified across all samples, which resulted in ''' + str(total_residue_variants) + ''' AA missense, deletion or insertions which are listed and evaluated below. </p>
+                            <p class="p1 text-justify">From a total of ''' + str(spear_qc_info["input_samples"].values[0]) + ''' input samples, ''' + str(qc_samples) + ''' passed QC and were annotated by SPEAR. A total of ''' + str(total_genomic_variants) + ''' nucleotide variants were identified across all samples, which resulted in ''' + str(total_residue_variants) + ''' AA missense, deletion or insertions which are listed and evaluated below. </p>
                             </div>
                         </div>
                     </div>
