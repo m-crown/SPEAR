@@ -50,7 +50,7 @@ rule produce_report:
       config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
    shell:
-      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {config[global_n]} {config[s_n]} {config[s_contig]} {config[rbd_n]} {input.lineage_report} {config[output_dir]}/pangolin_command.txt {config[spear_params]} {config[spear_qc_info]} 2> {log}"""
+      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {input.lineage_report} {config[output_dir]}/pangolin_command.txt {config[spear_params]} {config[spear_qc_info]} 2> {log}"""
 
 
 rule summarise_vcfs:
