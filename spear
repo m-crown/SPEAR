@@ -485,8 +485,7 @@ def main():
             grep_process.stdout.close()
             grep_process.wait()
             samples_fail_count = 0 #only relevent when looking at non concat fa files - where ref may exist
-            outfile = f'{args.output}/spear_qc_info.tsv'
-            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff, outfile, SPEAR_VERSION)
+            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff, spear_qc_info, SPEAR_VERSION)
 
         elif args.command == "vcf":
             if os.path.isdir(args.input):
@@ -519,7 +518,7 @@ def main():
                 sys.exit(1)      
             samples_fail_perc_n = "Not applicable, VCF input"
             samples_fail_count = "Not applicable, VCF input"
-            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, "NA", outfile, SPEAR_VERSION)
+            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, "NA", spear_qc_info, SPEAR_VERSION)
         elif args.command == "alignment":
             if os.path.isfile(args.input):
                 single_sample = True
@@ -589,8 +588,7 @@ def main():
                         with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[1].id)
-            outfile = f'{args.output}/spear_qc_info.tsv'
-            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff, outfile, SPEAR_VERSION)
+            table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff, spear_qc_info, SPEAR_VERSION)
             if len(passing_samples) == 1:
                 single_sample = True
             elif len(passing_samples) == 0:
