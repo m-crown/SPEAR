@@ -60,8 +60,8 @@ def build_summary_table(input_samples, passing_samples, samples_fail_perc_n, sam
     table.add_row(f'[red]%N > {str(cutoff)}[/red]', Text(str(samples_fail_perc_n), "red"))
     table.add_row("Incorrect format", str(samples_fail_count))
 
-    file_rows = [f"#{spear_version}","input_samples,passing_samples,samples_fail_perc_n,samples_fail_count, cutoff",
-                 f"{str(len(input_samples))},{str(len(passing_samples))},{str(samples_fail_perc_n)},{str(samples_fail_count)},{str(cutoff)}"]
+    file_rows = [f"spear_version    input_samples   passing_samples samples_fail_perc_n samples_fail_count  cutoff",
+                 f"{spear_version}  {str(len(input_samples))}    {str(len(passing_samples))} {str(samples_fail_perc_n)}  {str(samples_fail_count)}   {str(cutoff)}"]
 
     with open(outfile, "w") as f:
         for row in file_rows:
@@ -82,10 +82,10 @@ def main():
     alignment = subparsers.add_parser('alignment', help='Run SPEAR on alignment in FASTA format (skip alignment).')  
     vcf = subparsers.add_parser('vcf', help='Run SPEAR on existing VCF file(s) - skip alignment and SNP/indel identification and ambiguous SNP filtering.') 
     update = subparsers.add_parser('update', help='Update [spear,data,all]') 
-    representative = subparsers.add_parser('representative', help='Obtain representative mutations for a given set of sequences (requires SPEAR annotation file)') 
-    report = subparsers.add_parser("report", help = "Generate HTML report from SPEAR output (requires SPEAR annotation file)")
+    representative = subparsers.add_parser('utilities-representative', help='Obtain representative mutations for a given set of sequences (requires SPEAR annotation file)') 
     demo = subparsers.add_parser('demo', help='Run SPEAR demo on lineage VCFs')
-
+    report = subparsers.add_parser("utilities-report", help = "Generate HTML report from SPEAR output (requires SPEAR annotation file)")
+    vcf_merge = subparsers.add_parser('utilities-vcf-merge', help='Merge VCFs from different lineages into a single VCF')
 
     consensus.add_argument('--debug', default = True, action='store_false',
         help="Verbose snakemake execution")
@@ -253,6 +253,13 @@ def main():
     report.add_argument("--spear_params", metavar = '', type = str, default = "spear_params.txt",
         help = "File containing spear params used to generate original annotations")
     
+    vcf_merge.add_argument('--input', metavar = '', type = str,
+        help = "Input directory of VCFs to merge")
+    vcf_merge.add_argument('--output', metavar = '', type = str, default = "merged.vcf",
+        help = "Output VCF file name, default 'merged.vcf'")
+    vcf_merge.add_argument('--out_dir', metavar = '', type = str, default = ".",
+        help = "Output directory, default current directory")
+    
     args = parser.parse_args()
     start_time = datetime.datetime.now()
 
@@ -309,7 +316,7 @@ def main():
     if args.command == "update":
         subprocess.run(['sh','update_spear.sh',args.option])
 
-    elif args.command == "representative":
+    elif args.command == "utilities-representative":
         #add some intro text to describe what is happening, sample counts etc.
         Path(f'{args.output_dir}').mkdir(parents=True, exist_ok=True)
         anno_file = pd.read_csv(args.anno_file, sep = '\t')
@@ -370,7 +377,19 @@ def main():
                 f.write(f'{",".join(row)}\n')
         console.print(table)
 
-    elif args.command == "report":
+    ##add vcf merge command - runs the find and bcftools.
+    elif args.command == "utilities-vcf-merge":
+        #add some intro text to describe what is happening, sample counts etc.
+        console.print("[bold green]Merging VCFs[/bold green]")
+        #run find command and send output to merge_list.txt
+        #add some more qc steps here ?
+        with open(f'{args.out_dir}/merge_list.txt', 'w') as f:
+            subprocess.run(['find', f'{args.input}', '-name', '*.vcf'], stdout=f, check=True)
+        #run bcftools merge command
+        subprocess.run(['bcftools', 'merge', '--no-index', '-m', 'none', '-o', f'{args.out_dir}/{args.output}', '-l', f'{args.out_dir}/merge_list.txt'], check=True)
+        
+
+    elif args.command == "utilities-report":
         #add some intro text to describe what is happening, sample counts etc.
         console.print("[bold green]Generating HTML report[/bold green]")
 
@@ -392,9 +411,9 @@ def main():
         subprocess.run(['summary_report.py', '--n_perc', args.n_perc, product_plot, args.spear_summary, args.spear_annotation, args.baseline_scores, str(args.input_sample_num), str(args.qc_sample_num), images_dir, scripts_dir, data_dir, args.output_dir, args.baseline, str(args.global_n), str(args.s_n), str(args.s_contig), str(args.rbd_n), args.lineage_report, args.pangolin_command, spear_params], check = True)
         
 
-    elif args.command not in ["alignment", "consensus", "vcf", "demo", "representative", "report"]:
+    elif args.command not in ["alignment", "consensus", "vcf", "demo", "utilities-representative", "utilties-report", "utilities-vcf-merge"]:
         parser.print_help()
-        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'representative', 'update', 'demo', 'report')")
+        console.print("Please select a subcommand (choose from 'consensus', 'alignment', 'vcf', 'utilities-representative', 'update', 'demo', 'utilities-report', 'utilities-vcf-merge')")
         sys.exit(1)
 
     else:
@@ -468,7 +487,7 @@ def main():
             grep_process.stdout.close()
             grep_process.wait()
             samples_fail_count = 0 #only relevent when looking at non concat fa files - where ref may exist
-            outfile = f'{args.output}/spear_program_summary.csv'
+            outfile = f'{args.output}/spear_qc_info.tsv'
             table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff, outfile, SPEAR_VERSION)
 
         elif args.command == "vcf":
@@ -502,7 +521,7 @@ def main():
                 sys.exit(1)      
             samples_fail_perc_n = "Not applicable, VCF input"
             samples_fail_count = "Not applicable, VCF input"
-            outfile = f'{args.output}/spear_program_summary.csv'
+            outfile = f'{args.output}/spear_qc_info.tsv'
             table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, "NA", outfile, SPEAR_VERSION)
         elif args.command == "alignment":
             if os.path.isfile(args.input):
@@ -573,7 +592,7 @@ def main():
                         with open(f'{args.output}/input_files/{sample_file[1].id}{extension}', "w") as output_handle:
                             SeqIO.write(sample_file, output_handle, "fasta")
                         passing_samples.append(sample_file[1].id)
-            outfile = f'{args.output}/spear_program_summary.csv'
+            outfile = f'{args.output}/spear_qc_info.tsv'
             table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, args.cutoff, outfile, SPEAR_VERSION)
             if len(passing_samples) == 1:
                 single_sample = True

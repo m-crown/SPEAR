@@ -122,10 +122,6 @@ def main():
         help='Filename for SnpEff summarised and residue annotated VCF')
     parser.add_argument('baseline_scores', metavar='baseline.tsv', type=str,
         help='Filename for SnpEff summarised and residue annotated VCF')
-    parser.add_argument('input_samples', metavar='1000', type=str,
-        help='Number of samples input into SPEAR pipeline') 
-    parser.add_argument('qc_samples', metavar='700', type=str,
-        help='Number of samples passing QC and entering SPEAR pipeline')
     parser.add_argument('images_dir', metavar='spear_images/', type=str,
         help='Directory for spear images to be copied from') 
     parser.add_argument('scripts_dir', metavar='$CONDA_PREFIX/bin', type=str,
@@ -136,20 +132,14 @@ def main():
         help='Filename for SnpEff summarised and residue annotated VCF')
     parser.add_argument('baseline', metavar='Omicron', type=str,
         help='lineage for baseline')
-    parser.add_argument('global_n', metavar='0.50', default = 0.5, type=float,
-        help='global n max to flag')
-    parser.add_argument('s_n', metavar='0.05', default = 0.05, type=float,
-        help='spike n max to flag')
-    parser.add_argument('s_contig', metavar='150', default = 150, type=float,
-        help='min n contig to flag in spike')
-    parser.add_argument('rbd_n', metavar='12', default = 12, type=float,
-        help='min n count to flag in rbd')
     parser.add_argument('pangolin_report', metavar='lineage_report.csv', type=str,
         help='pangolin lineage report for organising samples')
     parser.add_argument('pangolin_command', metavar='pangolin_command.txt', type=str,
         help='pangolin command which was run')
-    parser.add_argument('spear_params', metavar='args.spear_params', type=str,
+    parser.add_argument('spear_params', metavar='spear_params.csv', type=str,
         help='spear params')
+    parser.add_argument('spear_qc_info', metavar='spear_qc_info.tsv', type=str,
+        help='spear qc info')
     args = parser.parse_args()
 
     seed(42069)
@@ -178,7 +168,19 @@ def main():
     pangolin_params = pangolin_command[0]
     pangolin_versions = ' '.join(pangolin_command[1:])
 
-    spear_params = args.spear_params.replace("," , " ")
+    with open(args.spear_params) as file:
+        spear_params = file.readline().rstrip()
+
+    spear_params = "spear:consensus,mask-problem-sites:None,aligner:minimap2,cutoff:0.3,global_n:0.15,s_n:0.05,s_contig:150,rbd_n:12,window:2"
+    spear_params = spear_params.split(',')
+    spear_params_dict = {param.split(':')[0]: param.split(':')[1] for param in spear_params}
+    global_n = float(spear_params_dict["global_n"])
+    s_n = float(spear_params_dict["s_n"])
+    s_contig = int(spear_params_dict["s_contig"])
+    rbd_n = int(spear_params_dict["rbd_n"])
+    
+    spear_qc_info = pd.read_csv(f"{args.spear_qc_info}", sep = "\t")
+    spear_version = spear_qc_info["spear_version"].values[0]
 
     annotation_summary["compound_nt_var"] = annotation_summary["description"] + annotation_summary["REF"] + annotation_summary["POS"].astype("str") + annotation_summary["ALT"]
     annotation_summary["compound_res_var"] = annotation_summary["description"] + annotation_summary["residues"]
@@ -1074,10 +1076,10 @@ def main():
             sample_scores["displayed_dropout"] = ""
         else:
             n_info = pd.read_csv(args.n_perc)
-            n_info.loc[n_info["s_n_contig"] >= args.s_contig, "s_n_contig_display"] = "!"
-            n_info.loc[n_info["rbd_n"] >= args.rbd_n, "rbd_n_display"] = "^"
-            n_info.loc[n_info["s_n"] >= args.s_n, "s_n_display"] = "#"
-            n_info.loc[n_info["global_n"] >= args.global_n, "global_n_display"] = "*"
+            n_info.loc[n_info["s_n_contig"] >= s_contig, "s_n_contig_display"] = "!"
+            n_info.loc[n_info["rbd_n"] >= rbd_n, "rbd_n_display"] = "^"
+            n_info.loc[n_info["s_n"] >= s_n, "s_n_display"] = "#"
+            n_info.loc[n_info["global_n"] >= global_n, "global_n_display"] = "*"
             n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]] = n_info[["s_n_contig_display", "s_n_display", "global_n_display", "rbd_n_display"]].fillna("")
             n_info["displayed_dropout"] = n_info["s_n_contig_display"] + n_info["rbd_n_display"] + n_info["s_n_display"] + n_info["global_n_display"]
             sample_scores_baseline = sample_scores.iloc[0].copy()
@@ -1753,7 +1755,7 @@ def main():
                     <div class = "col-12">
                         <div class="card">
                             <div class="card-body">
-                            <p class="p1 text-justify">From a total of ''' + str(args.input_samples) + ''' input samples, ''' + str(args.qc_samples) + ''' passed QC and were annotated by SPEAR. A total of ''' + str(total_genomic_variants) + ''' nucleotide variants were identified across all samples, which resulted in ''' + str(total_residue_variants) + ''' AA missense, deletion or insertions which are listed and evaluated below. </p>
+                            <p class="p1 text-justify">From a total of ''' + str(spear_qc_info["input_samples"].values[0]) + ''' input samples, ''' + str(spear_qc_info["qc_samples"].values[0]) + ''' passed QC and were annotated by SPEAR. A total of ''' + str(total_genomic_variants) + ''' nucleotide variants were identified across all samples, which resulted in ''' + str(total_residue_variants) + ''' AA missense, deletion or insertions which are listed and evaluated below. </p>
                             </div>
                         </div>
                     </div>
@@ -1884,7 +1886,7 @@ def main():
                             <p> Generated On: ''' + report_date + '''</p>
                         </div>
                         <div class="col-4 text-center">
-                            <p> SPEAR Version 1.1.3 </p>
+                            <p> ''' + spear_version + ''' </p>
                         </div>
                         <div class="col-4 text-right">
                             <p></p>
