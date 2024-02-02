@@ -171,7 +171,6 @@ def main():
     with open(args.spear_params) as file:
         spear_params = file.readline().rstrip()
 
-    spear_params = "spear:consensus,mask-problem-sites:None,aligner:minimap2,cutoff:0.3,global_n:0.15,s_n:0.05,s_contig:150,rbd_n:12,window:2"
     spear_params = spear_params.split(',')
     spear_params_dict = {param.split(':')[0]: param.split(':')[1] for param in spear_params}
     global_n = float(spear_params_dict["global_n"])
