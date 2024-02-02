@@ -110,37 +110,7 @@ def add_mutation_line(x_pos, y_pos, prod, orf1ab, structural, accessory):
     return shape
 
 
-def main():
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--product_plots', default=False, action='store_true',
-        help = "Output per sample ORF plots.")
-    parser.add_argument('--n_perc', metavar='n_perc.csv', type=str,
-        help='Filename for %N and S gene dropout')
-    parser.add_argument('score_summary', metavar='spear_score_summary.tsv', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF')
-    parser.add_argument('annotation_summary', metavar='spear_annotation_summary.tsv', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF')
-    parser.add_argument('baseline_scores', metavar='baseline.tsv', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF')
-    parser.add_argument('images_dir', metavar='spear_images/', type=str,
-        help='Directory for spear images to be copied from') 
-    parser.add_argument('scripts_dir', metavar='$CONDA_PREFIX/bin', type=str,
-        help='Directory for spear scripts')
-    parser.add_argument('data_dir', metavar='$CONDA_PREFIX/data', type=str,
-        help='Directory for spear data')        
-    parser.add_argument('output_dir', metavar='report/', type=str,
-        help='Filename for SnpEff summarised and residue annotated VCF')
-    parser.add_argument('baseline', metavar='Omicron', type=str,
-        help='lineage for baseline')
-    parser.add_argument('pangolin_report', metavar='lineage_report.csv', type=str,
-        help='pangolin lineage report for organising samples')
-    parser.add_argument('pangolin_command', metavar='pangolin_command.txt', type=str,
-        help='pangolin command which was run')
-    parser.add_argument('spear_params', metavar='spear_params.csv', type=str,
-        help='spear params')
-    parser.add_argument('spear_qc_info', metavar='spear_qc_info.tsv', type=str,
-        help='spear qc info')
-    args = parser.parse_args()
+def summary_report(args):
 
     seed(42069)
     Path(f'{args.output_dir}/images').mkdir(parents=True, exist_ok=True)
@@ -1937,5 +1907,40 @@ def main():
     f.write(html_string)
     f.close()
     console.print(table)
+
+def main():
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--product_plots', default=False, action='store_true',
+        help = "Output per sample ORF plots.")
+    parser.add_argument('--n_perc', metavar='n_perc.csv', type=str,
+        help='Filename for %N and S gene dropout')
+    parser.add_argument('score_summary', metavar='spear_score_summary.tsv', type=str,
+        help='Filename for SnpEff summarised and residue annotated VCF')
+    parser.add_argument('annotation_summary', metavar='spear_annotation_summary.tsv', type=str,
+        help='Filename for SnpEff summarised and residue annotated VCF')
+    parser.add_argument('baseline_scores', metavar='baseline.tsv', type=str,
+        help='Filename for SnpEff summarised and residue annotated VCF')
+    parser.add_argument('images_dir', metavar='spear_images/', type=str,
+        help='Directory for spear images to be copied from') 
+    parser.add_argument('scripts_dir', metavar='$CONDA_PREFIX/bin', type=str,
+        help='Directory for spear scripts')
+    parser.add_argument('data_dir', metavar='$CONDA_PREFIX/data', type=str,
+        help='Directory for spear data')        
+    parser.add_argument('output_dir', metavar='report/', type=str,
+        help='Filename for SnpEff summarised and residue annotated VCF')
+    parser.add_argument('baseline', metavar='Omicron', type=str,
+        help='lineage for baseline')
+    parser.add_argument('pangolin_report', metavar='lineage_report.csv', type=str,
+        help='pangolin lineage report for organising samples')
+    parser.add_argument('pangolin_command', metavar='pangolin_command.txt', type=str,
+        help='pangolin command which was run')
+    parser.add_argument('spear_params', metavar='spear_params.csv', type=str,
+        help='spear params')
+    parser.add_argument('spear_qc_info', metavar='spear_qc_info.tsv', type=str,
+        help='spear qc info')
+    args = parser.parse_args()
+
+    summary_report(args = args)
+
 if __name__ == "__main__":
     main()
