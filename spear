@@ -401,14 +401,11 @@ def main():
             product_plot = "--product_plots"
         else:
             product_plot = ""
-        #read spear params from file - single line
-        with open(args.spear_params, 'r') as f:
-            spear_params = f.readline().rstrip('\n')
         
         Path(f'{args.output_dir}').mkdir(parents=True, exist_ok=True)
 
         #run spear report command in subprocess: 
-        subprocess.run(['summary_report.py', '--n_perc', args.n_perc, product_plot, args.spear_summary, args.spear_annotation, args.baseline_scores, str(args.input_sample_num), str(args.qc_sample_num), images_dir, scripts_dir, data_dir, args.output_dir, args.baseline, str(args.global_n), str(args.s_n), str(args.s_contig), str(args.rbd_n), args.lineage_report, args.pangolin_command, spear_params], check = True)
+        subprocess.run(['summary_report.py', '--n_perc', args.n_perc, product_plot, args.spear_summary, args.spear_annotation, args.baseline_scores, images_dir, scripts_dir, data_dir, args.output_dir, args.baseline, str(args.global_n), str(args.s_n), str(args.s_contig), str(args.rbd_n), args.lineage_report, args.pangolin_command, args.spear_params, args.spear_qc_info], check = True)
         
 
     elif args.command not in ["alignment", "consensus", "vcf", "demo", "utilities-representative", "utilties-report", "utilities-vcf-merge"]:
@@ -437,6 +434,7 @@ def main():
         SPEAR_PATH = os.environ.get('CONDA_PREFIX')
         args.input = args.input.rstrip("/")
         args.output = args.output.rstrip("/")
+        spear_qc_info = f'{args.output}/spear_qc_info.tsv'
         #check if input is a directory or a file and then operate differently depending
         if args.extension == None:
             if args.command == "consensus":
@@ -521,7 +519,6 @@ def main():
                 sys.exit(1)      
             samples_fail_perc_n = "Not applicable, VCF input"
             samples_fail_count = "Not applicable, VCF input"
-            outfile = f'{args.output}/spear_qc_info.tsv'
             table = build_summary_table(input_samples, passing_samples, samples_fail_perc_n, samples_fail_count, "NA", outfile, SPEAR_VERSION)
         elif args.command == "alignment":
             if os.path.isfile(args.input):
@@ -790,10 +787,7 @@ def main():
             "input_sample_num" : input_sample_num,
             "qc_sample_num" : qc_sample_num,
             "product_plots" : product_plot,
-            "global_n" : args.global_n,
-            "s_n" : args.s_n , 
-            "s_contig" : args.s_contig,
-            "rbd_n" : args.rbd_n,
+            "spear_qc_info" : spear_qc_info,
             "pangolin" : args.pangolin,
             "threads" : args.threads,
             "max_n" : cutoff, 
