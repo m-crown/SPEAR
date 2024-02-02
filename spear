@@ -753,7 +753,8 @@ def main():
 
 
         spear_params = f'spear:{args.command},mask-problem-sites:{problem_sites},aligner:{args.aligner},cutoff:{cutoff},global_n:{args.global_n},s_n:{args.s_n},s_contig:{args.s_contig},rbd_n:{args.rbd_n},window:{args.window}'
-        with open(f'{args.output}/spear_params.txt', 'w') as f:
+        spear_params_file = f'{args.output}/spear_params.txt'
+        with open(f'{spear_params_file}', 'w') as f:
             f.write(spear_params)
         
         #save the passing samples to a csv file for use in pipeline
@@ -789,7 +790,7 @@ def main():
             "pangolin" : args.pangolin,
             "threads" : args.threads,
             "max_n" : cutoff, 
-            "spear_params" : spear_params,
+            "spear_params" : spear_params_file,
             "per_sample_outputs" : per_sample_outputs,
             "single_sample" : singlesample}
         
