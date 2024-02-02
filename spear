@@ -228,30 +228,18 @@ def main():
         help = "SPEAR annotation file")
     report.add_argument('--baseline_scores' , metavar='', type = str, default = f'{SPEAR_PATH}/data/baseline_scores.tsv',
         help = "Baseline scores file for use in summary report")
-    report.add_argument('--input_sample_num' , metavar='', type = int,
-        help = "Number of input samples")
-    report.add_argument('--qc_sample_num' , metavar='', type = int,
-        help = "Number of samples passing QC")
-    report.add_argument('--n_perc', metavar = '', type = str, default = "spear_score_summary.tsv",
-        help = "qc.csv file if produced by SPEAR)")
     report.add_argument('--lineage_report', metavar = '', type = str, default = "lineage_report.csv",
         help= "Lineage report file from pangolin lineage assignment or user-defined. Must contain column headers taxon (sample_id in SPEAR annotation) and lineage. If pangolin not run, pass empty file")
     report.add_argument('--baseline', metavar = '', type = str, default = "BQ.1",
         help = "Baseline sample to use, either from pre-loaded baseline scores or user-supplied custom baseline file. Default BQ.1.")
-    report.add_argument('--global_n', metavar = '', type = float,
-        help = "Minimum percentage of N in sample to flag as poor coverage. Default half of cutoff.")
-    report.add_argument('--s_n', metavar = '', type = float, default = 0.05,
-        help = "Minimum percentage of N in S gene to flag as poor coverage. Default 5.")
-    report.add_argument('--s_contig', metavar = '', type = float, default = 150,
-        help = "Minimum length of contig to flag sample as potential S gene dropout. Default 150nt")
-    report.add_argument('--rbd_n', metavar = '', type = float, default = 12,
-        help = "Number of N's in sample spike RBD to flag as poor. Default 12nt")
     report.add_argument('--pangolin_command', metavar = '', type = str, default = "pangolin_command.txt",
         help = "File containing pangolin command used to generate lineage report")
     report.add_argument("--output_dir", metavar = '', type = str, default = "report",
         help = "Output directory for report files")
     report.add_argument("--spear_params", metavar = '', type = str, default = "spear_params.txt",
         help = "File containing spear params used to generate original annotations")
+    report.add_argument("--spear_qc_info", metavar = '', type = str, default = "spear_qc_info.tsv",
+        help = "File containing spear qc info used to generate original annotations")
     
     vcf_merge.add_argument('--input', metavar = '', type = str,
         help = "Input directory of VCFs to merge")
@@ -405,7 +393,7 @@ def main():
         Path(f'{args.output_dir}').mkdir(parents=True, exist_ok=True)
 
         #run spear report command in subprocess: 
-        subprocess.run(['summary_report.py', '--n_perc', args.n_perc, product_plot, args.spear_summary, args.spear_annotation, args.baseline_scores, images_dir, scripts_dir, data_dir, args.output_dir, args.baseline, str(args.global_n), str(args.s_n), str(args.s_contig), str(args.rbd_n), args.lineage_report, args.pangolin_command, args.spear_params, args.spear_qc_info], check = True)
+        subprocess.run(['summary_report.py', '--n_perc', args.n_perc, product_plot, args.spear_summary, args.spear_annotation, args.baseline_scores, images_dir, scripts_dir, data_dir, args.output_dir, args.baseline, args.lineage_report, args.pangolin_command, args.spear_params, args.spear_qc_info], check = True)
         
 
     elif args.command not in ["alignment", "consensus", "vcf", "demo", "utilities-representative", "utilties-report", "utilities-vcf-merge"]:
