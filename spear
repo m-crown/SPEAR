@@ -395,7 +395,6 @@ def main():
         
         Path(f'{args.output_dir}').mkdir(parents=True, exist_ok=True)
 
-        from summary_report import summary_report
         summary_report(args)
 
     elif args.command not in ["alignment", "consensus", "vcf", "demo", "utilities-representative", "utilties-report", "utilities-vcf-merge"]:
