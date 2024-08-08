@@ -174,7 +174,7 @@ rule merge_vcfs:
       config["output_dir"] + "/intermediate_output/merged.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/merge/merge.log"
    shell:
-      '''find {vcf_loc} -type f -name "*{vcf_ext}" > {config[output_dir]}/intermediate_output/merge_list.txt ; bcftools merge --no-index -m none -o {output} -l {config[output_dir]}/intermediate_output/merge_list.txt 2> {log}'''
+      '''find {vcf_loc} -type f -name "*{vcf_ext}" > {config[output_dir]}/intermediate_output/merge_list.txt ; bcftools merge --force-single --no-index -m none -o {output} -l {config[output_dir]}/intermediate_output/merge_list.txt 2> {log}'''
 
 rule get_indels:
    input:
