@@ -1,26 +1,33 @@
-# SPEAR
+<p align="center">
+  <img src="images/SPEAR.svg" alt="SPEAR" width="300">
+</p>
 
-![SPEAR](images/SPEAR.svg)
+# <p align="center">Systematic ProtEin AnnotatoR</p>
 
-# Systematic ProtEin AnnotatoR
+## Summary of Changes (Version 1 to Version 2)
+
+- Improved performance with faster annotation and scoring times - 1000 consensus sequences in ~8 mins using a single CPU core and in ~3 mins with 8 cores versus ~12 mins and ~3 mins in version 1.1.3
+- Added new functions: representative and report.
+- New input formats: spear consensus now takes a single fasta file as input (can be gzipped), regardless of single or multiple file. spear vcf now takes a single vcf file as input, regardless of single or multiple file. For spear alignment, you should still specify a single file for one sample , or a directory for multiple samples. For more details on preparing your samples for input to the SPEAR tool, please refer to the [preparing inputs](#preparing-inputs) section.
+- Reduced size of example data set by combining consensus files into a single file and VCF files into a single file (according to new input formats).
 
 ## Introduction
 
 SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of all protein products, in particular, Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape. The aim of SPEAR is to provide a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores at point of sequencing. Functional annotation and effect scoring are derived from protein structure, theoretical simulation, and omics' experiments. 
 
-SPEAR is capable of running on single or multiple input files and accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR will annotate and score 1,000 consensus input sequences in ~12.5 mins using a single CPU core and in ~3.5 mins with 8 cores.
+SPEAR accepts a range of standard inputs, FASTA consensus sequences `.fa`, sequences aligned to reference genome (NC_045512.2|MN908947.3) `.aln` and `.vcf` files. SPEAR will annotate and score 1,000 consensus input sequences in ~8 mins using a single CPU core and in ~3 mins with 8 cores.
 
 The SPEAR scoring system identifies both the potential immune escape and reduced ACE2 binding consequences of variants in the Omicron RBD, as well as highlighting the potential increased stability of the open conformation of the Spike protein within Omicron, a more in-depth discussion of these matters can be found in our [preprint](https://doi.org/10.1101/2021.12.14.472622) Teruel _et al_[1].
 
 ## Citation
 
-SPEAR is now published in *Bioinformatics*, if you use SPEAR in your work please cite our paper:
+SPEAR is published in *Bioinformatics*, if you use SPEAR in your work please cite our paper:
 
 Crown M, Teruel N, Najmanovich R, Basthon M. SPEAR: Systematic ProtEin AnnotatoR *Bioinformatics*, btac391, [https://doi.org/10.1093/bioinformatics/btac391](https://doi.org/10.1093/bioinformatics/btac391)
 
 ## Installation
 
-Clone this repo: 
+Clone this repo:
 
 `git clone https://github.com/m-crown/SPEAR.git`
 
@@ -105,6 +112,38 @@ options:
   --pangolin PANGOLIN   Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)
 ```
 
+## Preparing Inputs
+
+### Consensus FASTA
+In version 1 of SPEAR, consensus FASTA inputs were either a single file for a single sample, or a directory of files for multiple samples. In version 2, `seqkit` is used to parse input samples from a single FASTA file regardless of sample count. To prepare your samples for input to the SPEAR tool, simply combine all samples into a single FASTA file, which may be gzipped. For more help, refer to the following steps:
+
+```
+cd <path_to_directory_with_samples>
+cat *.fa > all_samples.fasta
+```
+or if samples are gzipped:
+
+```
+cd <path_to_directory_with_samples>
+cat *.fa.gz > all_samples.fasta.gz
+```
+### VCF Input
+In version 1 of SPEAR, VCF files were input in the format one VCF file per sample, and the first step of analysis was to combine these input files into a single multi-sample VCF. In version 2, `spear vcf` expects a single multi-sample VCF file as input. This reduces storage overhead, as in version 1 each VCF file was preprocessed and copied to a location within the analysis directory, and now preprocessing can occur on a single file. If you need to combine multiple VCF inputs into a single VCF file, follow the guidance below:
+
+
+THE COMMENT HERE IS RUN SPEAR VCF-MERGE
+
+If doing merge within your own pipeline, run the following commands:
+
+```
+cd <path_to_directory_with_samples>
+find . -type f -name "*.vcf" > merge_list.txt
+bcftools merge --no-index -m none -o all_samples.vcf -l merge_list.txt
+```
+
+### Alignment Files
+Input format for pre-aligned samples has not changed between version 1 and 2. For single sample, specify an alignment file, and for multiple samples specify the path to a directory containing pairwise alignment files, one per sample.
+
 ## Usage examples
 
 To check installation was successful and view an example SPEAR run and report, run the built-in demo:
@@ -127,7 +166,7 @@ You can also use `.` as input directory to use files in the current working dire
 
 By default consensus files are assumed to have the extension `.fa`, alignments `.aln` and vcf files `.vcf`, if you have a different extension then specify the suffix with `--extension`. This also allows you to remove a suffix from the sample ID used in output, so if all your input alignments conform to `<sample_id>.muscle.aln` specifying: `--extension .muscle.aln` will ensure only the sample id/name makes it into the output. Note that running on multiple input files may require you to increase the maximum number of open file handles on your system if your number of input samples starts to approach this limit, check this with `ulimit -n`.
 
-Consensus inputs can be aligned to reference using either MUSCLE v3.8 or minimap2, specified using `--aligner`. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements - 15.7X speedup on single thread, 9.9X speedup on quad thread and 8.8X speedup on eight threads. Users should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments where the alignment solution is ambiguous - these cases are rare, and the vast majority of alignments should agree. 
+Consensus inputs can be aligned to reference using either MUSCLE v3.8 or minimap2, specified using `--aligner`. From version 0.8 onwards the default alignment method is minimap2, due to the significant speed improvements - 15.7X speedup on single thread, 9.9X speedup on quad thread and 8.8X speedup on eight threads. Users should be aware that small differences, particularly in resolution of indels can occur between MUSCLE and minimap2 alignments where the alignment solution is ambiguous - these cases are rare, and the vast majority of alignments should agree.
 
 ### Expected alignment format
 
@@ -153,7 +192,7 @@ All spear output is nested into the output directory specified at run time.
 
 Scores for each sample along with highlights showing where these exceed the chosen baseline (defaults to `BA.2`) are produced in the SPEAR terminal output. This mirrors the SPEAR Per Sample Scores Summary table found in the HTML report. And is sorted by the column `Class Masked mAb escape`. 
 
-![](images/terminal_table.png) 
+![Terminal Table](images/terminal_table.png)
 
 ### Baseline scoring comparison
 
@@ -293,6 +332,7 @@ Spear makes use of the following:
 * [Plotly](https://plot.ly)
 * [Bootstrap](https://getbootstrap.com/)
 * [Rich](https://github.com/Textualize/rich)
+* [seqkit](https://bioinf.shenwei.me/seqkit/) Shen _et al_.[22]
 
 ## References
 
@@ -317,3 +357,4 @@ Spear makes use of the following:
 19. [Cingolani, P. *et al*. Using Drosophila melanogaster as a Model for Genotoxic Chemical Mutational Studies with a New Program, SnpSift. *Frontiers Genetics* **3**, 35 (2012)](https://doi.org/10.3389/fgene.2012.00035).
 20. [Pedersen, B. S., Layer, R. M. & Quinlan, A. R. Vcfanno: fast, flexible annotation of genetic variants. *Genome Biol* **17**, 118 (2016)](https://doi.org/10.1186/s13059-016-0973-5).
 21. [Heng, L. Minimap2: pairwise alignment for nucleotide sequences. *Bioinformatics* **34**, 3094-3100 (2018)](https://academic.oup.com/bioinformatics/article/34/18/3094/4994778).
+22. [W Shen, S Le, Y Li*, F Hu*. SeqKit: a cross-platform and ultrafast toolkit for FASTA/Q file manipulation. PLOS ONE.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0163962)
