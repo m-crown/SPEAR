@@ -6,9 +6,9 @@
 
 ## Summary of Changes (Version 1 to Version 2)
 
-- Improved performance with faster annotation and scoring times - 1000 consensus sequences in ~8 mins using a single CPU core and in ~3 mins with 8 cores versus ~12 mins and ~3 mins in version 1.1.3
+- Improved single-core performance with faster annotation and scoring times - 1,000 consensus sequences in ~8 mins using a single CPU core (versus ~12 mins in v1.1.3).
 - Added new functions: representative (to generate a representative VCF file from a set of same-lineage sequences) and report (to produce a SPEAR report after pipeline execution).
-- New input formats: spear consensus now takes a single fasta file as input (can be gzipped), regardless of single or multiple file. spear vcf now takes a single vcf file as input, regardless of single or multiple file. For spear alignment, you should still specify a single file for one sample , or a directory for multiple samples. For more details on preparing your samples for input to the SPEAR tool, please refer to the [preparing inputs](#preparing-inputs) section.
+- New input formats: spear consensus now takes a single fasta or multiple fasta file as input (can be gzipped), regardless of single or multiple file. spear vcf now takes a single vcf file as input, regardless of single or multiple samples. For spear alignment, you should still specify a single file for one sample, or a directory for multiple samples. For more details on preparing your samples for input to the SPEAR tool, please refer to the [preparing inputs](#preparing-inputs) section.
 - Reduced size of example data set by combining consensus files into a single file and VCF files into a single file (according to new input formats).
 
 ## Introduction
