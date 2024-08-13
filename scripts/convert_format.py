@@ -14,6 +14,7 @@ from functools import reduce
 from bindingcalculator import BindingCalculator
 from itertools import takewhile
 from shutil import rmtree
+import multiprocessing
 
 def get_contextual_bindingcalc_values(residues_list,binding_calculator, option):
     if option == "res_ret_esc":
@@ -87,27 +88,49 @@ def sample_header_format(item,sample,vcf,filtered,vcf_loc):
     
     return(item)
 
+def process_sample(args):
+    sample_col, sample, merged_vcf = args
+    sample_vcf = merged_vcf.copy()
+    sample_vcf["sample"] = sample_col
+    sample_vcf = sample_vcf.loc[sample_vcf["sample"] == 1]
+    sample_vcf["#CHROM"] = sample
+    sample_vcf.rename(columns={"#CHROM": "sample_id"}, inplace=True)
+    sample_vcf.drop(columns="sample", inplace=True)
+    return sample_vcf
 
 def main():
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('input_vcf', metavar='anno_concat.tsv', type=str,
+    parser.add_argument('--input_vcf', metavar='merged.spear.vcf', type=str,
         help='Concatenated SPEAR anno file')
-    parser.add_argument('output_dir', metavar='spear_vcfs/', type=str,
+    parser.add_argument('--output_dir', metavar='spear_vcfs/', type=str,
         help='Destination dir for summary tsv files')
-    parser.add_argument('data_dir', metavar='data/', type=str,
-        help='Data dir for binding calculator data files')
-    parser.add_argument('input_header', metavar='merged.vcf', type=str,
-        help='Merged VCF file for header retrieval')
-    parser.add_argument('sample_list', metavar='', type=str,
-        help='list of inputs to detect no variant samples ')    
+    parser.add_argument('--data_dir', metavar='data/', type=str,
+        help='Data dir for binding calculator data files')  
     parser.add_argument('--is_vcf_input', default="False", type=str,
         help = "Set input file type to VCF")
     parser.add_argument('--is_filtered', default="False", type=str,
         help = "Specify files come from filtered directory")
     parser.add_argument('--per_sample_outputs', default = "False", type= str,
-      help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
+      help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker')
+    parser.add_argument('--sample_array', default = "sample_positions_filtered.tsv", type= str,
+        help ='Binary array file of sample mutations from input vcf')
+    parser.add_argument('--sample_list', default = "sample_positions_header.tsv", type= str,
+        help ='Sample columns list from input vcf')
+    parser.add_argument('--spear_samples', default = "passing_samples.csv", type= str,
+        help ='Sample list from spear pipeline')
+    parser.add_argument('--threads', default = 1, type= int,
+        help ='Number of threads to use')
 
     args = parser.parse_args()
+
+    #instead of taking an individual vcf file, script should take a multi sample vcf file, and parse data from this. We can filter the dataframe
+    #by keepign only the rows where the sample column = 1.
+    #so should take a sample list, and a multi sample vcf file.
+
+    #this script takes as input the preconcatenated output of splitting the merged vcf file. Now should have it take the merged file and perform operations on that. 
+    #use sample list to select appropriate column.
+    #maybe we build the long format file first here and call it input_file, instead of reading this file in?
+    #need to update sample format here.
     if args.per_sample_outputs == "True":
         Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
     if args.is_vcf_input == True:
@@ -118,18 +141,36 @@ def main():
     else:
         infiles = f'{args.output_dir}/intermediate_output/indels/*.indels.vcf'
 
-    with open(args.input_header, 'r') as fobj:
-        headiter = takewhile(lambda s: s.startswith('#'), fobj)
-        merged_header = pd.Series(headiter)
-    merged_header = merged_header.str.replace('\n','')
-    merged_header = merged_header.str.replace('"','')
-    cols = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "sample"]
-
-    merged_header = merged_header[~merged_header.str.startswith('#CHROM')]
-    input_file = pd.read_csv(args.input_vcf, sep = "\t", names = ["sample_id", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "end"])
+    merged_header , merged_vcf = parse_vcf(args.input_vcf, split_info_cols=False, samples = False)
+    with open(args.sample_list, "r") as file:
+        sample_list = file.readline().rstrip()
+    # Split the line into a list using tab as delim
+    sample_list = sample_list.split("\t")
     
-    with open(args.sample_list, 'r') as samples:
-        sample_list = samples.read().replace('\n', '').split(" ")
+    sample_array = np.loadtxt(args.sample_array, delimiter='\t')
+    sample_array = sample_array.T
+
+    all_sample_vcfs = []
+    
+    # use multiprocessing to speed up the parsing of each sample.
+    with multiprocessing.Pool(args.threads) as pool:
+        arguments = [(sample_array[index], sample, merged_vcf) for index, sample in enumerate(sample_list)]
+        results = pool.map(process_sample, arguments)
+        all_sample_vcfs.extend(results)
+
+    input_file = pd.concat(all_sample_vcfs)
+
+    
+    #read the passing samples from spear pipeline into a list.    
+    with open(args.spear_samples, "r") as file:
+        passing_samples =  file.read().splitlines()
+    
+    #append the missing samples from passing samples to sample list
+    missing_samples = [sample for sample in passing_samples if sample not in sample_list]
+    sample_list.extend(missing_samples)
+    
+    
+    cols = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "sample"]
 
     if len(input_file) > 0:
         input_file[["AN", "AC", "problem_exc", "problem_filter", "ANN", "SUM", "SPEAR"]] = input_file["INFO"].str.split(';',expand=True)
@@ -211,9 +252,7 @@ def main():
                     sample_vcf["sample_id"] = "NC_045512.2"
                     sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
                     #append to header created above
-                    sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)
-        else:
-            rmtree(f'{args.output_dir}/final_vcfs/')        
+                    sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)       
 
         cols = ["sample_id", "POS", "REF", "ALT", "Gene_Name", "HGVS.c", "Annotation", "variant", "spear-product", "protein_id", "residues","region", "domain", "feature", "contact_type", "NAb", "barnes_class", "bloom_ACE2_wuhan", "bloom_ACE2_BA1", "bloom_ACE2_BA2", "VDS", "serum_escape", "mAb_escape_all_classes", "cm_mAb_escape_all_classes","mAb_escape_class_1","mAb_escape_class_2","mAb_escape_class_3","mAb_escape_class_4", "BEC_RES","BEC_EF", "BEC_EF_sample", "refres", "altres", "respos"]
         input_file = input_file[cols]

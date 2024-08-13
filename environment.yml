@@ -20,6 +20,7 @@ dependencies:
   - conda-forge::unzip
   - grep
   - wget
+  - seqkit
   - conda-forge::pytables
   - pip
   - bioconda::gofasta==1.0.0

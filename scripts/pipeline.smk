@@ -1,12 +1,13 @@
-problem_sites_in = config["output_dir"] + "/intermediate_output/merged.vcf"
+problem_sites_in = config["output_dir"] + "/intermediate_output/merged.vcf" if not config["vcf"] else config["output_dir"] + "/input_files/input.vcf"
 problem_sites_out = config["output_dir"] + "/intermediate_output/masked/merged.problem.vcf"
 problem_sites_log = config["output_dir"] + "/intermediate_output/logs/mark_problem_sites/mark_problem_sites.log"
 filter_sites_in = config["output_dir"] + "/intermediate_output/masked/merged.problem.vcf"
 filter_sites_out = config["output_dir"] + "/intermediate_output/masked/merged.masked.vcf"
 filter_sites_log = config["output_dir"] + "/intermediate_output/logs/filter_problem_sites/filter_problem_sites.log"
-pangolin_input = expand(config["output_dir"] + "/input_files/{id}" + config["extension"], id = config["samples"]) if config["vcf"] == False else expand(config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa", id = config["samples"])
+pangolin_input = config["output_dir"] + "/input_files/input.fasta.gz" if config["align"] else config["output_dir"] + "/intermediate_output/all_consensus.fa"
 annotate_out = config["output_dir"] + "/intermediate_output/snpeff/merged.ann.vcf"
 annotate_log = config["output_dir"] + "/intermediate_output/logs/snpeff/snpeff.log"
+summarise_out = config["output_dir"] + "/intermediate_output/merged.summary.tsv"
 spear_out = config["output_dir"] + "/all_samples.spear.vcf"
 spear_log = config["output_dir"] + "/intermediate_output/logs/spear/spear.log"
 summary_in = spear_out
@@ -17,7 +18,7 @@ if config["vcf"] == False:
    vcf_ext = ".indels.vcf"
 else:
    qc_file = config["output_dir"] + "/spear_score_summary.tsv"
-   vcf_loc = config["input_dir"] + "/"
+   vcf_loc = config["output_dir"] + "/input_files/"
    vcf_ext = config["extension"]
 
 if config["per_sample_outputs"] == "True":
@@ -49,31 +50,20 @@ rule produce_report:
       config["output_dir"] + "/report/report.html"
    log: config["output_dir"] + "/intermediate_output/logs/report/report.log"
    shell:
-      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[input_sample_num]} {config[qc_sample_num]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {config[global_n]} {config[s_n]} {config[s_contig]} {config[rbd_n]} {input.lineage_report} {config[output_dir]}/intermediate_output/pangolin_command.txt {config[spear_params]} 2> {log}"""
+      """summary_report.py --n_perc {input.n_perc} {config[product_plots]} {input.summary} {input.all_samples} {config[baseline_scores]} {config[images_dir]} {config[scripts_dir]} {config[data_dir]} {config[output_dir]}/report/ {config[baseline]} {input.lineage_report} {config[output_dir]}/intermediate_output/pangolin_command.txt {config[spear_params]} {config[spear_qc_info]} 2> {log}"""
 
-if config["per_sample_outputs"] == "True":
-   rule summarise_vcfs:
-      input:
-         all_samples = expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"]), 
-         merged_samples = spear_out
-      output:
-         config["output_dir"] + "/spear_annotation_summary.tsv",
-         config["output_dir"] + "/spear_score_summary.tsv",
-         expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"])
-      log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
-      shell:
-         """echo "{config[samples]}" > {config[output_dir]}/intermediate_output/sample_list.txt ; for i in $(find {config[output_dir]}/final_vcfs/ -type f -exec grep -lP '^NC_045512\.2' {{}} \;) ; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} --per_sample_outputs {config[per_sample_outputs]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {input.merged_samples} {config[output_dir]}/intermediate_output/sample_list.txt 2> {log} """
-else:
-   rule summarise_vcfs:
-      input:
-         all_samples = expand(config["output_dir"] + "/final_vcfs/{id}.spear.vcf" , id=config["samples"]),
-         merged_samples = spear_out
-      output:
-         config["output_dir"] + "/spear_annotation_summary.tsv",
-         config["output_dir"] + "/spear_score_summary.tsv"
-      log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
-      shell:
-         """echo "{config[samples]}" > {config[output_dir]}/intermediate_output/sample_list.txt ; for i in $(find {config[output_dir]}/final_vcfs/ -type f -exec grep -lP '^NC_045512\.2' {{}} \;) ; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.spear.vcf}}; grep -v '^#' "$i" | sed "s|^NC_045512\.2|$BNAME2|g"; done > {config[output_dir]}/intermediate_output/anno_concat.tsv 2> {log} ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} --per_sample_outputs {config[per_sample_outputs]} {config[output_dir]}/intermediate_output/anno_concat.tsv {config[output_dir]} {config[data_dir]} {input.merged_samples} {config[output_dir]}/intermediate_output/sample_list.txt 2> {log} """
+
+rule summarise_vcfs:
+   input: 
+      merged_samples = spear_out,
+      lineages = config["output_dir"] + "/lineage_report.csv"
+   output:
+      config["output_dir"] + "/spear_annotation_summary.tsv",
+      config["output_dir"] + "/spear_score_summary.tsv",
+      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]) if config["per_sample_outputs"] == True else []
+   log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
+   shell:
+      """cut -f10- -s {input.merged_samples} > {config[output_dir]}/intermediate_output/sample_positions.tsv ; head -n 1 {config[output_dir]}/intermediate_output/sample_positions.tsv > {config[output_dir]}/intermediate_output/sample_positions_header.tsv ; awk '{{if (NR!=1) {{gsub(/\./, "0"); print}}}}' {config[output_dir]}/intermediate_output/sample_positions.tsv > {config[output_dir]}/intermediate_output/sample_positions_filtered.tsv ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} --per_sample_outputs {config[per_sample_outputs]} --input_vcf {input.merged_samples} --output_dir {config[output_dir]} --data_dir {config[data_dir]} --sample_list {config[output_dir]}/intermediate_output/sample_positions_header.tsv --sample_array {config[output_dir]}/intermediate_output/sample_positions_filtered.tsv --spear_samples {config[output_dir]}/passing_samples.csv 2> {log} """
 
 if config["pangolin"] != "none":
    rule pangolin:
@@ -84,46 +74,68 @@ if config["pangolin"] != "none":
       log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin.log"
       threads: workflow.cores
       shell:
-         """for i in {input}; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.*}}; sed -n '/>'"${{BNAME2}}"'/, />/{{ />NC_045512\.2/!p ;}}' ${{i}} ; done > {config[output_dir]}/intermediate_output/consensus.fa ; run_pango.sh {config[output_dir]}/intermediate_output/consensus.fa {config[pangolin]} {config[output_dir]} {config[max_n]} {config[threads]} {log} 2> {log} """
+         """run_pango.sh {input} {config[pangolin]} {config[output_dir]} {config[max_n]} {config[threads]} {log} 2> {log}"""
 
-   rule vcf_consensus:
-      input:
-         config["input_dir"] + "/{id}" + config["extension"]
-      output:
-         config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa"
-      log: config["output_dir"] + "/intermediate_output/logs/vcf_consensus/{id}.vcf_cons.log"
-      shell:
-         """BNAME={wildcards.id} ; bgzip -k {config[input_dir]}/{wildcards.id}{config[extension]} ; tabix {config[input_dir]}/{wildcards.id}{config[extension]}.gz ; cat {config[reference_sequence]} | bcftools consensus {config[input_dir]}/{wildcards.id}{config[extension]}.gz > {output} ; sed -i "s|NC_045512\.2|${{BNAME}}|g" {output}"""
+   if config["vcf"]:
+      rule split_vcfs:
+         input:
+            config["output_dir"] + "/all_samples.spear.vcf"
+         output:
+            config["output_dir"] + "/final_vcfs/{id}.spear.vcf"
+         log: config["output_dir"] + "/intermediate_output/logs/split/{id}.split.log"
+         shell:
+            """
+            bcftools view -Ov -c 1 -s {wildcards.id} -o {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf {input} 2> {log}
+            """
+
+      rule vcf_consensus:
+         input:
+            config["output_dir"] + "/final_vcfs/{id}.spear.vcf"
+         output:
+            config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa"
+         log: config["output_dir"] + "/intermediate_output/logs/vcf_consensus/{id}.vcf_cons.log"
+         shell:
+            """BNAME={wildcards.id} ; bgzip -k {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf ; tabix {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf.gz ; cat {config[reference_sequence]} | bcftools consensus {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf.gz > {output} ; sed -i "s|NC_045512\.2|${{BNAME}}|g" {output}"""
+
+      rule combine_vcf_consensus:
+         input:
+            expand(config["output_dir"] + "/intermediate_output/vcf_consensus/{id}.fa", id = config["samples"])
+         output:
+            config["output_dir"] + "/intermediate_output/all_consensus.fa"
+         log: config["output_dir"] + "/intermediate_output/logs/vcf_consensus/combine.log"
+         shell:
+            """cat {input} > {output}"""
+
+   elif config["align"] == False:
+      rule combine_samples_for_pango:
+         input:
+            expand(config["output_dir"] + "/input_files/{id}" + config["extension"], id = config["samples"])
+         output:
+            config["output_dir"] + "/intermediate_output/consensus.fa"
+         log: config["output_dir"] + "/intermediate_output/logs/pre_align_consensus/combine.log"
+         shell:
+            """for i in {input}; do BNAME=${{i##*/}}; BNAME2=${{BNAME%.*}}; sed -n '/>'"${{BNAME2}}"'/, />/{{ />NC_045512\.2/!p ;}}' ${{i}} ; done > {config[output_dir]}/intermediate_output/consensus.fa"""
+   
 else:
    rule pangolin_touch_file:
       input:
-         config["output_dir"] + "/spear_score_summary.tsv"
+         summarise_out
       output:
          report = config["output_dir"] + "/lineage_report.csv",
-         command = config["output_dir"] + "/intermediate_output/pangolin_command.txt"
+         command = config["output_dir"] + "/pangolin_command.txt"
       log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin_touch.log"
       shell:
          """touch {output.report} ; echo "Pangolin not run\nNA" > {output.command}"""
-
-rule split_vcfs:
-   input:
-      config["output_dir"] + "/all_samples.spear.vcf"
-   output:
-      config["output_dir"] + "/final_vcfs/{id}.spear.vcf"
-   log: config["output_dir"] + "/intermediate_output/logs/split/{id}.split.log"
-   shell:
-      """
-      bcftools view -Ov -c 1 -s {wildcards.id} -o {config[output_dir]}/final_vcfs/{wildcards.id}.spear.vcf {input} 2> {log}
-      """
 
 rule spear_annotate:
    input:
       annotate_out
    output:
-      spear_out
+      summarise_out = summarise_out,
+      spear_out = spear_out
    log: spear_log
    shell:
-      "summarise_snpeff.py {output} {input} {config[data_dir]} ; spear_annotate.py {output} {output} {config[data_dir]} 2> {log}"
+      "summarise_snpeff.py {output.summarise_out} {input} {config[data_dir]} ; spear_annotate.py {output.spear_out} {output.summarise_out} {config[data_dir]} 2> {log}"
 
 rule annotate_variants:
    input:
@@ -162,31 +174,28 @@ rule merge_vcfs:
       config["output_dir"] + "/intermediate_output/merged.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/merge/merge.log"
    shell:
-      '''find {vcf_loc} -type f -name "*{vcf_ext}" > {config[output_dir]}/intermediate_output/merge_list.txt ; bcftools merge --no-index -m none -o {output} -l {config[output_dir]}/intermediate_output/merge_list.txt 2> {log}'''
-
-rule merge_qc:
-   input:
-      expand(config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv", id=config["samples"])
-   output:
-      qc_file = config["output_dir"] + "/qc.csv"
-   log: config["output_dir"] + "/intermediate_output/logs/qc/qc.log"
-   shell:
-      '''echo "sample_id,global_n,s_n,s_n_contig,rbd_n" > {config[output_dir]}/qc.csv ;  find {config[output_dir]}/intermediate_output/indels/ -type f -name "*.nperc.csv" -exec cat {{}} + >> {config[output_dir]}/qc.csv'''
+      '''find {vcf_loc} -type f -name "*{vcf_ext}" > {config[output_dir]}/intermediate_output/merge_list.txt ; bcftools merge --force-single --no-index -m none -o {output} -l {config[output_dir]}/intermediate_output/merge_list.txt 2> {log}'''
 
 rule get_indels:
    input:
-      vcf_file = config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf",
-      aln = config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      vcf_file = expand(config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf", id=config["samples"]),
+      aln = expand(config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["output_dir"] + "/input_files/{id}" + config["extension"], id=config["samples"])
    output:
-      snps_indels = config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf",
-      sample_n_perc = config["output_dir"] + "/intermediate_output/indels/{id}.nperc.csv"
-   log: config["output_dir"] + "/intermediate_output/logs/indels/{id}.indels.log"
+      snps_indels = expand(config["output_dir"] + "/intermediate_output/indels/{id}.indels.vcf", id=config["samples"]),
+      qc_file = config["output_dir"] + "/qc.csv"
+   params:
+      vcf_dir = config["output_dir"] + "/intermediate_output/fatovcf/",
+      aln_dir = config["output_dir"] + "/intermediate_output/align/" if config["align"] == True else config["output_dir"] + "/input_files/",
+      out_dir = config["output_dir"] + "/intermediate_output/indels/",
+      out_suffix = ".indels.vcf"
+   log: config["output_dir"] + "/intermediate_output/logs/indels/indels.log"
+   threads: workflow.cores
    shell:
-      "get_indels.py --vcf {input.vcf_file} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.sample_n_perc} {input.aln} NC_045512.2 {output.snps_indels} 2> {log}"
+      "get_indels.py --threads {threads} --vcf-dir {params.vcf_dir} --alignments-dir {params.aln_dir} --window {config[del_window]} {config[allow_ambiguous]} --nperc {output.qc_file} --ref NC_045512.2 --out-dir {params.out_dir} --out-suffix {params.out_suffix} 2> {log}"
 
 rule get_snps:
    input:
-      config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["input_dir"] + "/{id}" + config["extension"]
+      config["output_dir"] + "/intermediate_output/align/{id}.fasta" if config["align"] == True else config["output_dir"] + "/input_files/{id}" + config["extension"]
    output:
       snps = config["output_dir"] + "/intermediate_output/fatovcf/{id}.vcf"
    log: config["output_dir"] + "/intermediate_output/logs/get_snps/{id}.get_snps.log"
@@ -197,19 +206,19 @@ if config["align"]:
    if config["aligner"] == "minimap2":
       rule align:
          input:
-            config["input_dir"] + "/{id}" + config["extension"]
+            config["output_dir"] + "/input_files/input.fasta.gz"
          output:
-            alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 
-         log: config["output_dir"] + "/intermediate_output/logs/vcf/{id}.vcf.log"
+            alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta"
+         log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
          shell:
-            "minimap2 -ax asm20 --cs {config[reference_sequence]} {input} > {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam 2> {log} ;  gofasta sam toPairAlign -r {config[reference_sequence]} -s {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam --outpath {config[output_dir]}/intermediate_output/align 2> {log}"
+            "seqkit grep {input} -p {wildcards.id} | minimap2 -ax asm20 --cs {config[reference_sequence]} - > {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam 2> {log} ;  gofasta sam toPairAlign -r {config[reference_sequence]} -s {config[output_dir]}/intermediate_output/align/{wildcards.id}.sam --outpath {config[output_dir]}/intermediate_output/align 2> {log}"
    elif config["aligner"] == "muscle":
       rule align:
          input:
-            config["input_dir"] + "/{id}" + config["extension"]
+            config["output_dir"] + "/input_files/input.fasta.gz"
          output:
             plus_ref = config["output_dir"] + "/intermediate_output/consensus/{id}.consensus_ref.fa",
             alignment = config["output_dir"] + "/intermediate_output/align/{id}.fasta" 
          log: config["output_dir"] + "/intermediate_output/logs/align/{id}.align.log"
          shell:
-            "cat {config[reference_sequence]} {input} > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
+            "seqkit grep -p {wildcards.id} {input} | seqkit seq {config[reference_sequence]} - > {output.plus_ref} ; muscle -quiet -in {output.plus_ref} -out {output.alignment} 2> {log}"
