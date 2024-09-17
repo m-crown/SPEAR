@@ -83,15 +83,23 @@ def calculate_n_coverage(ref, sample, sample_name):
     pre_s = ref_seq[:21562]
     pre_s_ref_indels = pre_s.count("-")
     ref_s = ref_seq[21563 + pre_s_ref_indels : 25385] #position of s gene in 0-index
-    ref_indels = ref_s.count("-")
-    refdiff = ref_indels
+    ref_indels = ref_s.count("-") #number of insertions in the ref s gene currently
     s_start = 21563 + pre_s_ref_indels
     s_end = 25385 + ref_indels
-    while refdiff != 0:
-        ref_s = ref_seq[s_start : s_end]
-        ref_indels = ref_s.count("-")
-        refdiff -= ref_indels
-        s_end = 25385 + refdiff
+    while True:
+        #match the s gene region that is currently present - going from the start of the s gene plus the insertiosn found prior to s, to the expected end
+        s_region_ref = ref_seq[s_start:s_end]
+
+        #count the current number of insertions relative to reference in the sample.
+        new_indels = s_region_ref.count("-")
+
+        # If no new indels are found, we're done adjusting
+        if new_indels == ref_indels:
+            break
+
+        # Adjust the end position to account for uncovered dashes
+        ref_indels = new_indels
+        adjusted_s_end = s_end + ref_indels
     sample_s = sample_seq[s_start: s_end]
     global_n_perc = sample_seq.count("N") / len(sample_seq)
     s_n_perc = sample_s.count("N") / len(sample_s)
