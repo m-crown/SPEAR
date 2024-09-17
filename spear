@@ -127,10 +127,10 @@ def main():
     consensus.add_argument('--pangolin', default="accurate", type = str,
         help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")  
     consensus.add_argument('--per_sample_outputs', default = False, action= "store_true",
-      help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
-    consensus.add_argument('input', metavar='input', type=str,
+      help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker, default = False') 
+    consensus.add_argument('--input', required = True, metavar='input', type=str,
         help='Input FASTA file (may be gzip compressed)')
-    consensus.add_argument('output', metavar='output', type=str,
+    consensus.add_argument('--output', required = True, metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
     
 
@@ -170,9 +170,9 @@ def main():
         help = "Do not produce individual sample product plots (for fastest operation)")  
     alignment.add_argument('--pangolin', default="accurate", type = str,
         help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")        
-    alignment.add_argument('input', metavar='input', type=str,
+    alignment.add_argument('--input', required = True, metavar='input', type=str,
         help='Input directory alignment file, or directory of alignments.')
-    alignment.add_argument('output', metavar='output', type=str,
+    alignment.add_argument('--output', required = True, metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
     alignment.add_argument('--per_sample_outputs', default = False, action= "store_true",
         help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
@@ -199,9 +199,9 @@ def main():
         help = "Do not produce individual sample product plots (for fastest operation)")
     vcf.add_argument('--pangolin', default="accurate", type = str,
         help = "Pangolin operation mode: accurate (UShER), fast (pangolearn), none (don't run pangolin)")  
-    vcf.add_argument('input', metavar='input', type=str,
+    vcf.add_argument('--input', required = True, metavar='input', type=str,
         help='Input VCF file - can be a single or multisample VCF. Prepare VCF directories into single file using "spear vcf-merge"')
-    vcf.add_argument('output', metavar='output', type=str,
+    vcf.add_argument('--output', required = True, metavar='output', type=str,
         help='Destination dir for SPEAR annotated VCFs')
     vcf.add_argument('--per_sample_outputs', default = False, action= "store_true",
         help ='Specify whether to include updated VCFs and sample level tsv outputs - false = quicker') 
@@ -270,7 +270,7 @@ def main():
         Text.assemble(("/_    _\\", "bold")),
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
-        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v2.0.0", "bold red")),
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v2.0.1", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2024", "bold red"))]
     
     for item in logo:
