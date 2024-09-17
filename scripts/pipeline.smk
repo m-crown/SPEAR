@@ -60,7 +60,7 @@ rule summarise_vcfs:
    output:
       config["output_dir"] + "/spear_annotation_summary.tsv",
       config["output_dir"] + "/spear_score_summary.tsv",
-      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]) if config["per_sample_outputs"] == True else []
+      expand(config["output_dir"] + "/per_sample_annotation/{id}.spear.annotation.summary.tsv", id = config["samples"]) if config["per_sample_outputs"] == 'True' else []
    log: config["output_dir"] + "/intermediate_output/logs/summarise/summary.log"
    shell:
       """cut -f10- -s {input.merged_samples} > {config[output_dir]}/intermediate_output/sample_positions.tsv ; head -n 1 {config[output_dir]}/intermediate_output/sample_positions.tsv > {config[output_dir]}/intermediate_output/sample_positions_header.tsv ; awk '{{if (NR!=1) {{gsub(/\./, "0"); print}}}}' {config[output_dir]}/intermediate_output/sample_positions.tsv > {config[output_dir]}/intermediate_output/sample_positions_filtered.tsv ; convert_format.py --is_vcf_input {config[vcf]} --is_filtered {config[filter]} --per_sample_outputs {config[per_sample_outputs]} --input_vcf {input.merged_samples} --output_dir {config[output_dir]} --data_dir {config[data_dir]} --sample_list {config[output_dir]}/intermediate_output/sample_positions_header.tsv --sample_array {config[output_dir]}/intermediate_output/sample_positions_filtered.tsv --spear_samples {config[output_dir]}/passing_samples.csv 2> {log} """

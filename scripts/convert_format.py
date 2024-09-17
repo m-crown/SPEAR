@@ -133,6 +133,7 @@ def main():
     #need to update sample format here.
     if args.per_sample_outputs == "True":
         Path(f'{args.output_dir}/per_sample_annotation').mkdir(parents=True, exist_ok=True)
+        Path(f'{args.output_dir}/final_vcfs/').mkdir(parents=True, exist_ok=True)
     if args.is_vcf_input == True:
         if args.is_filtered:
             infiles = f'{args.output_dir}/intermediate_output/masked/*.masked.vcf'
@@ -142,6 +143,7 @@ def main():
         infiles = f'{args.output_dir}/intermediate_output/indels/*.indels.vcf'
 
     merged_header , merged_vcf = parse_vcf(args.input_vcf, split_info_cols=False, samples = False)
+    merged_header = pd.DataFrame(merged_header)
     with open(args.sample_list, "r") as file:
         sample_list = file.readline().rstrip()
     # Split the line into a list using tab as delim
@@ -250,6 +252,7 @@ def main():
                 if sample in final_vcf["sample_id"].values:
                     sample_vcf = final_vcf.loc[final_vcf["sample_id"] == sample].copy()
                     sample_vcf["sample_id"] = "NC_045512.2"
+                    sample_vcf[sample] = sample
                     sample_vcf.columns = ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample]
                     #append to header created above
                     sample_vcf.to_csv(f'{args.output_dir}/final_vcfs/{sample}.spear.vcf', sep = "\t" ,  mode = 'a', index = False)       
