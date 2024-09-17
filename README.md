@@ -87,14 +87,12 @@ usage: spear alignment [-h] [--debug] [--dag] [--no-report] [--tmp] [--extension
                        [--mask-problem-sites AB AM HA [AB AM HA ...]] [--threads] [--aligner] [--cutoff] [--global_n]
                        [--s_n] [--s_contig] [--rbd_n] [--window] [--baseline_scores] [--baseline]
                        [--no-product-plot]
-                       input output
-
-positional arguments:
-  input                 Input directory of alignments, consensus fasta sequences or VCF files.
-  output                Destination dir for SPEAR annotated VCFs
+                       [--input] [--output]
 
 options:
   -h, --help            show this help message and exit
+  --input               Input directory of alignments, consensus fasta sequences or VCF files.
+  --output              Destination dir for SPEAR annotated VCFs
   --debug               Verbose snakemake execution
   --dag                 Display DAG and exit
   --no-report           Do not produce HTML report
@@ -167,13 +165,13 @@ This will save output including the HTML report to the `demo_out/` directory wit
 
 To use spear on a single `.fa` consensus file:
 
-`spear consensus sample1.fa output`
+`spear consensus --input sample1.fa --output output`
 
 This will launch spear analyse `sample1.fa` and write the output to a directory tree contained within `output/`.
 
 To run on multiple input files replace the input file name with a directory:
 
-`spear consensus consensus_files output`
+`spear consensus --input consensus_files --output output`
 
 You can also use `.` as input directory to use files in the current working directory.
 
