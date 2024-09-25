@@ -1026,7 +1026,7 @@ def summary_report(args):
         labels = {
             "sample_id" : "Sample ID", 
             "lineage" : "Pango-Lineage",
-            "VDS_sum" : "Vibrational Difference Score",
+            "VDS_mean" : "Vibrational Difference Score",
             "bloom_ACE2_wuhan_mean" : "Bloom ACE2 (Wuhan)",
             "bloom_ACE2_BA1_mean" : "Bloom ACE2 (BA.1)",
             "bloom_ACE2_BA2_mean" : "Bloom ACE2 (BA.2)",

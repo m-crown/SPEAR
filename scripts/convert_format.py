@@ -368,6 +368,7 @@ def main():
                 else:
                     score_subset_df_sum = pd.DataFrame({"sample_id": [], score:[]})
                     score_df_list.append(score_subset_df_sum)
+            elif score == "VDS":
                 #vds summary score is calculated over the RBD only based on observations by Calveresi et al (2023)
                 score_subset = summary.loc[(summary.respos >= 331) & (summary.respos <= 533) & (summary[score].isin([""]) == False)].copy()
                 if not score_subset.empty:
@@ -381,10 +382,10 @@ def main():
                     #take sample wise weighted mean
                     score_subset_grouped_weighted['weighted_vds'] = score_subset_grouped_weighted['weighted_sum'] / score_subset_grouped_weighted['total_weight']
                     score_subset_grouped_weighted.drop(columns = ["weighted_sum", "total_weight"], inplace = True)
-                    score_subset_grouped_weighted.columns = [score]
+                    score_subset_grouped_weighted.columns = ["VDS_mean"]
                     score_df_list.append(score_subset_grouped_weighted)
                 else:
-                    score_subset_grouped_weighted = pd.DataFrame({"sample_id": [], score:[]})
+                    score_subset_grouped_weighted = pd.DataFrame({"sample_id": [], "VDS_mean":[]})
                     score_df_list.append(score_subset_grouped_weighted)
 
             else: 
