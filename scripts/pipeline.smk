@@ -122,7 +122,7 @@ else:
          summarise_out
       output:
          report = config["output_dir"] + "/lineage_report.csv",
-         command = config["output_dir"] + "/pangolin_command.txt"
+         command = config["output_dir"] + "/intermediate_output/pangolin_command.txt"
       log: config["output_dir"] + "/intermediate_output/logs/pangolin/pangolin_touch.log"
       shell:
          """touch {output.report} ; echo "Pangolin not run\nNA" > {output.command}"""
