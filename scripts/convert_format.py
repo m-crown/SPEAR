@@ -368,6 +368,25 @@ def main():
                 else:
                     score_subset_df_sum = pd.DataFrame({"sample_id": [], score:[]})
                     score_df_list.append(score_subset_df_sum)
+                #vds summary score is calculated over the RBD only based on observations by Calveresi et al (2023)
+                score_subset = summary.loc[(summary.respos >= 331) & (summary.respos <= 533) & (summary[score].isin([""]) == False)].copy()
+                if not score_subset.empty:
+                    score_subset[score] = score_subset[score].astype(float)
+                    score_subset["weighted_vds"] = score_subset["VDS"] * score_subset["VDS"].abs()
+                    #groupby sample and calculate the sum of weighted VDS and the sum of abs(VDS)
+                    score_subset_grouped_weighted = score_subset.groupby('sample_id').agg(
+                        weighted_sum=('weighted_vds', 'sum'),
+                        total_weight=(score, lambda x: x.abs().sum()),
+                    )
+                    #take sample wise weighted mean
+                    score_subset_grouped_weighted['weighted_vds'] = score_subset_grouped_weighted['weighted_sum'] / score_subset_grouped_weighted['total_weight']
+                    score_subset_grouped_weighted.drop(columns = ["weighted_sum", "total_weight"], inplace = True)
+                    score_subset_grouped_weighted.columns = [score]
+                    score_df_list.append(score_subset_grouped_weighted)
+                else:
+                    score_subset_grouped_weighted = pd.DataFrame({"sample_id": [], score:[]})
+                    score_df_list.append(score_subset_grouped_weighted)
+
             else: 
                 score_subset = summary.loc[summary[score].isin([""]) == False, ["sample_id", "description", "residues", score]].copy()
                 score_subset[score] = score_subset[score].astype(float)
