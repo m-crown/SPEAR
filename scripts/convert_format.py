@@ -373,6 +373,8 @@ def main():
                 score_subset = summary.loc[(summary.respos >= 331) & (summary.respos <= 533) & (summary[score].isin([""]) == False)].copy()
                 if not score_subset.empty:
                     score_subset[score] = score_subset[score].astype(float)
+                    score_min_max = summarise_score(score_subset, score)
+                    score_min_max = score_min_max.drop(columns = ["VDS_sum"])
                     score_subset["weighted_vds"] = score_subset["VDS"] * score_subset["VDS"].abs()
                     #groupby sample and calculate the sum of weighted VDS and the sum of abs(VDS)
                     score_subset_grouped_weighted = score_subset.groupby('sample_id').agg(
@@ -383,9 +385,10 @@ def main():
                     score_subset_grouped_weighted['weighted_vds'] = score_subset_grouped_weighted['weighted_sum'] / score_subset_grouped_weighted['total_weight']
                     score_subset_grouped_weighted.drop(columns = ["weighted_sum", "total_weight"], inplace = True)
                     score_subset_grouped_weighted.columns = ["VDS_mean"]
+                    score_subset_grouped_weighted = score_subset_grouped_weighted.merge(score_min_max, on = "sample_id", how = "left")
                     score_df_list.append(score_subset_grouped_weighted)
                 else:
-                    score_subset_grouped_weighted = pd.DataFrame({"sample_id": [], "VDS_mean":[]})
+                    score_subset_grouped_weighted = pd.DataFrame({"sample_id": [], "VDS_mean":[], "VDS_min": [], "VDS_max": []})
                     score_df_list.append(score_subset_grouped_weighted)
 
             else: 
