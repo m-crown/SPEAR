@@ -4,14 +4,6 @@
 
 # <p align="center">Systematic ProtEin AnnotatoR</p>
 
-## Summary of Changes (Version 1 to Version 2)
-
-- Improved single-core performance with faster annotation and scoring times - 1,000 consensus sequences in ~6 mins using a single CPU core and fastest operating mode (versus ~12 mins in v1.1.3) and ~2.5 mins with 8 CPU cores.
-- Added new functions: `utilities-representative` (to generate a representative VCF file from a set of same-lineage sequences) and `utilities-report` (to produce a SPEAR report after pipeline execution).
-- New input formats: spear consensus now takes a single fasta or multiple fasta file as input (can be gzipped), regardless of single or multiple file. spear vcf now takes a single vcf file as input, regardless of single or multiple samples. For spear alignment, you should still specify a single file for one sample, or a directory for multiple samples. For more details on preparing your samples for input to the SPEAR tool, please refer to the [preparing inputs](#preparing-inputs) section. A new `utilities-vcf-merge` function has been added to merge multiple VCF files into a single multi-sample VCF file.
-- Reduced size of example data set by combining consensus files into a single file and VCF files into a single file (according to new input formats).
-- These changes introduce new dependencies and input modalities, so SPEAR should be installed from scratch when updating (see the instructions below).
-
 ## Introduction
 
 SPEAR is an annotation tool for SARS-CoV-2 genomes, it provides comprehensive annotation of all protein products, in particular, Spike (S) mutations are annotated with a range of scores that provide indications of their likely effects on ACE2 binding, and likely contribution to immune escape. The aim of SPEAR is to provide a lightweight genomic surveillance tool that can be run within a diagnostic lab, sequencing facility, or analysis pipeline providing quantitative scores at point of sequencing. Functional annotation and effect scoring are derived from protein structure, theoretical simulation, and omics' experiments. 
@@ -25,6 +17,18 @@ The SPEAR scoring system identifies both the potential immune escape and reduced
 SPEAR is published in _Bioinformatics_, if you use SPEAR in your work please cite our paper:
 
 Crown M, Teruel N, Najmanovich R, Basthon M. SPEAR: Systematic ProtEin AnnotatoR _Bioinformatics_, btac391, [https://doi.org/10.1093/bioinformatics/btac391](https://doi.org/10.1093/bioinformatics/btac391)
+
+## Note
+
+- In version 2.1.0, the sample level scoring method for VDS has been updated to a weighted mean calculation across RBD residues only, to reflect the latest literature and evolution of the virus. This change will affect the VDS score for all samples, and the VDS score in the summary report will be updated accordingly. The VDS score for individual residues remains the same.
+
+## Summary of Changes (Version 1 to Version 2)
+
+- Improved single-core performance with faster annotation and scoring times - 1,000 consensus sequences in ~6 mins using a single CPU core and fastest operating mode (versus ~12 mins in v1.1.3) and ~2.5 mins with 8 CPU cores.
+- Added new functions: `utilities-representative` (to generate a representative VCF file from a set of same-lineage sequences) and `utilities-report` (to produce a SPEAR report after pipeline execution).
+- New input formats: spear consensus now takes a single fasta or multiple fasta file as input (can be gzipped), regardless of single or multiple file. spear vcf now takes a single vcf file as input, regardless of single or multiple samples. For spear alignment, you should still specify a single file for one sample, or a directory for multiple samples. For more details on preparing your samples for input to the SPEAR tool, please refer to the [preparing inputs](#preparing-inputs) section. A new `utilities-vcf-merge` function has been added to merge multiple VCF files into a single multi-sample VCF file.
+- Reduced size of example data set by combining consensus files into a single file and VCF files into a single file (according to new input formats).
+- These changes introduce new dependencies and input modalities, so SPEAR should be installed from scratch when updating (see the instructions below).
 
 ## Installation
 

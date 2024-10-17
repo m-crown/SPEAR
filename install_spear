@@ -18,7 +18,7 @@ echo " - Setting up conda env"
 CONDA_PATH=$(conda list -n base | awk 'NR == 1' | grep -oP '/\S+[^:]')
 source ${CONDA_PATH}/etc/profile.d/conda.sh
 conda config --set channel_priority strict
-conda env create -q --force -f environment.yml
+conda env create -q --yes -f environment.yml
 conda activate spear
 
 # Download SnpEff and SnpSift
@@ -88,7 +88,7 @@ while true; do
 	[Yy]* ) echo " - Installing latest Pangolin"
 		mkdir -p latest_pangolin; wget -qO- https://api.github.com/repos/cov-lineages/pangolin/releases | grep "tarball_url" | grep -Eo 'https://[^\"]*' | sed -n '1p' | xargs wget -qO- | tar -xz --strip-components=1 -C latest_pangolin
 		cd latest_pangolin
-		conda env create -q --force -f environment.yml
+		conda env create -q --yes -f environment.yml
 		conda activate pangolin
 		pip -q install .
 		cd ..

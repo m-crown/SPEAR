@@ -74,7 +74,7 @@ def main():
 
     SPEAR_PATH = os.environ.get('CONDA_PREFIX')
     
-    SPEAR_VERSION = "2.0.0"
+    SPEAR_VERSION = "2.1.0"
 
     parser = argparse.ArgumentParser('spear')   
 
@@ -270,7 +270,7 @@ def main():
         Text.assemble(("/_    _\\", "bold")),
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")), 
         Text.assemble(("|", "bold"), ("|", "bold red"),("|", "bold red"), ("|", "bold")),  
-        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v2.0.1", "bold red")),
+        Text.assemble(("SPEAR: Systematic ProtEin AnnotatoR v2.1.0", "bold red")),
         Text.assemble(("Matt Crown, Matt Bashton 2021-2024", "bold red"))]
     
     for item in logo:
@@ -290,7 +290,7 @@ def main():
         args.dag = None
         args.threads = 1
         SPEAR_PATH = os.environ.get('CONDA_PREFIX')
-        args.input = f'{SPEAR_PATH}/data/example_vcfs'
+        args.input = f'{SPEAR_PATH}/data/combined_lineages_example.vcf'
         args.extension = ".vcf"
         vcf_in = True
         args.allowAmbiguous = False
@@ -676,7 +676,7 @@ def main():
             "bloom_ACE2_BA2_mean",
             "bloom_ACE2_BA2_max",
             "bloom_ACE2_BA2_min",
-            "VDS_sum",
+            "VDS_mean",
             "VDS_max",
             "VDS_min",
             "serum_escape_sum",

@@ -23,12 +23,12 @@ The table below outlines the fields in `spear_score_summary.tsv` which is produc
 | `bloom_ACE2_BA2_mean` | Mena of ACE2 binding value Δ-log10(KD,app) relative to BA.2. Higher positive values mean binding is stronger than WT, negative values mean binding is weaker than BA.2. |
 | `bloom_ACE2_BA2_max` | Highest scoring residues(s) for ACE2 value out of all mutated residues. |
 | `bloom_ACE2_BA2_min` | Lowest scoring residues(s) for ACE2 value out of all mutated residues. |
-| `VDS_sum` | Sum of all Vibrational Difference Scores (VDS), positive VDS values suggests mutation stabilises the open state of Spike and/or makes the closed state more flexible, favouring the open conformation relative to the WT. Negative values suggest mutation favours the closed state more than WT. Data from Teruel _et al_.[4]. |
+| `VDS_mean` | Weighted mean of all Vibrational Difference Scores (VDS) with the RBD based on latest information from Calveresi _et al_ (2023), positive VDS values suggests mutation stabilises the open state of Spike and/or makes the closed state more flexible, favouring the open conformation relative to the WT. Negative values suggest mutation favours the closed state more than WT. Data from Teruel _et al_.[4]. |
 | `VDS_max`| Highest scoring residues(s) for VDS value out of all mutated residues. |
 | `VDS_lowest`| Lowest scoring residues(s) for VDS value out of all mutated residues. |
 | `serum_escape_sum` | Sum of mean residue specific serum escape score from 7 individuals in Greaney _et al_.[5] across all mutations, larger values between indicate more escape. |
 | `serum_escape_max` | Highest scoring residues(s) for serum escape out of all mutated residues. |
-| `serum_escape_min`	| Lowest scoring residues(s) for serum escape out of all mutated residues. | 
+| `serum_escape_min` | Lowest scoring residues(s) for serum escape out of all mutated residues. | 
 | `mAb_escape_all_classes_sum` | Sum of mean residue specific mAb escape scores for all mutated residues in sample from 26 mAbs data taken from Dong _et al_.[6], SARS-CoV-2-RBD\_MAP\_COV2-2955[7], Greaney _et al_.[8], Starr _et al_.[9], Starr _et al_.[10], Starr _et al_.[11] Tortorici _et al_.[12]. |
 | `mAb_escape_all_classes_max` | Highest scoring residues(s) for mAb escape out of all mutated residues. |
 | `mAb_escape_all_classes_min` | Lowest scoring residues(s) for mAb escape out of all mutated residues. |
