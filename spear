@@ -290,7 +290,7 @@ def main():
         args.dag = None
         args.threads = 1
         SPEAR_PATH = os.environ.get('CONDA_PREFIX')
-        args.input = f'{SPEAR_PATH}/data/combined_lineages_example.vcf'
+        args.input = f'{SPEAR_PATH}/data/example_vcfs/combined_lineages_example.vcf'
         args.extension = ".vcf"
         vcf_in = True
         args.allowAmbiguous = False
